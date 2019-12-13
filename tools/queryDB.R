@@ -1,10 +1,41 @@
 ##################################################################################################################################
 # name: queryDB.R
-# purpose: create a metadata object from the bio sample datasheets to be inputted to step three of the brent_lab rnaseq pipeline
+# purpose: parse rnaseq metadata
 # input: bio sample database main directory; filepath for script output; json with search terms; name of query
-# output: metadata .csv with selected samples
+# output: four .csv : expr.lookup.txt has paths to the count matricies; 
+#                     fastq.lookup.txt has paths to the fastqs;
+#                     queriedDB.csv is the complete database joined from input directory;
+#                     sample_summary.csv is the filtered table for input into rnaseq_pipe 
 # written by: sanji bhavsar, modified by chase mateusiak
 # date included in rnaseq_pipe: 12/19/2019
+# written/tested in the following environment:
+# R version 3.6.1 (2019-07-05)
+# Platform: x86_64-pc-linux-gnu (64-bit)
+# Running under: Ubuntu 18.04.3 LTS
+# 
+# Matrix products: default
+# BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+# LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+# 
+# locale:
+#   [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8   
+# [6] LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C               LC_TELEPHONE=C            
+# [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+# 
+# attached base packages:
+#   [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#   [1] jsonlite_1.6    readxl_1.3.1    forcats_0.4.0   stringr_1.4.0   dplyr_0.8.3     purrr_0.3.3     readr_1.3.1     tidyr_1.0.0     tibble_2.1.3   
+# [10] ggplot2_3.2.1   tidyverse_1.3.0 optparse_1.6.4 
+# 
+# loaded via a namespace (and not attached):
+#   [1] Rcpp_1.0.3        cellranger_1.1.0  pillar_1.4.2      compiler_3.6.1    dbplyr_1.4.2      tools_3.6.1       zeallot_0.1.0     lubridate_1.7.4  
+# [9] gtable_0.3.0      lifecycle_0.1.0   nlme_3.1-142      lattice_0.20-38   pkgconfig_2.0.3   rlang_0.4.2       reprex_0.3.0      cli_2.0.0        
+# [17] DBI_1.0.0         rstudioapi_0.10   haven_2.2.0       xml2_1.2.2        httr_1.4.1        withr_2.1.2       fs_1.3.1          hms_0.5.2        
+# [25] generics_0.0.2    vctrs_0.2.0       grid_3.6.1        getopt_1.20.3     tidyselect_0.2.5  glue_1.3.1        R6_2.4.1          fansi_0.4.0      
+# [33] sessioninfo_1.1.1 modelr_0.1.5      magrittr_1.5      scales_1.1.0      backports_1.1.5   rvest_0.3.5       assertthat_0.2.1  colorspace_1.4-1 
+# [41] stringi_1.4.3     lazyeval_0.2.2    munsell_0.5.0     broom_0.5.2       crayon_1.3.4  
 ##################################################################################################################################
 
 # load libraries (TODO: require install.packages if not installed)
@@ -112,7 +143,7 @@ createDB <- function(fpl, output){
   db <- db %>% mutate(tsvFilePath = gsub(".fastq.gz", "_read_count.tsv", fastqFilePath))
   
   return(db)
-} # end createDB
+} # end createDB()
 
 queryDB <- function(df, cols, conds){
   # filter sample dataframe created by createDB for user specified samples
@@ -121,7 +152,7 @@ queryDB <- function(df, cols, conds){
   
   fp <- map2(cols, conds, function(x, y) quo((!!(as.name(x))) %in% !!y))
   filter(df, !!!fp)
-} # end queryDB
+} # end queryDB()
 
 writeSummary <- function(query, qname, output){
   
@@ -143,7 +174,7 @@ writeSummary <- function(query, qname, output){
   write.csv(x = as.data.frame(summary), file = paste(output, qname, "sample_summary.csv", sep = "/"), row.names = FALSE)
   
   return()
-} # end writeSummary
+} # end writeSummary()
 
 writeLookup <- function(query, qname, output){
   lookupTSV <- tibble(query$tsvFilePath)
@@ -159,13 +190,13 @@ writeLookup <- function(query, qname, output){
 
 # store command line arguments as parsed
 tryCatch(
-parsed <- parseArguments(),
+  parsed <- parseArguments(),
   error = function(a) print('error in parseArguments()')
 )
 
 tryCatch(
-# creates directory for query specific outputs within output directory
-dir.create(file.path(parsed$output, parsed$query, fsep = "/")),
+  # creates directory for query specific outputs within output directory
+  dir.create(file.path(parsed$output, parsed$query, fsep = "/")),
   error = function(b) print('error in main code line ~168. Attempting to create directory in output directory.')
 )
 
@@ -176,8 +207,8 @@ base_path <- as.character(parsed$input_directory)
 file_path_list <- getFilePaths(base_path)
 
 tryCatch(
-# create joined database of all relavant sample info and filepaths
-db <- createDB(file_path_list, parsed$output),
+  # create joined database of all relavant sample info and filepaths
+  db <- createDB(file_path_list, parsed$output),
   error = function(c) print('error in createDB')
 )
 
@@ -187,7 +218,7 @@ user_query <- unnest(json_df, cols = everything())
 
 # filter sample database for user specified items
 tryCatch(
-filtered_db <- queryDB(db, cols = as.list(names(user_query)), conds = as.list(user_query)),
+  filtered_db <- queryDB(db, cols = as.list(names(user_query)), conds = as.list(user_query)),
   error = function(d) print('error in queryDB')
 )
 
