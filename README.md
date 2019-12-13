@@ -5,7 +5,7 @@ This RNA-seq analysis pipeline is designed for Brent lab, Washington University.
 ### Installation
 To get started, let's clone this repo to your work station. 
 ```
-git clone https://github.com/yiming-kang/rnaseq_pipe.git
+git clone https://gitlab.com/brentlab/rnaseq_pipe.git
 ```
 
 ### Wiki
