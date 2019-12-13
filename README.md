@@ -9,7 +9,7 @@ git clone https://github.com/yiming-kang/rnaseq_pipe.git
 ```
 
 ### Wiki
-For detailed intallation, usage, and file descriptions, check out our [wiki page](https://github.com/yiming-kang/rnaseq_pipe/wiki).
+For detailed intallation, usage, and file descriptions, check out our [wiki page](https://gitlab.com/brentlab/rnaseq_pipe/-/wikis/home).
 
 ### Contribution
 You are more than welcomed to contribute. Feel free to submit any pull request.
