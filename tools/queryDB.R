@@ -155,6 +155,9 @@ queryDB <- function(df, cols, conds){
 } # end queryDB()
 
 writeSummary <- function(query, qname, output){
+  # select relavent columns, add column headers for next steps of analysis
+  # Args: the filtered dataframe from queryDB, the name of the query and output directory
+  # Returns: none. writes to outputdirectory/qname
   
   selectQ <- query %>% select(genotype, strain, inductionDelay, libraryDate, harvestDate, replicate, runNumber, index1Sequence, index2Sequence, fastqFileName, timePoint, floodmedia)
   # print(selectQ)
@@ -177,6 +180,10 @@ writeSummary <- function(query, qname, output){
 } # end writeSummary()
 
 writeLookup <- function(query, qname, output){
+  # write queryDB records' count matricies and fastq filepath extensions
+  # Args: the filtered dataframe from queryDB, the name of the query and output directory
+  # Returns: none. writes to outputdirectory/qname
+  
   lookupTSV <- tibble(query$tsvFilePath)
   lookupFQ <- tibble(query$fastqFilePath)
   write.table(lookupTSV, paste(output, "/" , qname, "/" , qname, ".expr.lookup.txt", sep = ""), row.names = TRUE, col.names = FALSE, sep = "\t", quote = FALSE)
