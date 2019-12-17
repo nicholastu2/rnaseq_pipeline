@@ -1,3 +1,4 @@
+#!/usr/bin/env R
 suppressMessages(library(optparse))
 suppressMessages(library(DESeq2))
 

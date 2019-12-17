@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 Downloaded from: http://ccb.jhu.edu/software/stringtie/index.shtml?t=manual#deseq
