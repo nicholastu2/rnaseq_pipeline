@@ -230,7 +230,6 @@ tryCatch(
 )
 
 # write output files
-# write_excel_csv(query, paste(parsed$output, parsed$query, "queriedDB.csv", sep = "/"))
 write.csv(x = as.data.frame(filtered_db), file = paste(parsed$output, parsed$query, "queriedDB.csv", sep = "/"), row.names = FALSE)
 writeSummary(filtered_db, qname = parsed$query, output = parsed$output)
 writeLookup(filtered_db, qname = parsed$query, output = parsed$output)
