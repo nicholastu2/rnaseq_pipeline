@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import sys
 file_stringtie, file_gids = sys.argv[1:3]
 
