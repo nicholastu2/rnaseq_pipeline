@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 suppressMessages(library(optparse))
 source('tools/DE_modules.r')
 

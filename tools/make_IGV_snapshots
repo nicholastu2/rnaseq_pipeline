@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/usr/bin/env python
 
 '''
 Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
