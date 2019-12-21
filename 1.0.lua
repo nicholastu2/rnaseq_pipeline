@@ -24,7 +24,7 @@ depends_on("py-openpyxl/2.4.5-python-3.6.5")
 
 -- message to print on module load
 if(mode() == 'load') then
-   LmodMessage("nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://gitlab.com/brentlab/rnaseq_pipe/-/wikis/home for usage instructions.\n")
+   LmodMessage("\nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://gitlab.com/brentlab/rnaseq_pipe/-/wikis/home for usage instructions.\n")
 end
 
 -- message to print on module unload
@@ -35,7 +35,7 @@ end
 -- set environmental variables for R and python dependencies
 setenv("R_LIBS_USER", "/opt/apps/labs/mblab/software/rnaseq_pipeline/v1.0_r_dependencies")
 setenv("R_INCLUDE_DIR", "/opt/apps/labs/mblab/software/rnaseq_pipeline/v1.0_r_dependencies")
-setenv("PYTHONPATH", "/opt/apps/labs/mblab/software/rnaseq_pipeline/v1.0_python_dependencies")
+--setenv("PYTHONPATH", "/opt/apps/labs/mblab/software/rnaseq_pipeline/v1.0_python_dependencies")
 
 -- prepend the following to $PATH
 prepend_path("PATH", base)
