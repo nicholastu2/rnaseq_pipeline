@@ -160,7 +160,7 @@ writeSummary <- function(query, qname, output){
   # Args: the filtered dataframe from queryDB, the name of the query and output directory
   # Returns: none. writes to outputdirectory/qname
   
-  selectQ <- query %>% select(genotype, strain, inductionDelay, libraryDate, harvestDate, replicate, runNumber, index1Sequence, index2Sequence, fastqFileName, timePoint, floodmedia)
+  selectQ <- query %>% select(genotype, treatment, strain, inductionDelay, libraryDate, harvestDate, replicate, runNumber, index1Sequence, index2Sequence, fastqFileName, timePoint, floodmedia)
   # print(selectQ)
   summary <- mutate(selectQ,  ST_PIPE = "",
                     ST_TOTAL_READS	= "",

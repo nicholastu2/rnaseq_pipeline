@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+ 
+if [[ ! -e $HOME/rnaseq_pipeline_environment ]]; then
+   conda create -n rnaseq_pipeline_env
+fi
+

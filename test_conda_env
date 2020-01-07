@@ -1,0 +1,6 @@
+#!/usr/bin/env bash 
+ 
+if [[ ! -e $HOME/.conda/envs/rnaseq_pipeline ]]; then
+   conda create --clone /opt/apps/labs/mblab/software/miniconda/envs/rnaseq_pipeline_env -n rnaseq_pipeline
+fi
+
