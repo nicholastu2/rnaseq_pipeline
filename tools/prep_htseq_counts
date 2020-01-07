@@ -4,7 +4,7 @@ import argparse
 import os.path
 import pandas as pd
 import numpy as np
-
+import re
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
@@ -18,29 +18,57 @@ def parse_args(argv):
 
 
 def parse_lookup(file):
-	lookup = {}
-	data = np.loadtxt(file, dtype=str)
-	for i in range(data.shape[0]):
-		if not os.path.exists(data[i,1]):
-			sys.exit('ERROR: %s does not exist.\n... Aborted preparing count matrix.' % data[i,1])
-		lookup[data[i,0]] = data[i,1]
-	return lookup
 
+    # create list of samples from the fastqFileName column of sample_summary.csv
+    # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
+    # Returns: a list of the samples (the fastq file names minus the file extentions)
 
-def create_count_matrix(lookup, gene_list):
-	lookup = parse_lookup(lookup)
+    # extract column fastqFileName of sample_summary.csv as list
+    sample_fastq_list = pd.read_csv(file)['fastqFileName']
+    
+    # eliminate file extension (either .fastq.gz or .fastq) 
+    sample_basename = [re.sub(".fastq.gz|.fastq", "", basename) for basename in sample_fastq_list]
+    
+    return sample_basename
+
+def create_count_matrix(sample_summary, gene_list):
+	
+        # create count matrix with list of genes as rows and samples as columns
+        # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
+        # Returns: A count matrix of all genes (rows) by all samples (columns)
+        
+        # get list of sample file basenames from fastq filenames
+        sample_basename = parse_lookup(sample_summary)
+        # concatenate on filepath and extention
+        sample_counts_list = ["alignment/novoalign/"+ basename +".tsv") for basename in sample_basename]
+        # verify that the files exist
+        for file_path in sample_counts_list:
+	    if not os.path.exists(file_path):
+                sys.exit('ERROR: %s does not exist.\n... Aborted preparing count matrix.' % file_path)
+        
+        # import list of genes from genome
 	gene_list = np.loadtxt(gene_list, dtype=str)
-	count_mtx = gene_list.reshape(-1,1)
-	header = ['gene_id']
-	for sample, file in lookup.iteritems():
-		print '... working on %s' % sample
-		count = np.loadtxt(file, dtype=str)
-		indx = np.where([gene_list[i]==count[:,0] for i in range(len(gene_list))])[1]
-		count_mtx = np.hstack((count_mtx, count[indx,1].reshape(-1,1)))
-		header.append(sample)
-	count_mtx = np.vstack((header, count_mtx))
-	return count_mtx
 
+        # create count_mtx with rownames gene_list
+	count_mtx = gene_list.reshape(-1,1)
+	# create list of column header names
+        header = ['gene_id']
+	
+        # append samples as columns to count_mtx 
+        for file in sample_counts_list:
+	    # append sample column counts
+            print '... working on %s' % file
+	    count = np.loadtxt(file, dtype=str)
+	    indx = np.where([gene_list[i]==count[:,0] for i in range(len(gene_list))])[1]
+	    count_mtx = np.hstack((count_mtx, count[indx,1].reshape(-1,1)))
+	    # append sample column heading name 
+            sample_header = re.sub(".fastq.gz|.fastq", "", basename)
+            header.append(sample_header)
+
+        # combine count matrix and column headings
+	count_mtx = np.vstack((header, count_mtx))
+	
+        return count_mtx
 
 def main(argv):
 	parsed = parse_args(argv)
