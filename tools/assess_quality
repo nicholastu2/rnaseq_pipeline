@@ -42,7 +42,7 @@ def initialize_dataframe(samples, df_cols, group, conditions):
 	"""
 	df = pd.DataFrame(columns=df_cols)
 	df2 = pd.read_excel(samples, dtype=np.str)
-	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['GENOTYPE','REPLICATE','SAMPLE'] + conditions]
+	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['genotype','replicate','SAMPLE'] + conditions]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([np.nan]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
@@ -60,20 +60,20 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 	if gene_list is not None:
 		gids = pd.read_csv(gene_list, names=['gene'])
 		if len(np.setdiff1d(gids, count['gene'])) > 0:
-			print 'WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.'
+			print('WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.')
 		gids = np.intersect1d(gids, count['gene'])
 		count = count.loc[count['gene'].isin(gids)]
 	## make sample dict with (genotype, condiition1, condition2, ...) as the key
 	sample_dict = {}
 	for i,row in df.iterrows():
-		genotype = row['GENOTYPE']
+		genotype = row['genotype']
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
 		sample = genotype +'-'+ str(row['SAMPLE'])
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}
-			sample_dict[key][row['REPLICATE']] = sample
+			sample_dict[key][row['replicate']] = sample
 	return count, sample_dict
 
 
@@ -82,7 +82,7 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
-		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
+		sample = row['genotype'] +'-'+ str(row['SAMPLE'])
 		filepath = '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
 		## read alignment log
 		reader = open(filepath, 'r')
@@ -127,11 +127,11 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 							axis=1), name='mean_fpkm')
 		wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
-	for i,row in df[df['GENOTYPE'] != wt].iterrows():
-		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
+	for i,row in df[df['genotype'] != wt].iterrows():
+		sample = row['genotype'] +'-'+ str(row['SAMPLE'])
 		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
 		mut_fow_list = []
-		for mut_gene in row['GENOTYPE'].split('.'):
+		for mut_gene in row['genotype'].split('.'):
 			## get wildtype samples if not matching descriptors
 			if descr_match:
 				mut_descr = [row[c] for c in conditions]
@@ -141,7 +141,7 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 					if key[0] == wt and descr_matched:
 						wt_samples += sample_dict[key].values()
 				if len(wt_samples) == 0:
-					print '\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample
+					print('\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample)
 					continue
 				## calculate mean expression level of each gene
 				wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
@@ -150,11 +150,11 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 			## get mutant gene expression in mutatnt sample 
 			mut_gene2 = mut_gene.strip("_over")
 			if mut_gene2 not in expr['gene'].tolist():
-				print '\t%s not in gene list. Skipping this genotype' % mut_gene2
+				print('\t%s not in gene list. Skipping this genotype' % mut_gene2)
 				continue
 			wt_mean = float(wt_expr[wt_expr['gene'] == mut_gene2]['mean_fpkm'])
 			if wt_mean == 0:
-				print '\t%s has 0 mean expression in WT samples' % mut_gene2
+				print('\t%s has 0 mean expression in WT samples' % mut_gene2)
 				mut_fow = np.inf
 			else:
 				mut_fow = float(expr[expr['gene'] == mut_gene2][sample])/wt_mean
@@ -190,7 +190,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 		rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
 	## calcualte FOM (fold change over mutant) of the resistance cassette
 	for i,row in df.iterrows():
-		genotype = row['GENOTYPE']
+		genotype = row['genotype']
 		sample = genotype +'-'+ str(row['SAMPLE'])
 		## update FOM
 		for rc in rc_med_dict.keys():
@@ -244,8 +244,8 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 		outlier_reps = set(max_rep_combo) - set(best_combo)
 		## update status
 		for rep in outlier_reps:
-			outlier_indx = set(df.index[(df['GENOTYPE'] == key[0]) & \
-							(df['REPLICATE'] == rep)])
+			outlier_indx = set(df.index[(df['genotype'] == key[0]) & \
+							(df['replicate'] == rep)])
 			for ci in range(len(conditions)):
 				outlier_indx = outlier_indx & \
 							set(df.index[df[conditions[ci]] == key[ci+1]])
@@ -273,7 +273,7 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	"""
 	Save dataframe of quality assessment
 	"""
-	df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
+	df = df.sort_values(['genotype'] + conditions + ['replicate'])
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
@@ -307,7 +307,7 @@ def main(argv):
 	else:
 		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
 		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
-	df_columns = ['GENOTYPE','REPLICATE','SAMPLE'] \
+	df_columns = ['genotype','replicate','SAMPLE'] \
 				+ conditions \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
