@@ -9,7 +9,7 @@
 # See the end of the script for a description of the environment used to write/test
 
 # import necessary functions from queryDB in ./tools
-from queryDB import getFilePaths, createDB #, checkCSV
+from queryDB import getFilePaths, createDB, checkCSV
 import pandas as pd
 import fnmatch
 import os
@@ -92,31 +92,22 @@ def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
             return sheet_df
         else:
             # iterate through the rows of the datasheet by unique run number
-            for row in sheet_df[sheet_df.runNumber == runNum].iterrows():
+            for index, row in sheet_df[sheet_df.runNumber == runNum].iterrows():
                 # variables to identify a row uniquely -- note that these are accessed as tuples and REQUIRE the structure
                 # to be as specified in the metadata description. this should be changed in future to search for the term
                 # rather than by index number
-                lib_date = str(row[1][0])
-                lib_prepper = str(row[1][1])
-                sample_num = str(row[1][2])
-                purpose = str(row[1][7])
+                lib_date = row['libraryDate']
+                lib_prepper = row['libraryPreparer']
+                sample_num = row['librarySampleNumber']
+                purpose = row['purpose']
 
                 # create query formula from the variables above
                 query_formula = f'libraryDate == "{lib_date}" & libraryPreparer == "{lib_prepper}" & runNumber == "{runNum}" & librarySampleNumber == "{sample_num}" & purpose == "{purpose}"'
 
                 # identify the row with the index sequences in the concatenated fastqFiles + library metadata dataframe
-                index1seq_row = metadata_df.query(query_formula)
-                index2seq_row = metadata_df.query(query_formula)
-
-                # identify the index  number of the fastqFile sheet (I'm sure there is an easier way to do this, but I did it in the following two steps)
-                row_of_interest = sheet_df.loc[(sheet_df.libraryDate == lib_date) &
-                                               (sheet_df.libraryPreparer == lib_prepper) &
-                                               (sheet_df.librarySampleNumber == sample_num) &
-                                               (sheet_df.purpose == purpose)]
-                index = row_of_interest.index
+                index_seq_row = metadata_df.query(query_formula)
                 # construct a regex style match phrase with the index sequences
-                # barcode_match = '*' + index1seq_row.index1Sequence.values[0] + '_' + index2seq_row.index2Sequence.values[0] + '*'
-                #
+                barcode_match = '*' + index_seq_row.index1Sequence.values[0] + '_' + index_seq_row.index2Sequence.values[0] + '*'
                 # look for that index in the raw fastq data directory
                 for file in os.listdir(fastq_dir_full_path):
                     # if a match is found, enter it in the fastqFile sheet
@@ -130,7 +121,7 @@ def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
 metadata_dir = '/home/chase/code/brentlab/database-files'
 
 # for single sheet input
-fastqFile_metadata = '/home/chase/code/brentlab/database-files/fastqFiles/fastq_J.PLAGGENBERG_12.10.19.xlsx'
+fastqFile_metadata = '/home/chase/code/brentlab/database-files/fastqFiles/fastq_J.PLAGGENBERG_11.19.19.xlsx'
 
 # for full file input
 #fastqFile_metadata = metadata_dir
