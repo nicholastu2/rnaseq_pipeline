@@ -74,7 +74,6 @@ def fastqInput(fastqFile_metadata, metadata_df, sequence_dir):
 
 def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
     #TODO: Do not enter if less than certain number of reads? Don't overwrite without user prompt; if a fastq filename exists, check if it matches
-    # TODO: MUST REOMVE ANY NUMBERICAL INDEX AT THE BEGINNING OF THE SHEET -- THE SHEET MUST START WITH THE COLUMN SPECIFIED IN THE METADATA DESCRIPTION
         # THIS NEEDS TO BE DONE AS PART OF A "VERIFY_STRUCTURAL_ACCURACY" SCRIPT
 
     # coerce sheet to all strings
@@ -93,9 +92,7 @@ def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
         else:
             # iterate through the rows of the datasheet by unique run number
             for index, row in sheet_df[sheet_df.runNumber == runNum].iterrows():
-                # variables to identify a row uniquely -- note that these are accessed as tuples and REQUIRE the structure
-                # to be as specified in the metadata description. this should be changed in future to search for the term
-                # rather than by index number
+                # variables to identify a row uniquely
                 lib_date = row['libraryDate']
                 lib_prepper = row['libraryPreparer']
                 sample_num = row['librarySampleNumber']
@@ -114,8 +111,8 @@ def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
                     if fnmatch.fnmatch(file, barcode_match):
                         sheet_df.loc[index, 'fastqFileName'] = str(file)
             return sheet_df
-                # fastq_file_name = grep index1seq_index2seq -- if more than one, throw error
-                # enter fastq_file_name into row -- write checks here!
+                # TODO: fastq_file_name = grep index1seq_index2seq -- if more than one, throw error
+                # TODO: enter fastq_file_name into row -- write checks here!
 
 
 metadata_dir = '/home/chase/code/brentlab/database-files'
