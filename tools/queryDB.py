@@ -15,37 +15,53 @@
 import os
 import pandas as pd
 import re
+import verify_metadata_accuracy
 import sys
+import argparse
 
 # list of subdirectories of datadir to be used as keys of dictionary. When these files are searched, only .csv and .xlsx
 # are listed for concatenating. The search through these directories is not recursive.
+# this is not a user input b/c there may be subdirectories that we do not wish to search.
+# HOWEVER, the functions that require datadir_keys take it as input, which allows those functions to be used to search
+# different subdirs as needed
+
 datadir_keys = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
 
-datadir = '/home/chase/code/brentlab/database-files'
-query = pd.read_json('/home/chase/Desktop/json_query3.json', typ='series')
+#data_dir = '/home/chase/code/brentlab/database-files/old_database/crypto'
+#query = '/home/chase/Desktop/crypto_query.json'
 
-def main(datadir, query):
-    datadir_dict = getFilePaths(datadir)
+def main(argv):
+#def main(data_dir, query):
+    args = parseArgs(argv)
 
+    datadir_dict = getFilePaths(args.database)
+#    datadir_dict = getFilePaths(data_dir)
     combined_df = createDB(datadir_dict)
+    combined_df.to_csv(args.output, index=False)
+    combined_df.to_csv(args.output, index=False)
+#    query_df = queryDB(combined_df, args.json)
+#    query_df = queryDB(combined_df, query)
+#    sample_sheet = createSampleSheet(query_df)
+# don't print index
+#    sample_sheet.to_csv('~/Desktop/sample_summary.csv')
 
-    queried_df = queryDB(combined_df, query)
-
-    queried_df.to_csv("~/Desktop/queryDB.csv")
+#    query_df.to_csv("~/Desktop/crypto_queryDB_withJeff.csv")
 
 def parseArgs(argv):
-    parser = argeparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--database', required = True,
                         help = 'topmost directory of metadata database. On cluster, /scratch/mblab/database-files. \
                                 If using the rnaseq_pipeline module, you may use $METADATA. Do make sure that $METADATA \
                                 is up to date by running git pull in the directory')
-    parser.add_argument('-j' '--json', required = True,
+    parser.add_argument('-j', '--json', required = True,
                         help = 'path to json file used to parse metadata. See ')
-    parser.add_argument('-o,' '--output', required = True,
+    parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
-    parser.add_argument('-q', '--query', required = True,
+    parser.add_argument('-q', '--query', required = False,
                         help = 'name of the query. This will be used to name files deposited in the specified output \
                         directory')
+
+    return parser.parse_args(argv[1:])
 
 def getFilePaths(datadir, datadir_keys = datadir_keys):
     # create dictionary of filepaths to the various types of metadata sheets
@@ -59,7 +75,7 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
         dir_path = os.path.join(datadir, key)
         subdir_files = []
         for filename in os.listdir(os.path.join(datadir,key)):
-            if(not filename.startswith('._') and re.search('(xlsx|csv)',filename)): # no hidden files or sub directories
+            if not filename.startswith('._') and re.search('(xlsx|csv)', filename): # no hidden files or sub directories
                 subdir_files.append(os.path.join(dir_path,filename))
 
         # test whether any of the key subdirectories of datadir are empty, throw error if so
@@ -102,7 +118,9 @@ def concatMetadata(metadata_sheet_list):
 
 def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True):
     # create joined data frame from data directory
-    # Args: fpl is a list of file paths. Must be created from getFilePaths and elements must be in the same order
+    # Args: datadir_dict is a dictionary of subdirectories (keys) and lists of files in the subdirs (values);
+    #       datadir_keys are the subdirectories to search through; drop_fastq_na = True means that rows that are entirely
+    #       na will be dropped (dropping any fastq
     # Returns: a complete database of information from data directory, minus entries that do not have fastq paths entered
 
     concat_dict = {}
@@ -123,46 +141,56 @@ def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True):
 
     # merge the first two sets of data, the concatenated fastqFiles and Library sheets
     merged_df = pd.merge(concat_dict[datadir_keys[0]], concat_dict[datadir_keys[1]], how='left', on=list(key_cols[0]))
-
+    merged_df.to_csv('~/Desktop/first_merge.csv')
     # merged_df.to_csv('~/Desktop/merged_df_1.csv') # debugging tool. this and the print line below will print out each intermediate merged_df
     # merge the subsequent sheets on the columns identified in key_cols
 
     for i in range(1,len(datadir_keys)-1):
         merged_df = pd.merge(merged_df, concat_dict[datadir_keys[i+1]], how='left', on=list(key_cols[i]))
-
+        merged_df.to_csv('~/Desktop/{}_merge.csv'.format(i))
         # name = "~/Desktop/merged_df_"+str(i+1)+".csv" # debugging tool
         # merged_df.to_csv(name)
 
-    merged_df = merged_df.astype('str')
+    merged_df = verify_metadata_accuracy.coerceAllCols(merged_df)
     return merged_df
 
 def queryDB(df, query):
     # filters combined_df on user-inputted columns/values
     # Args: query (user input json at cmd line)
     # Return: a filtered df
-
     #TODO: make query case insensitive
+
+    # read in json
+    query = pd.read_json(query, typ='series')
+
+
 
     # begin a string to store the query formula
     fltr_str='('
     # loop through columns in json query (i.e. 'timePoint' and 'treatment')S
-    for key in query.index:
-        # loop through filters for each column in json query (i.e. [15, -1] and [EtoH])
-        for value in query[key]:
-            # for each value, create a formula in the form '(column == "value") |
-            fltr_str = fltr_str + '({} == "{}") | '.format(str(key), str(value))
-        # once finished looping through values of given column, close the paren opened in the instantiation of fltr_str
-        # and add a & ( to capture the next column on which to filter
-        fltr_str = fltr_str[:-3] + ') & ('
+    for key, value in query.items():
+        fltr_str = fltr_str + '{} == {}'.format(key, value) + ' & '
     # once out of both loops, split the string on the final &, retain the substring before the split, and eliminate whitespace
-    fltr_str = fltr_str.rsplit('&',1)[0].strip()
+    fltr_str = fltr_str.rsplit('&',1)[0].strip() + ')'
     # use the fltr_str formula to filter the dataframe
     df = df.query(fltr_str)
     return df
 
+def createSampleSheet(query_df):
+    query_df['sample'] = range(1, len(query_df.index)+1)
+
+    cols_from_query_df = ['sample', 'genotype', 'treatment', 'strain', 'inductionDelay', 'libraryDate', 'harvestDate',
+                          'replicate', 'runNumber', 'index1Sequence', 'index2Sequence', 'fastqFileName', 'timePoint',
+                          'floodmedia']
+
+    sample_sheet = query_df[cols_from_query_df]
+
+    return sample_sheet
+
+
 if __name__ == '__main__':
 	main(sys.argv)
-
+#    main(data_dir, query)
 # environment used to write/test
 # platform: linux-64
 # @EXPLICIT

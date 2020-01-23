@@ -8,6 +8,8 @@
 # date included in rnaseq_pipe: 1/20/2020
 # See the end of the script for a description of the environment used to write/test
 
+# TODO: ignore case (possibly this function lives in different script. maybe the accuracy script prior to get push database)
+
 # import necessary functions from queryDB in ./tools
 from queryDB import getFilePaths, createDB, checkCSV
 import pandas as pd
@@ -51,15 +53,14 @@ def fastqInput(fastqFile_metadata, metadata_df, sequence_dir):
     else:
         fastqFiles_paths = fastqFile_metadata
 
-    # iterate through the sheets in the fastqFile_Paths
+    # if list, iterate through the sheets in the fastqFile_Paths
     if isinstance(fastqFiles_paths, list):
         for sheet_path in fastqFiles_paths:
-            # read in sheet
             if checkCSV(sheet_path):
                 sheet_df = pd.read_csv(sheet_path)
             else:
                 sheet_df = pd.read_excel(sheet_path, index_col=None)
-
+            # if not list
             sheet_df = populateFastqFileName(sheet_df, metadata_df, sequence_dir)
             sheet_df.to_excel(sheet_path, na_rep='', index=False)
 
@@ -103,13 +104,20 @@ def populateFastqFileName(sheet_df, metadata_df, sequence_dir):
 
                 # identify the row with the index sequences in the concatenated fastqFiles + library metadata dataframe
                 index_seq_row = metadata_df.query(query_formula)
+
                 # construct a regex style match phrase with the index sequences
-                barcode_match = '*' + index_seq_row.index1Sequence.values[0] + '_' + index_seq_row.index2Sequence.values[0] + '*'
+                index_1_seq = index_seq_row.index1Sequence.values[0]
+                index_2_seq = index_seq_row.index2Sequence.values[0]
+
+                # NOTE: this requires that both index_1 and index_2 be present and correct in the library sheet and the fastq file
+                barcode_match = '*' + index_1_seq + '_' + index_2_seq + '*'
+
                 # look for that index in the raw fastq data directory
                 for file in os.listdir(fastq_dir_full_path):
                     # if a match is found, enter it in the fastqFile sheet
                     if fnmatch.fnmatch(file, barcode_match):
                         sheet_df.loc[index, 'fastqFileName'] = str(file)
+
             return sheet_df
                 # TODO: fastq_file_name = grep index1seq_index2seq -- if more than one, throw error
                 # TODO: enter fastq_file_name into row -- write checks here!
