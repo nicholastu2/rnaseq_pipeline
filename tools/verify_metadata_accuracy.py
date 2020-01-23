@@ -10,12 +10,51 @@
 
 #import queryDB
 import pandas as pd
+import sys
+import argparse
+import re
 
-def uniqueKeys(key, sheet):
-    key = list(key)
+def main(argv):
+    args = parseArgs(argv)
+
+    if not len(args.uniqueKeys) == 0:
+        print(args.key, " ", args.sheet_path)
+        uniqueKeys(args.key, args.sheet_path)
+    print('\n::verify_metadata_complete::')
+
+def checkCSV(file):
+    # test whether a given file is a .csv or .xlsx
+    if re.search('\.csv', file):
+        return True
+    else:
+        return False
+
+def parseArgs(argv):
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-u', '--uniqueKeys', required=False,
+                        help='Enter True to access uniqueKeys function. Must also pass -k and -s')
+    parser.add_argument('-k', '--key', nargs='+', default=[],
+                        help = 'list of keys to check for uniqueness')
+    parser.add_argument('-s', '--sheet_path', type=str, required=False,
+                        help='path to data, either .csv or .xlsx')
+    parser.add_argument('-o', '--output', required=False,
+                        help='filepath to directory to intended queryDB output')
+    parser.add_argument('-q', '--query', required=False,
+                        help='name of the query. This will be used to name files deposited in the specified output \
+                        directory')
+
+    return parser.parse_args(argv[1:])
+
+def uniqueKeys(key, df_path):
+    if checkCSV(df_path):
+        sheet = pd.read_csv(df_path)
+    else:
+        sheet = pd.read_excel(df_path)
     # make a tuple of the key columns and store them as pandas series
     key_tuples = sheet[key].apply(tuple, axis=1)
-    print(len(key_tuples), len(sheet.index))
+
+    print("\nThe number of unique keys is {}. The number of rows is {}. If these are equal, the keys are unique.".format(len(key_tuples), len(sheet.index)))
 
     if not key_tuples.unique().size == len(sheet.index):
         print("\nThe following indicies are not unique:\n\t{}".format(key_tuples.unique))
@@ -78,5 +117,8 @@ def strColCoerce(sheet):
 
     return sheet
 
-uniqueKeys(['libraryDate','libraryPreparer','librarySampleNumber',
-            's2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'], pd.read_csv('~/Desktop/first_merge.csv'))
+if __name__ == '__main__':
+	main(sys.argv)
+
+#uniqueKeys(['libraryDate','libraryPreparer','librarySampleNumber',
+#            's2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'], pd.read_csv('~/Desktop/first_merge.csv'))
