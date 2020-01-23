@@ -38,11 +38,6 @@ def parseArgs(argv):
                         help = 'list of keys to check for uniqueness')
     parser.add_argument('-s', '--sheet_path', type=str, required=False,
                         help='path to data, either .csv or .xlsx')
-    parser.add_argument('-o', '--output', required=False,
-                        help='filepath to directory to intended queryDB output')
-    parser.add_argument('-q', '--query', required=False,
-                        help='name of the query. This will be used to name files deposited in the specified output \
-                        directory')
 
     return parser.parse_args(argv[1:])
 
