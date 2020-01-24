@@ -23,3 +23,6 @@ For detailed intallation, usage, and file descriptions, check out our [wiki page
 
 ### Contribution
 You are more than welcomed to contribute. Feel free to submit any pull request.
+
+### Issue reporting
+Please report issues with analysis and the rnaseq_pipeline module through the gitlab issue reporting feature.
