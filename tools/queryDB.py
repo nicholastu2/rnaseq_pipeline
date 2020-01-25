@@ -37,15 +37,14 @@ def main(argv):
     datadir_dict = getFilePaths(args.database)
 #    datadir_dict = getFilePaths(data_dir)
     combined_df = createDB(datadir_dict)
-    combined_df.to_csv(args.output, index=False)
-    combined_df.to_csv(args.output, index=False)
-#    query_df = queryDB(combined_df, args.json)
+    query_df = queryDB(combined_df, args.json)
 #    query_df = queryDB(combined_df, query)
 #    sample_sheet = createSampleSheet(query_df)
 # don't print index
 #    sample_sheet.to_csv('~/Desktop/sample_summary.csv')
 
-#    query_df.to_csv("~/Desktop/crypto_queryDB_withJeff.csv")
+    query_df.to_csv(args.output, index=False)
+    combined_df.to_csv(args.output, index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
@@ -57,9 +56,6 @@ def parseArgs(argv):
                         help = 'path to json file used to parse metadata. See ')
     parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
-    parser.add_argument('-q', '--query', required = False,
-                        help = 'name of the query. This will be used to name files deposited in the specified output \
-                        directory')
 
     return parser.parse_args(argv[1:])
 
@@ -175,18 +171,6 @@ def queryDB(df, query):
     # use the fltr_str formula to filter the dataframe
     df = df.query(fltr_str)
     return df
-
-def createSampleSheet(query_df):
-    query_df['sample'] = range(1, len(query_df.index)+1)
-
-    cols_from_query_df = ['sample', 'genotype', 'treatment', 'strain', 'inductionDelay', 'libraryDate', 'harvestDate',
-                          'replicate', 'runNumber', 'index1Sequence', 'index2Sequence', 'fastqFileName', 'timePoint',
-                          'floodmedia']
-
-    sample_sheet = query_df[cols_from_query_df]
-
-    return sample_sheet
-
 
 if __name__ == '__main__':
 	main(sys.argv)

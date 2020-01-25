@@ -48,11 +48,11 @@ def uniqueKeys(key, df_path):
         sheet = pd.read_excel(df_path)
     # make a tuple of the key columns and store them as pandas series
     key_tuples = sheet[key].apply(tuple, axis=1)
-
-    print("\nThe number of unique keys is {}. The number of rows is {}. If these are equal, the keys are unique.".format(len(key_tuples), len(sheet.index)))
-
-    if not key_tuples.unique().size == len(sheet.index):
-        print("\nThe following indicies are not unique:\n\t{}".format(key_tuples.unique))
+    num_keys = key_tuples.size
+    num_unique_keys = key_tuples.unique().size
+    print("\nThe number of unique keys is {}. The number of rows is {}. If these are equal, the keys are unique.".format(num_keys, num_unique_keys))
+    if not num_keys == num_unique_keys:
+        print("\nThe following indicies are not unique:\n\t{}".format(sheet[sheet[key].duplicated()]))
         print("\nDo you want to continue? Enter y or n: ")
         user_response = input()
         if user_response == 'n':
@@ -114,6 +114,3 @@ def strColCoerce(sheet):
 
 if __name__ == '__main__':
 	main(sys.argv)
-
-#uniqueKeys(['libraryDate','libraryPreparer','librarySampleNumber',
-#            's2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'], pd.read_csv('~/Desktop/first_merge.csv'))
