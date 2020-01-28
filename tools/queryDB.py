@@ -38,11 +38,14 @@ def main(argv):
     query_df = queryDB(combined_df, args.json)
 
     # write out
-    query_df.to_csv(args.output, index=False)
+    query_name = os.path.basename(args.json).split('.')[0]
+    query_output = os.path.join(args.output, query_name)
+    query_df.to_csv(query_output + '.csv', index=False)
 
     # print full db if print_full = True in cmd line
     if args.print_full:
-        combined_df.to_csv(args.output + '_combined_df.csv', index=False)
+        combined_output = os.path.join(args.output, query_name + '_combined_df.csv')
+        combined_df.to_csv(combined_output, index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
