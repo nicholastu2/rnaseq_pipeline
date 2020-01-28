@@ -29,6 +29,17 @@ def checkCSV(file):
     else:
         return False
 
+def getKeys(datadir_keys, concat_dict):
+    # create list of shared columns between successive pairs of keys in datadir_keys i.e. the columns which are shared between the sheets in fastqFiles and Library
+    # Args: a list of subdirectories in datadir and a dictionary of concatenated sheets from within each one of those directories
+    # PLEASE NOTE: DICTIONARIES ARE ORDERED IN PYTHON 3.6+. KEY/DIRECTORIES NEED TO BE ADDED TO CONCAT DICT IN ORDER YOU WISH TO MERGE
+    # Returns: a list of key columns
+    key_cols = []
+    num_keys = len(datadir_keys)
+    for i in range(num_keys-1):
+        key_cols.append(concat_dict[datadir_keys[i]].keys().intersection(concat_dict[datadir_keys[i+1]].keys()))
+    return key_cols
+
 def parseArgs(argv):
 
     parser = argparse.ArgumentParser()

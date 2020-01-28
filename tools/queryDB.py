@@ -24,22 +24,25 @@ import argparse
 # this is not a user input b/c there may be subdirectories that we do not wish to search.
 # HOWEVER, the functions that require datadir_keys take it as input, which allows those functions to be used to search
 # different subdirs as needed
-
 datadir_keys = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
 
-#data_dir = '/home/chase/code/brentlab/database-files/old_database/crypto'
-#query = '/home/chase/Desktop/crypto_query.json'
-
 def main(argv):
-#def main(data_dir, query):
+    # read in cmd line args
     args = parseArgs(argv)
 
+    # get filepaths of all sheets in the various subdirs of the datadir you passed in cmd line
     datadir_dict = getFilePaths(args.database)
+    # combine on the common columns the files in the subdirs (the datadir_keys) passed in cmd line
     combined_df = createDB(datadir_dict)
+    # query the combined db based on json input from cmd line
     query_df = queryDB(combined_df, args.json)
 
+    # write out
     query_df.to_csv(args.output, index=False)
-    combined_df.to_csv(args.output, index=False)
+
+    # print full db if print_full = True in cmd line
+    if args.print_full:
+        combined_df.to_csv(args.output + '_combined_df.csv', index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
@@ -51,6 +54,8 @@ def parseArgs(argv):
                         help = 'path to json file used to parse metadata. See ')
     parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
+    parser.add_argument( '-pf', '--print_full', default = False,
+                         help = 'boolean true/false to print full DB')
 
     return parser.parse_args(argv[1:])
 
@@ -82,25 +87,18 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
 
     return datadir_dict
 
-def checkCSV(file):
-    # test whether a given file is a .csv or .xlsx
-    if re.search('\.csv', file):
-        return True
-    else:
-        return False
-
 def concatMetadata(metadata_sheet_list):
     # creates concatenatd dataframe from all files in a given list of paths (files of a certain subdirectory of user inputted data directory
     # Args: a list of filepaths all pointing to sheets of the same structure
     # Returns: all of the sheets concatenated vertically
 
     # concatenate (row_bind) all tables in a given directory's list of filepaths
-    if checkCSV(metadata_sheet_list[0][0]):
+    if verify_metadata_accuracy.checkCSV(metadata_sheet_list[0][0]):
         concatenated_df = pd.read_csv(metadata_sheet_list[0][0])
     else:
         concatenated_df = pd.read_excel(metadata_sheet_list[0][0])
     for path in metadata_sheet_list[0][1:]:
-        if checkCSV(path):
+        if verify_metadata_accuracy.checkCSV(path):
             next_df = pd.read_csv(path)
             concatenated_df = concatenated_df.append(next_df)
         else:
@@ -125,11 +123,8 @@ def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, co
     if drop_fastq_na:
         concat_dict['fastqFiles'].dropna(subset=['fastqFileName'], inplace=True)
 
-    # create list of shared columns between successive pairs of keys in datadir_keys (global variable at top). i.e. the
-    # columns which are shared between the sheets in fastqFiles and Library
-    key_cols = []
-    for i in range(len(datadir_keys)-1):
-        key_cols.append(concat_dict[datadir_keys[i]].keys().intersection(concat_dict[datadir_keys[i+1]].keys()))
+    # get keys to merge dataframes on -- note order is important
+    key_cols = verify_metadata_accuracy.getKeys(datadir_keys, concat_dict)
 
     # merge the first two sets of data, the concatenated fastqFiles and Library sheets
     merged_df = pd.merge(concat_dict[datadir_keys[0]], concat_dict[datadir_keys[1]], how='left', on=list(key_cols[0]))
@@ -164,7 +159,8 @@ def queryDB(df, query):
 
 if __name__ == '__main__':
 	main(sys.argv)
-#    main(data_dir, query)
+
+########################################################################################################################
 # environment used to write/test
 # platform: linux-64
 # @EXPLICIT
