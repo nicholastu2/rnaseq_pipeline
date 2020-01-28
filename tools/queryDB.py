@@ -24,22 +24,25 @@ import argparse
 # this is not a user input b/c there may be subdirectories that we do not wish to search.
 # HOWEVER, the functions that require datadir_keys take it as input, which allows those functions to be used to search
 # different subdirs as needed
-
 datadir_keys = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
 
-#data_dir = '/home/chase/code/brentlab/database-files/old_database/crypto'
-#query = '/home/chase/Desktop/crypto_query.json'
-
 def main(argv):
-#def main(data_dir, query):
+    # read in cmd line args
     args = parseArgs(argv)
 
+    # get filepaths of all sheets in the various subdirs of the datadir you passed in cmd line
     datadir_dict = getFilePaths(args.database)
+    # combine on the common columns the files in the subdirs (the datadir_keys) passed in cmd line
     combined_df = createDB(datadir_dict)
+    # query the combined db based on json input from cmd line
     query_df = queryDB(combined_df, args.json)
 
+    # write out
     query_df.to_csv(args.output, index=False)
-    combined_df.to_csv(args.output, index=False)
+
+    # print full db if print_full = True in cmd line
+    if args.print_full:
+        combined_df.to_csv(args.output + '_combined_df.csv', index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
@@ -51,6 +54,8 @@ def parseArgs(argv):
                         help = 'path to json file used to parse metadata. See ')
     parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
+    parser.add_argument( '-pf', '--print_full', default = False,
+                         help = 'boolean true/false to print full DB')
 
     return parser.parse_args(argv[1:])
 
@@ -164,7 +169,8 @@ def queryDB(df, query):
 
 if __name__ == '__main__':
 	main(sys.argv)
-#    main(data_dir, query)
+
+########################################################################################################################
 # environment used to write/test
 # platform: linux-64
 # @EXPLICIT
