@@ -87,25 +87,18 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
 
     return datadir_dict
 
-def checkCSV(file):
-    # test whether a given file is a .csv or .xlsx
-    if re.search('\.csv', file):
-        return True
-    else:
-        return False
-
 def concatMetadata(metadata_sheet_list):
     # creates concatenatd dataframe from all files in a given list of paths (files of a certain subdirectory of user inputted data directory
     # Args: a list of filepaths all pointing to sheets of the same structure
     # Returns: all of the sheets concatenated vertically
 
     # concatenate (row_bind) all tables in a given directory's list of filepaths
-    if checkCSV(metadata_sheet_list[0][0]):
+    if verify_metadata_accuracy.checkCSV(metadata_sheet_list[0][0]):
         concatenated_df = pd.read_csv(metadata_sheet_list[0][0])
     else:
         concatenated_df = pd.read_excel(metadata_sheet_list[0][0])
     for path in metadata_sheet_list[0][1:]:
-        if checkCSV(path):
+        if verify_metadata_accuracy.checkCSV(path):
             next_df = pd.read_csv(path)
             concatenated_df = concatenated_df.append(next_df)
         else:
@@ -130,11 +123,8 @@ def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, co
     if drop_fastq_na:
         concat_dict['fastqFiles'].dropna(subset=['fastqFileName'], inplace=True)
 
-    # create list of shared columns between successive pairs of keys in datadir_keys (global variable at top). i.e. the
-    # columns which are shared between the sheets in fastqFiles and Library
-    key_cols = []
-    for i in range(len(datadir_keys)-1):
-        key_cols.append(concat_dict[datadir_keys[i]].keys().intersection(concat_dict[datadir_keys[i+1]].keys()))
+    # get keys to merge dataframes on -- note order is important
+    key_cols = verify_metadata_accuracy.getKeys(datadir_keys, concat_dict)
 
     # merge the first two sets of data, the concatenated fastqFiles and Library sheets
     merged_df = pd.merge(concat_dict[datadir_keys[0]], concat_dict[datadir_keys[1]], how='left', on=list(key_cols[0]))
