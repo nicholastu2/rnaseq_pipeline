@@ -1,0 +1,7 @@
+int_columns = ['librarySampleNumber', 'runNumber', 'tapestationConc', 'readsObtained', 'rnaSampleNumber',
+                   'inductionDelay', 'replicate', 'timePoint']
+
+other columns are strings and require ""
+
+search on column headings and row values is case insensitive.
+
