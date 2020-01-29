@@ -64,7 +64,7 @@ def parseArgs(argv):
 
 def getFilePaths(datadir, datadir_keys = datadir_keys):
     # create dictionary of filepaths to the various types of metadata sheets
-    # Args: base_path to data directory
+    # Args: base_path to data directory, datadir_keys are the subdirectories in the datadir
     # Returns: dictionary {metadata-database/subdir: [filepaths]} i.e. {bioSample: [filepaths], experimentDesign:[filepaths]}
 
     datadir_dict = {}

@@ -53,6 +53,10 @@ def parseArgs(argv):
     return parser.parse_args(argv[1:])
 
 def uniqueKeys(key, df_path):
+    # test whether the key columns in a given sheet are unique
+    # Args: the keys (passed as list) and the path to the dataframe
+    # Return: none
+    # to std_out: info on uniqueness of key
     if checkCSV(df_path):
         sheet = pd.read_csv(df_path)
     else:
