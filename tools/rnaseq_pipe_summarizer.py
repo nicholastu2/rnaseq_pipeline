@@ -14,7 +14,7 @@ COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "
 def parse_args(argv):
 	parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
 	parser.add_argument("--align_path",
-						help="Directory for alginment log files. This currently only works for Novoalign output.")
+						help="Directory for alignment log files. This currently only works for Novoalign output.") # alignment and count path could be same
 	parser.add_argument("--count_path",
 						help="Directory for gene read count files. This currently only works for HT-Seq output.")
 	parser.add_argument("--output_csv",
@@ -76,7 +76,6 @@ def main(argv):
 	count_df = compile_data(count_path, "_read_count.tsv")
 	combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
 	combined_df.to_csv(output_csv, columns=ALIGN_VARS+COUNT_VARS[1:], index_label="Sample")
-
 
 if __name__ == "__main__":
 	main(sys.argv)
