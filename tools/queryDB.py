@@ -64,7 +64,7 @@ def parseArgs(argv):
 
 def getFilePaths(datadir, datadir_keys = datadir_keys):
     # create dictionary of filepaths to the various types of metadata sheets
-    # Args: base_path to data directory
+    # Args: base_path to data directory, datadir_keys are the subdirectories in the datadir
     # Returns: dictionary {metadata-database/subdir: [filepaths]} i.e. {bioSample: [filepaths], experimentDesign:[filepaths]}
 
     datadir_dict = {}
@@ -134,6 +134,7 @@ def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, co
     # merge the subsequent sheets on the columns identified in key_cols
     for i in range(1,len(datadir_keys)-1):
         merged_df = pd.merge(merged_df, concat_dict[datadir_keys[i+1]], how='left', on=list(key_cols[i]))
+        merged_df.to_csv('~/Desktop/{}_merge.csv'.format(i))
 
     if coerce_cols:
         merged_df = verify_metadata_accuracy.coerceAllCols(merged_df)
@@ -160,7 +161,7 @@ def queryDB(df, query):
     return df
 
 if __name__ == '__main__':
-    main(sys.argv)
+	main(sys.argv)
 
 ########################################################################################################################
 # environment used to write/test

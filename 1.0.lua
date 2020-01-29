@@ -6,6 +6,8 @@ This module loads the Brent lab rnaseq_pipeline.
 local pkgName = myModuleFullName()
 local fullVersion = myModuleVersion ()
 local base = "/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0"
+local tools = pathJoin(base, "tools")
+local metadata_database = "/scratch/mblab/database-files" 
 
 -- display this info with module whatis
 whatis("Name: " ..pkgName)
@@ -25,7 +27,12 @@ end
 
 -- prepend the following to $PATH
 prepend_path("PATH", base)
-prepend_path("PATH", pathJoin(base, "tools"))
+prepend_path("PATH", tools)
+
+-- set environmental variables
+setenv("METADATA", metadata_database)
+setenv("PYTHONPATH", tools)
+
 
 -- see test_conda_env in the rnaseq_pipeline code repo. This simply tests whether the directory $HOME/.conda/envs exists. If it does not, the rnaseq_pipeline_env directory is cloned by conda
 -- into $HOME/.conda/envs.
