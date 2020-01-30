@@ -12,23 +12,21 @@ def main(argv):
     args = parseArgs(argv)
 
     # get file_paths
-    alignment_files = getAlignmentFiles(args.alignment_directory)
-    log_files = getLogFiles(args.log_directory)
+    alignment_files = getAlignmentFiles(args.reports_runNumber_dir)
+    log_files = getLogFiles(args.reports_runNumber_dir)
 
-    align_dict = moveFiles(alignment_files, args.destination_path, args.report)
+    align_dict = moveFiles(alignment_files, args.destination_path, args.log)
     log_dict = moveFiles(log_files, args.destination_path, args.report)
 
     writeCountSheet(align_dict, log_dict, args.count_metadata)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ad', '--alignment_directory', required = True,
-                        help = 'path .bam and .tsv files (typically alignment/<some sub dir>)')
-    parser.add_argument('-ld', '--log_directory', required = True,
-                        help = 'path to htseq, novoalign and novosort logs')
-    parser.add_argument('-dp', '--destination_path', required = True,
+    parser.add_argument('-rr', '--reports_runNumber_dir', required = True,
+                        help='the reports/run_## directory in which the alignment and count files are')
+    parser.add_argument('-d', '--destination_path', required = True,
                         help = 'path to destination directory')
-    parser.add_argument('-r', '--report', required = True,
+    parser.add_argument('-l', '--log', required = True,
                         help = 'full path (path and file name) to a .tsv report file. This is redundant if the move is successful. Store in scratch folder meant for non-essential logs/repors')
     parser.add_argument('-c', '--count_metadata', required = True,
                         help = 'path to alignCount directory in metadata database')
