@@ -69,7 +69,7 @@ def parse_gene_count(file_path):
 def main(argv):
     args = parse_args(argv)
     align_count = args.align_count_path
-    output_csv = os.path.join(args.output, 'run_{}_summary.csv')
+    output_csv = os.path.join(args.output, 'run_{}_summary.csv'. args.run_number)
 
     align_df = compile_data(align_count, "_novoalign.log")
     count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
