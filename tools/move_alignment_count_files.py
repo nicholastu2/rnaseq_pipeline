@@ -16,7 +16,7 @@ def main(argv):
     log_files = getLogFiles(args.reports_runNumber_dir)
 
     align_dict = moveFiles(alignment_files, args.destination_path, args.log)
-    log_dict = moveFiles(log_files, args.destination_path, args.report)
+    log_dict = moveFiles(log_files, args.destination_path, args.log)
 
     writeCountSheet(align_dict, log_dict, args.count_metadata)
 
