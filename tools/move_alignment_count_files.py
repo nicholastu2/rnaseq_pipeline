@@ -10,19 +10,20 @@ from shutil import copy2 as cp
 def main(argv):
     # read in cmd line args
     args = parseArgs(argv)
-
+    log_name = 'run_{}_move_log.csv'.format(args.run_number)
+    write_log_file = os.path.join(args.log, log_name )
     # get file_paths
     alignment_files = getAlignmentFiles(args.reports_runNumber_dir)
-    log_files = getLogFiles(args.reports_runNumber_dir)
+    novo_log_files = getLogFiles(args.reports_runNumber_dir)
 
-    align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, args.log)
-    log_dict = moveFiles(log_files, args.destination_path, args.run_number, args.log)
+    align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
+    log_dict = moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
 
     writeCountSheet(align_dict, log_dict, args.count_metadata)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-rr', '--reports_runNumber_dir', required = True,
+    parser.add_argument('-r', '--reports', required = True,
                         help='the reports/run_## directory in which the alignment and count files are')
     parser.add_argument('-d', '--destination_path', required = True,
                         help = 'Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
