@@ -13,11 +13,11 @@ COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
-    parser.add_argument('-ac', "--align_count_path", required=True,
+    parser.add_argument("-ac", "--align_count_path", required=True,
                         help="Directory for alignment log files. This currently only works for Novoalign output.")
-    parser.add_argument('-rn', '-run_number', required=True,
+    parser.add_argument("-rn", "--run_number", required=True,
                         help='the run number corresponding to this batch of fastq files')
-    parser.add_argument('-o', "--output", required=True,
+    parser.add_argument("-o", "--output", required=True,
                         help="File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     args = parser.parse_args(argv[1:])
     return args
