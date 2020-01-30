@@ -87,12 +87,16 @@ def moveFiles(file_list, destination_dir, log_file):
     with open(log_file, 'a+') as cp_log:
         for file in file_list:
 
-            # TODO: point of weakness -- IMPROVE THE REGEX/RUN_NUM EXTRACTION
-            regex_num = r"(\d*)_.*.*"
-            run_num = re.search(regex_num, file).group(1)
-            # TODO: SEE ABOVE
-            regex_index = r".*_Index\d*_([ATGC]*)"
-            index = re.search(regex_index, file).group(1)
+            try:
+                regex_num = r"(\d*)_.*.*"
+                run_num = re.search(regex_num, file).group(1)
+            except AttributeError:
+                print('no run_number found in file: {}'.format(file))
+            try:
+                regex_index = r".*_Index\d*_([ATGC]*)"
+                index = re.search(regex_index, file).group(1)
+            except: AttributeError:
+                print('no index found in file {}'.format(file))
 
             destination_dir = addForwardSlash(destination_dir)
             destination_file_path = os.path.join(destination_dir, os.path.basename(file))
@@ -110,7 +114,7 @@ def countSheet(log_file):
     # Args: the completed log_file (must be after moves)
     # Returns: the filepath to the new count sheet
 
-    
+
 
 if __name__ == '__main__':
     main(sys.argv)
