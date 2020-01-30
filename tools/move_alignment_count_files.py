@@ -95,7 +95,7 @@ def moveFiles(file_list, destination_dir, log_file):
             try:
                 regex_index = r".*_Index\d*_([ATGC]*)"
                 index = re.search(regex_index, file).group(1)
-            except: AttributeError:
+            except AttributeError:
                 print('no index found in file {}'.format(file))
 
             destination_dir = addForwardSlash(destination_dir)
@@ -109,7 +109,7 @@ def moveFiles(file_list, destination_dir, log_file):
                 cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
                 print('...moving {} to {}'.format(os.path.basename(file), destination_dir))
 
-def countSheet(log_file):
+#def countSheet(log_file):
     # parses log_file for read_counts.tsv
     # Args: the completed log_file (must be after moves)
     # Returns: the filepath to the new count sheet
