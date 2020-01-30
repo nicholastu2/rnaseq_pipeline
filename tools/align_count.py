@@ -64,7 +64,7 @@ def write_fastq_list(dir_path, out_file):
     # write fastq filepaths in a list stored as a .txt. Used in slurm job script
     # Args: dir_path to fastq_files, out_file to output (where the necessary subdirectories are, in particular job_scripts. see rnaseq pipeline wiki)
     # Returns: the number of fastqs to be aligned/counted
-    write_path = os.path.join(out_file, 'job_scripts')
+    write_path = os.path.join('job_scripts')
     file_paths = []
     for suffix in FASTQ_TYPES:
         file_paths += glob(dir_path + "/*." + suffix)
