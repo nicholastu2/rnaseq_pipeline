@@ -1,4 +1,5 @@
-mport glob
+#!/usr/bin/env python
+import glob
 import re
 import os
 import sys
@@ -113,4 +114,3 @@ def countSheet(log_file):
 
 if __name__ == '__main__':
     main(sys.argv)
-
