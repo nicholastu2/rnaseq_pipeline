@@ -103,8 +103,8 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
         f.write("#SBATCH --mem=12G\n")
         f.write("#SBATCH --array=1-{0}%{1}\n".format(num_fastqs, min(num_fastqs, 50)))
         f.write("#SBATCH -D ./\n")
-        f.write("#SBATCH -o log/mblab_rnaseq_%A_%a.out\n")
-        f.write("#SBATCH -e log/mblab_rnaseq_%A_%a.err\n")
+        f.write("#SBATCH -o sbatch_log/mblab_rnaseq_%A_%a.out\n")
+        f.write("#SBATCH -e sbatch_log/mblab_rnaseq_%A_%a.err\n")
         f.write("#SBATCH -J mblab_rnaseq\n\n")
         f.write("ml novoalign/3.07.00\n")
         f.write("ml samtools/1.6\n")
@@ -153,7 +153,7 @@ def main(argv):
     # Write sbatch script
     fastq_list_file = "job_scripts/fastq_list.txt"
     sbatch_job_file = "mblab_rnaseq.sbatch"
-    os.system("mkdir -p log/")
+    os.system("mkdir -p sbatch_log/")
     num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
     write_job_script(sbatch_job_file, output_path,
                      fastq_list_file, num_fastqs,
