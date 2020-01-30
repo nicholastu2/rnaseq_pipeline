@@ -9,3 +9,4 @@ sequence
 ._*
 .DS_Store
 tools/.DS_Store
+__pycache__
