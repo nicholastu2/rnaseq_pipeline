@@ -137,4 +137,4 @@ def addForwardSlash(path):
     return path
 
 if __name__ == '__main__':
-	main(sys.argv)
+    main(sys.argv)
