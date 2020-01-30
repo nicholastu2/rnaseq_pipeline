@@ -14,9 +14,7 @@ import re
 import os
 import sys
 import argparse
-sys.path.append('../../rnaseq_pipe/tools')
 from queryDB import checkCSV
-# UPDATE FOR CLUSTER/ALL SYSTEMS
 
 def main(argv, rows_to_skip = -1):
     args = parseArgs(argv)
