@@ -60,11 +60,12 @@ def get_feature_type(file_path):
     return FEATURE_TYPE_DICT[suffix]
 
 
-def write_fastq_list(dir_path, out_file):
+def write_fastq_list(dir_path, fastq_list_file):
     # write fastq filepaths in a list stored as a .txt. Used in slurm job script
     # Args: dir_path to fastq_files, out_file to output (where the necessary subdirectories are, in particular job_scripts. see rnaseq pipeline wiki)
-    # Returns: the number of fastqs to be aligned/counted
-    write_path = os.path.join('job_scripts')
+    # Returns: the number of fastqs to be aligned/
+    # REQUIRES: job_scripts be in directory from which this is called
+    write_path = fastq_list_file
     file_paths = []
     for suffix in FASTQ_TYPES:
         file_paths += glob(dir_path + "/*." + suffix)
@@ -152,6 +153,7 @@ def main(argv):
     fastq_list_file = "job_scripts/fastq_list.txt"
     sbatch_job_file = "mblab_rnaseq.sbatch"
     os.system("mkdir -p sbatch_log/")
+    os.system("mkdir -p job_scripts/")
     num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
     write_job_script(sbatch_job_file, output_path,
                      fastq_list_file, num_fastqs,
