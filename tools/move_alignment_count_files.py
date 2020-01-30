@@ -105,11 +105,10 @@ def moveFiles(file_list, destination_dir, log_file):
                 cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
                 print('...moving {} to {}'.format(os.path.basename(file), destination_dir))
 
-def countSheet(log_file):
+#def countSheet(log_file):
     # parses log_file for read_counts.tsv
     # Args: the completed log_file (must be after moves)
     # Returns: the filepath to the new count sheet
-
 
 
 if __name__ == '__main__':
