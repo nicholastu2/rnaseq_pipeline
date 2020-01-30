@@ -131,7 +131,7 @@ def main(argv):
     user_email = args.user_email
     align_only = args.align_only
     run_num = args.run_num
-    output_path = os.path.join(args.output_path, run_num)
+    output_path = os.path.join(args.output_path, 'run_{}'.format(run_num))
 
     print('...parsing input')
     # Parse default variables
@@ -151,7 +151,7 @@ def main(argv):
     print('...writing sbatch job script')
     # Write sbatch script
     fastq_list_file = "job_scripts/fastq_list.txt"
-    sbatch_job_file = "mblab_rnaseq.sbatch"
+    sbatch_job_file = "job_scripts/mblab_rnaseq.sbatch"
     os.system("mkdir -p sbatch_log/")
     os.system("mkdir -p job_scripts/")
     num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
