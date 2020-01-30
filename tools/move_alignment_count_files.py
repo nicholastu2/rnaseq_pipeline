@@ -13,8 +13,8 @@ def main(argv):
     log_name = 'run_{}_move_log.csv'.format(args.run_number)
     write_log_file = os.path.join(args.log, log_name )
     # get file_paths
-    alignment_files = getAlignmentFiles(args.reports_runNumber_dir)
-    novo_log_files = getLogFiles(args.reports_runNumber_dir)
+    alignment_files = getAlignmentFiles(args.reports)
+    novo_log_files = getLogFiles(args.reports)
 
     align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
     log_dict = moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
