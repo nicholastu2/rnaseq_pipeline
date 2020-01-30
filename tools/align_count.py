@@ -94,9 +94,6 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
     # Args: see cmd line input
     # Return: slurm job script
 
-    output_full_path = os.path.join(output_path, 'run_{}'.format(run_num))
-    print("the output full path is {}".format(output_full_path))
-
     with open(job_file, "w") as f:
         f.write("#!/bin/bash\n")
         f.write("#SBATCH -N 1\n")
@@ -111,22 +108,21 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
         f.write("ml samtools/1.6\n")
         f.write("ml htseq/0.9.1\n")
         f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
-        f.write("mkdir -p {}\n".format(output_full_path))
+        f.write("mkdir -p {}\n".format(output_path))
         f.write(
             "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/{2}_${{sample}}_novoalign.log | samtools view -bS > {1}/{2}_${{sample}}_aligned_reads.bam\n".format(
-                geno_idx_file, output_full_path, run_num))
+                geno_idx_file, output_path, run_num))
         f.write(
             "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/{1}_${{sample}}_aligned_reads.bam > {0}/{1}_${{sample}}_sorted_aligned_reads.bam 2> {0}/{1}_${{sample}}_novosort.log\n".format(
-                output_full_path, run_num))
+                output_path, run_num))
         if align_only is False:
             f.write(
                 "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/{4}_${{sample}}_sorted_aligned_reads.bam {3} > {0}/{4}_${{sample}}_read_count.tsv 2> {0}/{4}_${{sample}}_htseq.log\n".format(
-                    output_full_path, strandness, feat_type, gene_ann_file, run_num))
+                    output_path, strandness, feat_type, gene_ann_file, run_num))
 
 def main(argv):
     args = parse_args(argv)
     fastq_path = args.fastq_path
-    output_path = args.output_path
     geno_idx_file = args.genome_index_file
     gene_ann_file = args.gene_annotation_file
     ann_feat_type = args.annotation_feature_type
@@ -134,6 +130,7 @@ def main(argv):
     user_email = args.user_email
     align_only = args.align_only
     run_num = args.run_num
+    output_path = os.path.join(args.output_path, run_num)
 
     print('...parsing input')
     # Parse default variables
