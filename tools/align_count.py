@@ -92,7 +92,7 @@ def get_run_number(fastq_path):
 
 
 def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_idx_file, gene_ann_file, feat_type,
-                     strandness, align_only, run_num):
+                     strandness, align_only):
     # create the job slurm job submission
     # Args: see cmd line input
     # Return: slurm job script
@@ -113,15 +113,15 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
         f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
         f.write("mkdir -p {}\n".format(output_path))
         f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/{2}_${{sample}}_novoalign.log | samtools view -bS > {1}/{2}_${{sample}}_aligned_reads.bam\n".format(
-                geno_idx_file, output_path, run_num))
+            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam\n".format(
+                geno_idx_file, output_path))
         f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/{1}_${{sample}}_aligned_reads.bam > {0}/{1}_${{sample}}_sorted_aligned_reads.bam 2> {0}/{1}_${{sample}}_novosort.log\n".format(
-                output_path, run_num))
+            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> {0}/${{sample}}_novosort.log\n".format(
+                output_path))
         if align_only is False:
             f.write(
-                "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/{4}_${{sample}}_sorted_aligned_reads.bam {3} > {0}/{4}_${{sample}}_read_count.tsv 2> {0}/{4}_${{sample}}_htseq.log\n".format(
-                    output_path, strandness, feat_type, gene_ann_file, run_num))
+                "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
+                    output_path, strandness, feat_type, gene_ann_file))
 
 def main(argv):
     args = parse_args(argv)
