@@ -17,8 +17,10 @@ def parse_args(argv):
                         help="[Required] File path of genome index. This is specific to the aligner.")
     parser.add_argument("-s", "--strandness", required=True,
                         help="[Required] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
-    parser.add_argument("--output_path", required=True,
-                        help="[Required] The topmost directory in which to deposit count, bam and novoalign log files")
+    parser.add_argument('-o', "--output_path", required=True,
+                        help="[Required]  Suggested usage: reports. \n \
+                        The topmost directory in which to deposit count, bam and novoalign log files \n \
+                        in a automatically generated subdirectory named by the run number.")
     parser.add_argument('-r', '--run_num', required=True,
                         help='[Required] To be used in the event that there is no run number in the fastq_path')
     parser.add_argument("-ga", "--gene_annotation_file", required=True,
