@@ -25,13 +25,13 @@ def parseArgs(argv):
     parser.add_argument('-rr', '--reports_runNumber_dir', required = True,
                         help='the reports/run_## directory in which the alignment and count files are')
     parser.add_argument('-d', '--destination_path', required = True,
-                        help = 'path to destination directory')
+                        help = 'Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
     parser.add_argument('-rn', '--run_number', required=True,
                         help = 'The run number corresponding to the set of fastq files')
     parser.add_argument('-l', '--log', required = True,
-                        help = 'full path (path and file name) to a .tsv report file. This is redundant if the move is successful. Store in scratch folder meant for non-essential logs/repors')
+                        help = 'suggested usage: log. This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
     parser.add_argument('-c', '--count_metadata', required = True,
-                        help = 'path to alignCount directory in metadata database')
+                        help = 'Suggested usage: database-files/alignCount   path to alignCount directory in metadata database')
 
     return parser.parse_args(argv[1:])
 
