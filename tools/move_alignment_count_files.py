@@ -15,8 +15,8 @@ def main(argv):
     alignment_files = getAlignmentFiles(args.reports_runNumber_dir)
     log_files = getLogFiles(args.reports_runNumber_dir)
 
-    align_dict = moveFiles(alignment_files, args.destination_path, args.log)
-    log_dict = moveFiles(log_files, args.destination_path, args.log)
+    align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, args.log)
+    log_dict = moveFiles(log_files, args.destination_path, args.run_number, args.log)
 
     writeCountSheet(align_dict, log_dict, args.count_metadata)
 
@@ -26,6 +26,8 @@ def parseArgs(argv):
                         help='the reports/run_## directory in which the alignment and count files are')
     parser.add_argument('-d', '--destination_path', required = True,
                         help = 'path to destination directory')
+    parser.add_argument('-rn', '--run_number', required=True,
+                        help = 'The run number corresponding to the set of fastq files')
     parser.add_argument('-l', '--log', required = True,
                         help = 'full path (path and file name) to a .tsv report file. This is redundant if the move is successful. Store in scratch folder meant for non-essential logs/repors')
     parser.add_argument('-c', '--count_metadata', required = True,
@@ -119,7 +121,7 @@ def getLogFiles(log_dir):
 
     return htseq_log_files
 
-def moveFiles(file_list, destination_dir, log_file):
+def moveFiles(file_list, destination_dir,run_num, log_file):
     # extract run number and index, cp the files to the destination dir and log the move
     # Args: list of files to be moved (must have file paths from PWD, destination diretory and a log file (complete path including name of file)
     # Return: dictionary of key (run_num + index) : values [list destination file names]
@@ -130,19 +132,16 @@ def moveFiles(file_list, destination_dir, log_file):
     with open(log_file, 'a+') as cp_log:
         for file in file_list:
             try:
-                regex_num = r"(\d*)_.*.*"
-                run_num = re.search(regex_num, file).group(1)
-            except AttributeError:
-                print('no run_number found in file: {}'.format(file))
-            try:
                 regex_index = r".*_Index\d*_([ATGC]*)"
                 index = re.search(regex_index, file).group(1)
             except AttributeError:
                 print('no index found in file {}'.format(file))
 
-            # create destination_file_path
+            # create destination_file_path. This will be in pattern inputted_dest_path/run_####/.*.bam etc
+            run_dir = 'run_{}'.format(run_num)
             destination_dir = addForwardSlash(destination_dir)
-            destination_file_path = os.path.join(destination_dir, os.path.basename(file))
+            destination_path_intermediate = os.path.join(destination_dir, run_dir)
+            destination_file_path = os.path.join(destination_path_intermediate, os.path.basename(file))
 
             # throw error/exit if file isn't found in src_dir
             if not os.path.isfile(file):

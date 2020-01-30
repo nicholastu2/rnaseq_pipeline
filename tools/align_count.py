@@ -21,8 +21,8 @@ def parse_args(argv):
                         help="[Required] The topmost directory in which to deposit count, bam and novoalign log files")
     parser.add_argument('-r', '--run_num', required=True,
                         help='[Required] To be used in the event that there is no run number in the fastq_path')
-    parser.add_argument("--gene_annotation_file", required=True,
-                        help="[Optional]  File path of gene annotation. By default (if not specified), it will look for .gff or .gtf file in the same directory and has same filename as genome index file.")
+    parser.add_argument("-ga", "--gene_annotation_file", required=True,
+                        help="[Required] File path of gene annotation. By default (if not specified), it will look for .gff or .gtf file in the same directory and has same filename as genome index file.")
     parser.add_argument("--annotation_feature_type", default=None,
                         help="[Optional]  Feature type to use for reads counting. By default (if not specified), it will use this dictionary {} based on the annotation file type.".format(
                             FEATURE_TYPE_DICT))
