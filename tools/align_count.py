@@ -17,19 +17,19 @@ def parse_args(argv):
                         help="[Required] File path of genome index. This is specific to the aligner.")
     parser.add_argument("-s", "--strandness", required=True,
                         help="[Required] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
-    parser.add_argument("--gene_annotation_file", default=None,
+    parser.add_argument("--output_path", required=True,
+                        help="[Required] The topmost directory in which to deposit count, bam and novoalign log files")
+    parser.add_argument('-r', '--run_num', required=True,
+                        help='[Required] To be used in the event that there is no run number in the fastq_path')
+    parser.add_argument("--gene_annotation_file", required=True,
                         help="[Optional]  File path of gene annotation. By default (if not specified), it will look for .gff or .gtf file in the same directory and has same filename as genome index file.")
     parser.add_argument("--annotation_feature_type", default=None,
                         help="[Optional]  Feature type to use for reads counting. By default (if not specified), it will use this dictionary {} based on the annotation file type.".format(
                             FEATURE_TYPE_DICT))
-    parser.add_argument("--output_path", default=None,
-                        help="[Optional] Directory path of output data. By default (if not specified), it will write output files in the same directory as the input fastq files.")
     parser.add_argument("--user_email", default=None,
                         help="[Optional] Email for job status notification.")
     parser.add_argument("--align_only", action="store_true",
                         help="[Optional] Set this flag to only align reads.")
-    parser.add_argument('-r', '--run_num', default=None,
-                        help='[Optional] To be used in the event that there is no run number in the fastq_path')
     args = parser.parse_args(argv[1:])
     return args
 
@@ -93,6 +93,9 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
     # create the job slurm job submission
     # Args: see cmd line input
     # Return: slurm job script
+
+    output_full_path = os.path.join(output_path, 'run_{}'.format(run_num))
+
     with open(job_file, "w") as f:
         f.write("#!/bin/bash\n")
         f.write("#SBATCH -N 1\n")
@@ -107,18 +110,17 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
         f.write("ml samtools/1.6\n")
         f.write("ml htseq/0.9.1\n")
         f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
-        f.write("mkdir -p {}\n".format(output_path))
+        f.write("mkdir -p {}\n".format(output_full_path))
         f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> log/{2}_${{sample}}_novoalign.log | samtools view -bS > {1}/{2}_${{sample}}_aligned_reads.bam\n".format(
-                geno_idx_file, output_path, run_num))
+            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/{2}_${{sample}}_novoalign.log | samtools view -bS > {1}/{2}_${{sample}}_aligned_reads.bam\n".format(
+                geno_idx_file, output_full_path, run_num))
         f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/{1}_${{sample}}_aligned_reads.bam > {0}/{1}_${{sample}}_sorted_aligned_reads.bam 2> log/{1}_${{sample}}_novosort.log\n".format(
-                output_path, run_num))
+            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/{1}_${{sample}}_aligned_reads.bam > {0}/{1}_${{sample}}_sorted_aligned_reads.bam 2> {0}/{1}_${{sample}}_novosort.log\n".format(
+                output_full_path, run_num))
         if align_only is False:
             f.write(
-                "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/{4}_${{sample}}_sorted_aligned_reads.bam {3} > {0}/{4}_${{sample}}_read_count.tsv 2> log/{4}_${{sample}}_htseq.log\n".format(
-                    output_path, strandness, feat_type, gene_ann_file, run_num))
-
+                "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/{4}_${{sample}}_sorted_aligned_reads.bam {3} > {0}/{4}_${{sample}}_read_count.tsv 2> {0}/{4}_${{sample}}_htseq.log\n".format(
+                    output_full_path, strandness, feat_type, gene_ann_file, run_num))
 
 def main(argv):
     args = parse_args(argv)
