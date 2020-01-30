@@ -6,15 +6,20 @@ import sys
 import argparse
 from shutil import copy2 as cp
 
-
 def main(argv):
     # read in cmd line args
     args = parseArgs(argv)
 
     alignment_files = getAlignmentFiles(args.alignment_directory)
-    moveFiles(alignment_files, args.destination_path, args.log)
     log_files = getLogFiles(args.log_directory)
+
+    moveFiles(alignment_files, args.destination_path, args.log)
     moveFiles(log_files, args.destination_path, args.log)
+
+    count_sheet = countSheet(args.log)
+
+    cp(count_sheet, args.metadata_count_dir)
+
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
@@ -40,7 +45,11 @@ def addForwardSlash(path):
 
 def getFileNames(dir, *args):
     # return file names with certain suffix
+<<<<<<< HEAD
     # Args: the directory to search (dir) and the ext to search (suffix)
+=======
+    # Args: the directory to search (dir) and a list of suffixes to search for in the dir
+>>>>>>> 7fbf14f98a09e15b8676bea6d9565764edc4c2c9
     # Return: file names as a list
     all_files = []
 
@@ -70,6 +79,7 @@ def getLogFiles(log_dir):
 
     suffixes = ['_htseq.log', '_novoalign.log', '_novosort.log']
 
+<<<<<<< HEAD
     htseq_log_files = getFileNames(log_dir, '_htseq.log')
     novoalign_log_files = getFileNames(log_dir, '_novoalign.log')
     novosort_log_files = getFileNames(log_dir, '_novosort.log')
@@ -77,6 +87,11 @@ def getLogFiles(log_dir):
     all_files = htseq_log_files + novoalign_log_files + novosort_log_files
 
     return all_files
+=======
+    htseq_log_files = getFileNames(log_dir, suffixes)
+
+    return htseq_log_files
+>>>>>>> 7fbf14f98a09e15b8676bea6d9565764edc4c2c9
 
 def moveFiles(file_list, destination_dir, log_file):
     # extract run number and index, cp the files to the destination dir and log the move
@@ -85,10 +100,21 @@ def moveFiles(file_list, destination_dir, log_file):
 
     with open(log_file, 'a+') as cp_log:
         for file in file_list:
+<<<<<<< HEAD
             regex_num = r"(\d*)_.*.*"
             run_num = re.search(regex_num, file).group(1)
             regex_index = r".*_Index\d*_([ATGC]*)"
             index = re.search(regex_index, file).group(1)
+=======
+
+            # TODO: point of weakness -- IMPROVE THE REGEX/RUN_NUM EXTRACTION
+            regex_num = r"(\d*)_.*.*"
+            run_num = re.search(regex_num, file).group(1)
+            # TODO: SEE ABOVE
+            regex_index = r".*_Index\d*_([ATGC]*)"
+            index = re.search(regex_index, file).group(1)
+
+>>>>>>> 7fbf14f98a09e15b8676bea6d9565764edc4c2c9
             destination_dir = addForwardSlash(destination_dir)
             destination_file_path = os.path.join(destination_dir, os.path.basename(file))
 
@@ -100,6 +126,15 @@ def moveFiles(file_list, destination_dir, log_file):
                 cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
                 print('...moving {} to {}'.format(os.path.basename(file), destination_dir))
 
+<<<<<<< HEAD
+=======
+def countSheet(log_file):
+    # parses log_file for read_counts.tsv
+    # Args: the completed log_file (must be after moves)
+    # Returns: the filepath to the new count sheet
+
+    
+>>>>>>> 7fbf14f98a09e15b8676bea6d9565764edc4c2c9
 
 if __name__ == '__main__':
     main(sys.argv)
