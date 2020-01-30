@@ -95,6 +95,7 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
     # Return: slurm job script
 
     output_full_path = os.path.join(output_path, 'run_{}'.format(run_num))
+    print("the output full path is {}".format(output_full_path))
 
     with open(job_file, "w") as f:
         f.write("#!/bin/bash\n")
