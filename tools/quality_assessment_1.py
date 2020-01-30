@@ -15,13 +15,12 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
     parser.add_argument('-ac', "--align_count_path", required=True,
                         help="Directory for alignment log files. This currently only works for Novoalign output.")
-    parser.add_argument('-rn', '-run_number', required = True,
-                        help = 'the run number corresponding to this batch of fastq files')
+    parser.add_argument('-rn', '-run_number', required=True,
+                        help='the run number corresponding to this batch of fastq files')
     parser.add_argument('-o', "--output", required=True,
                         help="File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     args = parser.parse_args(argv[1:])
     return args
-
 
 def compile_data(dir_path, suffix):
     df = pd.DataFrame()
@@ -36,7 +35,6 @@ def compile_data(dir_path, suffix):
         df = df.append(pd.Series(data), ignore_index=True)
     return df.set_index("Sample")
 
-
 def parse_alignment_log(file_path):
     with open(file_path, "r") as f:
         lines = f.readlines()
@@ -48,7 +46,6 @@ def parse_alignment_log(file_path):
                 v = int(line.split(":")[-1].split("(")[0].strip())
                 out[k] = v if k == ALIGN_VARS[0] else v / float(out[ALIGN_VARS[0]])
     return out
-
 
 def parse_gene_count(file_path):
     with open(file_path, "r") as f:
@@ -65,12 +62,14 @@ def parse_gene_count(file_path):
         out[k] /= float(out[COUNT_VARS[0]])
     return out
 
-
 def main(argv):
     args = parse_args(argv)
-    align_count = args.align_count_path
-    sum_name = 'run_{}_summary.csv'.format(args.run_number)
-    output_csv = os.path.join(args.output, sum_name)
+    align_count = args.aligh_count_path
+    run_num = args.run_number
+    output = args.output
+
+    sum_name = "run_{}_summary.csv".format(run_num)
+    output_csv = os.path.join(output, sum_name)
 
     align_df = compile_data(align_count, "_novoalign.log")
     count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
