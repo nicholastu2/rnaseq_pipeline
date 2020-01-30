@@ -64,7 +64,7 @@ def parse_gene_count(file_path):
 
 def main(argv):
     args = parse_args(argv)
-    align_count = args.aligh_count_path
+    align_count = args.align_count_path
     run_num = args.run_number
     output = args.output
 
@@ -75,7 +75,6 @@ def main(argv):
     count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
     combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
     combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
-
 
 if __name__ == "__main__":
     main(sys.argv)
