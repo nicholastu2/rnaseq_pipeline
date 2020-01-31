@@ -301,7 +301,7 @@ def main(argv):
 				[c.strip() for c in parsed.condition_descriptors.split(',')]
 
 	## do QA
-	print '... Preparing QA dataframe'
+	print('... Preparing QA dataframe')
 	if parsed.resistance_cassettes is None:
 		resistance_cassettes = None
 		resistance_cassettes_columns = []
@@ -318,16 +318,16 @@ def main(argv):
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df)
-	print ('... Assessing efficiency of gene mutation')
+	print('... Assessing efficiency of gene mutation')
 	if parsed.descriptors_specific_fow:
 		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
 	else:
 		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
-	print ('... Assessing insertion of resistance cassette')
+	print('... Assessing insertion of resistance cassette')
 	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
-	print ('... Assessing concordance among replicates')
+	print('... Assessing concordance among replicates')
 	df = assess_replicate_concordance(df, expr, sample_dict, conditions)
-	print ('... Auto auditing')
+	print('... Auto auditing')
 	df = update_auto_audit(df, parsed.auto_audit_threshold)
 	save_dataframe(parsed.output_filepath, df, df_columns, conditions, len(conditions))
 	
