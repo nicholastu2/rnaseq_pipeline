@@ -12,15 +12,29 @@ import argparse
 
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
-def parse_args(argv):
+
+def main(argv):
+    args = parseArgs(argv)
+
+    query = pd.read_csv(args.query)
+
+    dest_dir = createExperimentDir(args.output_location, args.experiment_name)
+
+    count_file_list = countFilepathList(args.query)
+
+    moveFiles(count_file_list, dest_dir, len(index))
+
+
+def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-q', '--query', required=True,
-					help='query the database using queryDB.py for the libraries you wish to analyze')
+                        help='query the database using queryDB.py for the libraries you wish to analyze')
     parser.add_argument('-o', '--output_location', required=True,
-					help='Suggested usage: /scratch/$USER or /scratch/$USER/rnaseq  The location where you want to put the directory containing the counts for your analysis')
+                        help='Suggested usage: /scratch/$USER or /scratch/$USER/rnaseq  The location where you want to put the directory containing the counts for your analysis')
     parser.add_argument('-n', '--expirement_name', required=True,
-						help='The name of this experiment. This will be used as the subdirectory of output')
+                        help='The name of this experiment. This will be used as the subdirectory of output')
     return parser.parse_args(argv[1:])
+
 
 # create experiment directory in output
 def createExperimentDir(output, exp_name):
@@ -32,6 +46,7 @@ def createExperimentDir(output, exp_name):
     os.system("mkdir -p {}".format(dir_name))
 
     return dir_name
+
 
 def fastqBasename(file):
     # create list of samples from the fastqFileName column of sample_summary.csv
@@ -46,6 +61,7 @@ def fastqBasename(file):
 
     return sample_basename
 
+
 # get count filepath
 def countFilepathList(query):
     # create filepath from COUNT_LTS, runNumber and fastqFileName
@@ -59,12 +75,14 @@ def countFilepathList(query):
     fastqFileBasename = [fastqBasename(x) for x in query['fastqFileName']]
 
     if not len(fastqFileBasename) == len(base_path):
-        print('the number of runNumbers and fastqFilePaths is not equal. Please check the query and filter out any lines without run numbers or fastqFileNames as these do not have associated count files')
+        print(
+            'the number of runNumbers and fastqFilePaths is not equal. Please check the query and filter out any lines without run numbers or fastqFileNames as these do not have associated count files')
         sys.exit(1)
 
-    filepath_list = [os.path.join(x,y) for x, y in zip(base_path, fastqFileBasename)]
+    filepath_list = [os.path.join(x, y) for x, y in zip(base_path, fastqFileBasename)]
 
     return filepath_list
+
 
 # cp count file to experiment directory
 def moveFiles(file_list, dest_dir, query_len):
@@ -75,14 +93,22 @@ def moveFiles(file_list, dest_dir, query_len):
     count = 0
 
     for file in file_list:
-            # throw error/exit if file isn't found in src_dir
-            if not os.path.isfile(file):
-                print('{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(file, COUNT_LTS))
-                sys.exit(1)
+        # throw error/exit if file isn't found in src_dir
+        if not os.path.isfile(file):
+            print(
+                '{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(
+                    file, COUNT_LTS))
+            sys.exit(1)
 
-            print('...copying {} to {}'.format(os.path.basename(file), dest_dir))
-            cp(file, dest_dir)
-        count = count+1
+        print('...copying {} to {}'.format(os.path.basename(file), dest_dir))
+        cp(file, dest_dir)
+    count = count + 1
 
     if not count == query_len:
-        print("The number of files moved is {} and the number of rows in the query is {}. Check the query, {}, and try again".format(count, query_len, COUNT_LTS))
+        print(
+            "The number of files moved is {} and the number of rows in the query is {}. Check the query, {}, and try again".format(
+                count, query_len, COUNT_LTS))
+
+
+if __name__ == '__main__':
+    main(sys.argv)
