@@ -79,7 +79,7 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 		genotype = row['GENOTYPE']
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
-		sample = genotype +'-'+ str(row['SAMPLE'])
+		sample = str(row['FASTQFILENAME'])
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}
