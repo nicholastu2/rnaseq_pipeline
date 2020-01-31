@@ -92,7 +92,7 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
-		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
+		sample = str(row['FASTQFILENAME'])
 		filepath = '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
 		## read alignment log
 		reader = open(filepath, 'r')
@@ -138,7 +138,7 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 		wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
 	for i,row in df[df['GENOTYPE'] != wt].iterrows():
-		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
+		sample = str(row['FASTQFILENAME'])
 		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
 		mut_fow_list = []
 		for mut_gene in row['GENOTYPE'].split('.'):
@@ -201,7 +201,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 	## calcualte FOM (fold change over mutant) of the resistance cassette
 	for i,row in df.iterrows():
 		genotype = row['GENOTYPE']
-		sample = genotype +'-'+ str(row['SAMPLE'])
+		sample = genotype +'-'+ str(row['FASTQFILENAME'])
 		## update FOM
 		for rc in rc_med_dict.keys():
 			row[rc+'_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(expr.loc[expr['gene'] == rc, sample])/rc_med_dict[rc]
@@ -237,7 +237,7 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 			## calculate COV median
 			cov_median = calculate_cov_median(expr[sample_combo])
 			rep_combo_col = 'COV_MED_REP'+''.join(np.array(rep_combo, dtype=str))
-			df.loc[df['SAMPLE'].isin(sample_ids), rep_combo_col] = cov_median
+			df.loc[df['FASTQFILENAME'].isin(sample_ids), rep_combo_col] = cov_median
 			## store COV median at the respective rep number
 			if rep_num not in cov_meds_dict.keys():
 				cov_meds_dict[rep_num] = {'rep_combos': [], 'cov_meds': []}
