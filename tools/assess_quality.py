@@ -41,7 +41,7 @@ def initialize_dataframe(query, df_cols, conditions):
 	"""
 	df1 = pd.DataFrame(columns = df_cols)
 	# read in queryDB dataframe describing experiment
-	if utils.checkCSV(query):
+	if checkCSV(query):
 		df2 = pd.read_csv(query, dtype=np.str)
 	else:
 		df2 = pd.read_excel(query, dtype=np.str)
