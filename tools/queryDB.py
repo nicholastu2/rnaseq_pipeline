@@ -109,6 +109,7 @@ def concatMetadata(metadata_sheet_list):
                 concatenated_df = concatenated_df.append(next_df)
         except Exception:
             print('There is an error reading {}. Cannot create dataframe from this file'.format(path))
+
     return concatenated_df
 
 def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, coerce_cols = False):
