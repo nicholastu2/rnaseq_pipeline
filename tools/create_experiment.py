@@ -8,8 +8,19 @@ import sys
 import pandas as pd
 import re
 from move_alignment_count_files import cp
+import argparse
 
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-q', '--query', required=True,
+					help='query the database using queryDB.py for the libraries you wish to analyze')
+    parser.add_argument('-o', '--output_location', required=True,
+					help='Suggested usage: /scratch/$USER or /scratch/$USER/rnaseq  The location where you want to put the directory containing the counts for your analysis')
+    parser.add_argument('-n', '--expirement_name', required=True,
+						help='The name of this experiment. This will be used as the subdirectory of output')
+    return parser.parse_args(argv[1:])
 
 # create experiment directory in output
 def createExperimentDir(output, exp_name):
@@ -21,7 +32,6 @@ def createExperimentDir(output, exp_name):
     os.system("mkdir -p {}".format(dir_name))
 
     return dir_name
-
 
 def fastqBasename(file):
     # create list of samples from the fastqFileName column of sample_summary.csv
@@ -76,6 +86,3 @@ def moveFiles(file_list, dest_dir, query_len):
 
     if not count == query_len:
         print("The number of files moved is {} and the number of rows in the query is {}. Check the query, {}, and try again".format(count, query_len, COUNT_LTS))
-
-
-# return length of query and number of count files -- print log of copy

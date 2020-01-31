@@ -153,7 +153,7 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
                 print('{} cannot be found and therefore can not be moved. Please check cmd line inputs'.format(file))
                 sys.exit(1)
 
-            print('...moving {} to {}'.format(os.path.basename(file), destination_dir))
+            print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
             cp(file, destination_file_path)
             cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
             move_dict.setdefault((run_num, index), []).append(destination_file_path)
