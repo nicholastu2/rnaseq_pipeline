@@ -92,7 +92,7 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
-		sample = row['genotype'] +'-'+ str(row['SAMPLE'])
+		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
 		filepath = '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
 		## read alignment log
 		reader = open(filepath, 'r')
@@ -137,11 +137,11 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 							axis=1), name='mean_fpkm')
 		wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
-	for i,row in df[df['genotype'] != wt].iterrows():
-		sample = row['genotype'] +'-'+ str(row['SAMPLE'])
+	for i,row in df[df['GENOTYPE'] != wt].iterrows():
+		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
 		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
 		mut_fow_list = []
-		for mut_gene in row['genotype'].split('.'):
+		for mut_gene in row['GENOTYPE'].split('.'):
 			## get wildtype samples if not matching descriptors
 			if descr_match:
 				mut_descr = [row[c] for c in conditions]
@@ -200,7 +200,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 		rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
 	## calcualte FOM (fold change over mutant) of the resistance cassette
 	for i,row in df.iterrows():
-		genotype = row['genotype']
+		genotype = row['GENOTYPE']
 		sample = genotype +'-'+ str(row['SAMPLE'])
 		## update FOM
 		for rc in rc_med_dict.keys():
@@ -254,7 +254,7 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 		outlier_reps = set(max_rep_combo) - set(best_combo)
 		## update status
 		for rep in outlier_reps:
-			outlier_indx = set(df.index[(df['genotype'] == key[0]) & \
+			outlier_indx = set(df.index[(df['GENOTYPE'] == key[0]) & \
 							(df['replicate'] == rep)])
 			for ci in range(len(conditions)):
 				outlier_indx = outlier_indx & \
@@ -283,7 +283,7 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	"""
 	Save dataframe of quality assessment
 	"""
-	df = df.sort_values(['genotype'] + conditions + ['replicate'])
+	df = df.sort_values(['GENOTYPE'] + conditions + ['replicate'])
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
