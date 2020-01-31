@@ -62,7 +62,9 @@ def main(argv):
 
     count_matrix = createCountMatrix(parsed.experiment_directory, parsed.gene_list)
 
-    np.savetxt(parsed.output_count_file, count_matrix, delimiter=',', fmt='%s')
+    count_file_path = os.path.join(parsed.output_count_file, os.path.basename(parsed.experiment_directory)) + '_gene_count.csv'
+
+    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
     print(count_matrix[1:10])
 
