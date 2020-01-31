@@ -97,12 +97,15 @@ def concatMetadata(metadata_sheet_list):
     else:
         concatenated_df = pd.read_excel(metadata_sheet_list[0][0])
     for path in metadata_sheet_list[0][1:]:
-        if verify_metadata_accuracy.checkCSV(path):
-            next_df = pd.read_csv(path)
-            concatenated_df = concatenated_df.append(next_df)
-        else:
-            next_df = pd.read_excel(path)
-            concatenated_df = concatenated_df.append(next_df)
+        try:
+            if verify_metadata_accuracy.checkCSV(path):
+                next_df = pd.read_csv(path)
+                concatenated_df = concatenated_df.append(next_df)
+            else:
+                next_df = pd.read_excel(path)
+                concatenated_df = concatenated_df.append(next_df)
+        except Exception:
+            print('There is an error reading {}. Cannot create dataframe from this file'.format(path))
     return concatenated_df
 
 def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, coerce_cols = False):
