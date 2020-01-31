@@ -74,7 +74,7 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
         dir_path = os.path.join(datadir, key)
         subdir_files = glob.glob(os.path.join(dir_path, '*'))
         for file in subdir_files:
-            if file.startswith('~') or file.startswith('._')or file.startswith('.~'):
+            if file.startswith('~') or file.startswith('._') or file.startswith('.~'):
                 subdir_files.remove(file)
 
         # test whether any of the key subdirectories of datadir are empty, throw error if so
@@ -136,7 +136,6 @@ def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, co
     # merge the subsequent sheets on the columns identified in key_cols
     for i in range(1,len(datadir_keys)-1):
         merged_df = pd.merge(merged_df, concat_dict[datadir_keys[i+1]], how='left', on=list(key_cols[i]))
-        merged_df.to_csv('~/Desktop/{}_merge.csv'.format(i))
 
     if coerce_cols:
         merged_df = verify_metadata_accuracy.coerceAllCols(merged_df)
