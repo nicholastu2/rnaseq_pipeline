@@ -5,14 +5,15 @@ import os.path
 import numpy as np
 import re
 import glob
+from utils import addForwardSlash
 
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment_directory', required=True,
                         help='The directory created by create_experiment')
-    parser.add_argument('-o', '--output_count_file', required=True,
-                        help='Output count matrix.')
+    parser.add_argument('-o', '--output', required=True,
+                        help='Output directory for count matrix.')
     parser.add_argument('-l', '--gene_list', required=True,
                         help='Gene list. This gene list should be a subset or the same set of annotated genes in GTF/GFF.')
     return parser.parse_args(argv[1:])
@@ -22,6 +23,7 @@ def createCountMatrix(exp_dir, gene_list):
     # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
     # Returns: A count matrix of all genes (rows) by all samples (columns)
 
+    exp_dir = addForwardSlash(exp_dir)
     search_pattern = exp_dir + '*_read_count.tsv'
     sample_counts_list = glob.glob(search_pattern)
     # verify that the files exist
@@ -62,7 +64,7 @@ def main(argv):
 
     count_matrix = createCountMatrix(parsed.experiment_directory, parsed.gene_list)
 
-    count_file_path = os.path.join(parsed.output_count_file, os.path.basename(parsed.experiment_directory)) + '_gene_count.csv'
+    count_file_path = os.path.join(parsed.output, os.path.basename(parsed.experiment_directory)) + 'gene_count.csv'
 
     np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 

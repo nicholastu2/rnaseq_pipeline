@@ -122,4 +122,9 @@ def check_dir(d):
 		d += '/'
 	return d
 
+def addForwardSlash(path):
+    if not path[-1] == '/':
+        path = path + '/'
+    return path
+
 	
