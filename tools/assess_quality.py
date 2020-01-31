@@ -24,7 +24,7 @@ def parse_args(argv):
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
 	parser.add_argument('-m', '--resistance_cassettes',
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
-	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
+	parser.add_argument('--condition_descriptors', default='TREATMENT,TIMEPOINT',
 						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
 	parser.add_argument('--descriptors_specific_fow', action='store_true',
 						help = 'Set this flag to find the wildtype samples that match the condition descriptors of the mutant sample when calcualting the fold change over wildtype (FOW).')
