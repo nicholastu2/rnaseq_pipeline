@@ -7,7 +7,7 @@ local pkgName = myModuleFullName()
 local fullVersion = myModuleVersion ()
 local base = "/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0"
 local tools = pathJoin(base, "tools")
-local metadata_database = "/scratch/mblab/database-files" 
+local metadata_database = "/lts/mblab/Crypto/rnaseq_data/database-files" 
 
 -- display this info with module whatis
 whatis("Name: " ..pkgName)
