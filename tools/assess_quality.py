@@ -76,7 +76,7 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 	## make sample dict with (genotype, condiition1, condition2, ...) as the key
 	sample_dict = {}
 	for i,row in df.iterrows():
-		genotype = row['genotype']
+		genotype = row['GENOTYPE']
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
 		sample = genotype +'-'+ str(row['SAMPLE'])
