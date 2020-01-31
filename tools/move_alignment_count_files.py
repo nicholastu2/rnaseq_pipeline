@@ -150,7 +150,7 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
 
             # throw error/exit if file isn't found in src_dir
             if not os.path.isfile(file):
-                print('{} cannot be found and therefore can not be moved. Please check cmd line inputs')
+                print('{} cannot be found and therefore can not be moved. Please check cmd line inputs'.format(file))
                 sys.exit(1)
 
             print('...moving {} to {}'.format(os.path.basename(file), destination_dir))
