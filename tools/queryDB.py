@@ -14,7 +14,7 @@
 
 import os
 import pandas as pd
-import re
+import glob
 import verify_metadata_accuracy
 import sys
 import argparse
@@ -72,11 +72,7 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
     # associate each key (relevant subdirs of datadir) with a list of of files (complete path) in each key directory
     for key in datadir_keys:
         dir_path = os.path.join(datadir, key)
-        subdir_files = []
-        for filename in os.listdir(os.path.join(datadir,key)):
-            if ((not (filename.startswith('._') and filename.startswith('.~')))
-                    and re.search('(xlsx|csv)', filename)): # no hidden files or sub directories
-                subdir_files.append(os.path.join(dir_path,filename))
+        subdir_files = glob.glob(os.path.join(dir_path, '*'))
 
         # test whether any of the key subdirectories of datadir are empty, throw error if so
         try:

@@ -16,8 +16,9 @@ def main(argv):
     alignment_files = getAlignmentFiles(args.reports)
     novo_log_files = getLogFiles(args.reports)
 
+    dest_path_complete = os.path.join(args.destination_path, 'run_{}'.format(args.run_number))
     # make run_num sub directory in destination path
-    os.system("mkdir -p args.destination_path/run_{}".format(args.run_number))
+    os.system("mkdir -p {}".format(dest_path_complete))
 
     align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
     log_dict = moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
