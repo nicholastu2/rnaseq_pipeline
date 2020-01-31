@@ -9,8 +9,7 @@ import pandas as pd
 import argparse
 from shutil import copy2 as cp
 
-#COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
-COUNT_LTS = '/home/chase/Desktop'
+COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
 def main(argv):
     args = parseArgs(argv)
