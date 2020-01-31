@@ -10,8 +10,8 @@ import os
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--samples', required=True,
-						help='Sample summary metadata file.')
+	parser.add_argument('-q', '--query', required=True,
+						help='The output of queryDB that was used to create this experiment')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output_filepath', required=True,
@@ -28,7 +28,7 @@ def parse_args(argv):
 						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
 	parser.add_argument('--descriptors_specific_fow', action='store_true',
 						help = 'Set this flag to find the wildtype samples that match the condition descriptors of the mutant sample when calcualting the fold change over wildtype (FOW).')
-	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
+	parser.add_argument('--qc_configure', default='/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/templates/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
 						help='Threshold for automatical sample audit.')
