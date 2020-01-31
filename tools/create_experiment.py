@@ -8,6 +8,7 @@ import sys
 import pandas as pd
 import argparse
 from shutil import copy2 as cp
+import utils
 
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
@@ -44,20 +45,6 @@ def createExperimentDir(output, exp_name):
     os.system("mkdir -p {}".format(dir_name))
 
     return dir_name
-
-def fileBaseName(file_name):
-    #https: // stackoverflow.com / a / 46811091
-    if '.' in file_name:
-        separator_index = file_name.index('.')
-        base_name = file_name[:separator_index]
-        return base_name
-    else:
-        return file_name
-
-def pathBaseName(path):
-    #https://stackoverflow.com/a/46811091
-    file_name = os.path.basename(path)
-    return file_base_name(file_name)
 
 # get count filepath
 def countFilepathList(query):

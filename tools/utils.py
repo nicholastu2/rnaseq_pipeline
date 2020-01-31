@@ -127,4 +127,17 @@ def addForwardSlash(path):
         path = path + '/'
     return path
 
-	
+# the below functions strip file extensions, including in cases where there are two eg fq.gz
+def fileBaseName(file_name):
+    #https: // stackoverflow.com / a / 46811091
+    if '.' in file_name:
+        separator_index = file_name.index('.')
+        base_name = file_name[:separator_index]
+        return base_name
+    else:
+        return file_name
+
+def pathBaseName(path):
+    #https://stackoverflow.com/a/46811091
+    file_name = os.path.basename(path)
+    return fileBaseName(file_name)
