@@ -294,8 +294,6 @@ def main(argv):
 	## validate args
 	if os.path.exists(parsed.output_filepath):
 		sys.exit('WARNING: %s already exists, rename the file to proceed.' % parsed.output_filepath)
-	if not os.path.exists(parsed.samples):
-		sys.exit('ERROR: %s does not exist.' % parsed.samples)
 	if not os.path.exists(parsed.count_matrix):
 		sys.exit('ERROR: %s does not exist.' % parsed.count_matrix)
 	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
