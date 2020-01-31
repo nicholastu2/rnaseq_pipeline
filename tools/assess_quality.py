@@ -321,7 +321,7 @@ def main(argv):
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] 
-	df = initialize_dataframe(parsed.samples, df_columns, conditions)
+	df = initialize_dataframe(parsed.query, df_columns, conditions)
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df)
