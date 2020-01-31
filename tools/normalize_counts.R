@@ -8,7 +8,7 @@ parse_arguments <- function() {
 		make_option(c('-i', '--file_count_mtx'), 
 					help='Read count matrix (genes x samples).'),
 		make_option(c('-o', '--output'), 
-					help='Filepath or directory path for normalized count file(s).'))
+					help='FULL!! Filepath to normalized count file(s). This includes filename and extension Suggested use: <path>/<experiment_norm_count.csv>'))
 	args <- parse_args(OptionParser(option_list=option_list))
 	return(args)
 }
