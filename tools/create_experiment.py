@@ -6,12 +6,11 @@
 import os
 import sys
 import pandas as pd
-import re
-from move_alignment_count_files import cp
 import argparse
+from shutil import copy2 as cp
 
-COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
-
+#COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+COUNT_LTS = '/home/chase/Desktop'
 
 def main(argv):
     args = parseArgs(argv)
@@ -20,9 +19,9 @@ def main(argv):
 
     dest_dir = createExperimentDir(args.output_location, args.experiment_name)
 
-    count_file_list = countFilepathList(args.query)
+    count_file_list = countFilepathList(query)
 
-    moveFiles(count_file_list, dest_dir, len(index))
+    moveFiles(count_file_list, dest_dir, len(query))
 
 
 def parseArgs(argv):
@@ -42,25 +41,24 @@ def createExperimentDir(output, exp_name):
     # Args: output path (cmd line input) and name of experiment (cmd line input)
     # Return: directory path
 
-    dir_name = sys.path.join(output, exp_name)
+    dir_name = os.path.join(output, exp_name)
     os.system("mkdir -p {}".format(dir_name))
 
     return dir_name
 
+def fileBaseName(file_name):
+    #https: // stackoverflow.com / a / 46811091
+    if '.' in file_name:
+        separator_index = file_name.index('.')
+        base_name = file_name[:separator_index]
+        return base_name
+    else:
+        return file_name
 
-def fastqBasename(file):
-    # create list of samples from the fastqFileName column of sample_summary.csv
-    # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
-    # Returns: a list of the samples (the fastq file names minus the file extentions)
-
-    # extract column fastqFileName of sample_summary.csv as list
-    sample_fastq_list = pd.read_csv(file)['fastqFileName']
-
-    # eliminate file extension (either .fastq.gz or .fastq)
-    sample_basename = [re.sub(".fastq.gz|.fastq", "", basename) for basename in sample_fastq_list]
-
-    return sample_basename
-
+def pathBaseName(path):
+    #https://stackoverflow.com/a/46811091
+    file_name = os.path.basename(path)
+    return file_base_name(file_name)
 
 # get count filepath
 def countFilepathList(query):
@@ -72,14 +70,15 @@ def countFilepathList(query):
 
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
-    fastqFileBasename = [fastqBasename(x) for x in query['fastqFileName']]
+    fastq_file_basename = [fileBaseName(x) for x in query['fastqFileName']]
+    read_count_basename = [x + '_read_count.tsv' for x in fastq_file_basename]
 
-    if not len(fastqFileBasename) == len(base_path):
+    if not len(read_count_basename) == len(base_path):
         print(
             'the number of runNumbers and fastqFilePaths is not equal. Please check the query and filter out any lines without run numbers or fastqFileNames as these do not have associated count files')
         sys.exit(1)
 
-    filepath_list = [os.path.join(x, y) for x, y in zip(base_path, fastqFileBasename)]
+    filepath_list = [os.path.join(x, y) for x, y in zip(base_path, read_count_basename)]
 
     return filepath_list
 
@@ -100,14 +99,13 @@ def moveFiles(file_list, dest_dir, query_len):
                     file, COUNT_LTS))
             sys.exit(1)
 
-        print('...copying {} to {}'.format(os.path.basename(file), dest_dir))
-        cp(file, dest_dir)
-    count = count + 1
+        dest_full_path = os.path.join(dest_dir, os.path.basename(file))
+        print('...copying {} to {}'.format(os.path.basename(file), dest_full_path))
+        cp(file, dest_full_path)
+        count = count + 1
 
     if not count == query_len:
-        print(
-            "The number of files moved is {} and the number of rows in the query is {}. Check the query, {}, and try again".format(
-                count, query_len, COUNT_LTS))
+        print("The number of files moved is {} and the number of rows in the query is {}. Check the query, {}, and try again".format(count, query_len, COUNT_LTS))
 
 
 if __name__ == '__main__':
