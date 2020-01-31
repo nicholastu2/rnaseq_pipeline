@@ -12,8 +12,6 @@ def parse_args(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-s', '--samples', required=True,
 						help='Sample summary metadata file.')
-	parser.add_argument('-g', '--group_num', required=True, 
-						help='Experiment group number.')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output_filepath', required=True,
@@ -37,17 +35,28 @@ def parse_args(argv):
 	return parser.parse_args(argv[1:])
 
 
-def initialize_dataframe(samples, df_cols, group, conditions):
+def initialize_dataframe(query, df_cols, conditions):
 	"""
 	Define the QC dataframe.
 	"""
-	df = pd.DataFrame(columns=df_cols)
-	df2 = pd.read_excel(samples, dtype=np.str)
-	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['genotype','replicate','SAMPLE'] + conditions]
+	df1 = pd.DataFrame(columns = df_cols)
+	# read in queryDB dataframe describing experiment
+	if utils.checkCSV(query):
+		df2 = pd.read_csv(query, dtype=np.str)
+	else:
+		df2 = pd.read_excel(query, dtype=np.str)
+	# force all column headers to upper case
+	df2.columns = df2.columns.str.upper()
+
+	if conditions:
+		conditions = [x.upper() for x in conditions]
+
+	df2 = df2[['GENOTYPE','REPLICATE','FASTQFILENAME'] + conditions]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([np.nan]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
-	return df.append(df2)
+
+	return df1.append(df2)
 
 
 def load_expression_data(df, cnt_mtx, gene_list, conditions):
@@ -308,13 +317,13 @@ def main(argv):
 	else:
 		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
 		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
-	df_columns = ['genotype','replicate','SAMPLE'] \
+	df_columns = ['GENOTYPE','REPLICATE','FASTQFILENAME'] \
 				+ conditions \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] 
-	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num, conditions)
+	df = initialize_dataframe(parsed.samples, df_columns, conditions)
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df)
