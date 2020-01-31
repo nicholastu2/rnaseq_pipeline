@@ -160,7 +160,7 @@ def main(argv):
     write_job_script(sbatch_job_file, output_path,
                      fastq_list_file, num_fastqs,
                      geno_idx_file, gene_ann_file, feat_type,
-                     strandness, align_only, run_num)
+                     strandness, align_only)
 
     print('...submitting job')
     # Submit sbatch job
