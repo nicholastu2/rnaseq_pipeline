@@ -4,6 +4,7 @@ import re
 import numpy as np
 from itertools import combinations, product
 import yaml
+import sys
 
 
 def decompose_status2bit(n):

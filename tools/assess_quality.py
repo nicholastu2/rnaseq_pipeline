@@ -92,8 +92,8 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
-		sample = str(row['FASTQFILENAME'])
-		filepath = '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
+		sample = str(row['FASTQFILENAME']) + '_' + aligner_tool + '.log'
+		filepath =  glob.glob() # '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
 		## read alignment log
 		reader = open(filepath, 'r')
 		lines = reader.readlines()
@@ -107,8 +107,8 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 		reader.close()
 		align_pct = uniq_mapped_reads/float(total_reads)
 		## set mapping quality
-		row['TOTAL'] = total_reads
-		row['ALIGN_PCT'] = align_pct
+		row['TOTAL'] = total_reads # read Sequences
+		row['ALIGN_PCT'] = align_pct # Unique Alignment
 		if total_reads < QC_dict['TOTAL_READS']['threshold']:
 			row['STATUS'] += QC_dict['TOTAL_READS']['status']
 		if align_pct < QC_dict['ALIGN_PCT']['threshold']:
