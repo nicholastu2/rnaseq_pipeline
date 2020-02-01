@@ -258,7 +258,7 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 		## update status
 		for rep in outlier_reps:
 			outlier_indx = set(df.index[(df['GENOTYPE'] == key[0]) & \
-							(df['replicate'] == rep)])
+							(df['REPLICATE'] == rep)])
 			for ci in range(len(conditions)):
 				outlier_indx = outlier_indx & \
 							set(df.index[df[conditions[ci]] == key[ci+1]])
@@ -286,7 +286,7 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	"""
 	Save dataframe of quality assessment
 	"""
-	df = df.sort_values(['GENOTYPE'] + conditions + ['replicate'])
+	df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
