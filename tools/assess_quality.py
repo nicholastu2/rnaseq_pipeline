@@ -94,7 +94,8 @@ def assess_mapping_quality(df, exp_dir, aligner_tool='novoalign'):
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
-		sample = str(row['FASTQFILENAME']) + '_' + aligner_tool + '.log'
+		# fileBaseName from utils
+		sample = fileBaseName(str(row['FASTQFILENAME'])) + '_' + aligner_tool + '.log'
 		filepath = os.path.join(exp_dir, sample)
 		## read alignment log
 		reader = open(filepath, 'r')
