@@ -12,6 +12,8 @@ def parse_args(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-q', '--query', required=True,
 						help='The output of queryDB that was used to create this experiment')
+	parser.add_argument('-e', '--experiment_directory', required=True,
+						help='the path to the experiment directory created by create_expirement')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output_filepath', required=True,
@@ -87,13 +89,13 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 	return count, sample_dict
 
 
-def assess_mapping_quality(df, aligner_tool='novoalign'):
+def assess_mapping_quality(df, exp_dir, aligner_tool='novoalign'):
 	"""
 	Assess percentage of uniquely mapped reads over all reads.
 	"""
 	for i,row in df.iterrows():
 		sample = str(row['FASTQFILENAME']) + '_' + aligner_tool + '.log'
-		filepath =  glob.glob() # '/'.join(['alignment', aligner_tool, sample, aligner_tool+'.log'])
+		filepath = os.path.join(exp_dir, sample)
 		## read alignment log
 		reader = open(filepath, 'r')
 		lines = reader.readlines()
@@ -324,7 +326,7 @@ def main(argv):
 	df = initialize_dataframe(parsed.query, df_columns, conditions)
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
-	df = assess_mapping_quality(df)
+	df = assess_mapping_quality(df, parsed.experiment_directory)
 	print('... Assessing efficiency of gene mutation')
 	if parsed.descriptors_specific_fow:
 		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
