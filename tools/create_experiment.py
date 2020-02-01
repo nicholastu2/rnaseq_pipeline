@@ -13,8 +13,8 @@ from utils import *
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
 def main(argv):
-    count_extention = '_read_count.tsv'
-    novoalign_log_extention = '_novoalign.log'
+    count_suffix = '_read_count.tsv'
+    novoalign_log_suffix = '_novoalign.log'
 
     args = parseArgs(argv)
 
@@ -22,8 +22,8 @@ def main(argv):
 
     dest_dir = createExperimentDir(args.output_location, args.experiment_name)
 
-    count_file_list = filepathList(query, count_extention)
-    novoalign_log_list = filepathList(query, novoalign_log_extention)
+    count_file_list = filepathList(query, count_suffix)
+    novoalign_log_list = filepathList(query, novoalign_log_suffix)
     file_list = count_file_list + novoalign_log_list
 
     moveFiles(file_list, dest_dir, len(query))
