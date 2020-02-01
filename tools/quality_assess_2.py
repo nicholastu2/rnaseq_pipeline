@@ -226,7 +226,7 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 	the COV of each combination of replicates. Then find the maximal number of
 	concordant replicates.
 	"""
-	cov = expr['gene']
+
 	## calcualte COV medians for replicate combinations
 	for key in sorted(sample_dict.keys()):
 		sample_ids = [s.split('-')[1] for s in sample_dict[key].values()]
