@@ -10,8 +10,7 @@ import argparse
 from shutil import copy2 as cp
 from utils import *
 
-#COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
-COUNT_LTS = '/home/chase/Desktop'
+COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
 def main(argv):
     count_extention = '_read_count.tsv'
