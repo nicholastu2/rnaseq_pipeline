@@ -177,6 +177,5 @@ def main(argv):
     # get version info from the module .lua file (see the .lua whatis statements)
     os.system("module whatis rnaseq_pipeline 2> {}".format(os.path.join(output_subdir_path, 'pipeline_version.txt')))
 
-
 if __name__ == "__main__":
     main(sys.argv)

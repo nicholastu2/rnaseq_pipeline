@@ -26,7 +26,7 @@ def main(argv):
     writeCountSheet(align_dict, log_dict, args.count_metadata)
 
     pipeline_info = os.path.join(args.reports, 'pipeline_info')
-    if os.path.isdir(pipeline_info_path):
+    if os.path.isdir(pipeline_info):
         cp(pipeline_info, dest_path_complete)
 
 def parseArgs(argv):
