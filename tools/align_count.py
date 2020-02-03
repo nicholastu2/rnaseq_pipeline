@@ -172,8 +172,7 @@ def main(argv):
         os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(user_email, sbatch_job_file))
 
     # create a subdirectory where alignment and count files are stored. This will be where the pipeline version info and summary sheet will go
-    full_output_path = os.path.join(output_path, "run_{}".format(run_num))
-    output_subdir_path = os.path.join(full_output_path, "pipeline_info")
+    output_subdir_path = os.path.join(output_path, "pipeline_info")
     os.system("mkdir -p {}".format(output_subdir_path))
     # get version info from the module .lua file (see the .lua whatis statements)
     os.system("module whatis rnaseq_pipeline 2> {}".format(os.path.join(output_subdir_path, 'pipeline_version.txt')))
