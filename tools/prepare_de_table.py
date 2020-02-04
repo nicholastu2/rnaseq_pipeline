@@ -27,7 +27,7 @@ def build_design_table(summary_df, cmp_cols, wt=None):
 	"""
 	Automatically build design table that has basic comparison groups.
 	"""
-	print '... Building design table'
+	print('... Building design table')
 	## intialize design dataframe
 	design_df = summary_df[['GENOTYPE', 'REPLICATE', 'SAMPLE'] + cmp_cols].copy()
 	cmp_cols = ['GENOTYPE'] + cmp_cols
