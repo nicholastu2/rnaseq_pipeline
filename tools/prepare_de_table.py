@@ -38,7 +38,7 @@ def parse_args(argv):
 	parser.add_argument('-w',  '--wildtype',
 						help='[Required] Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
-						help='[Required] Experimental conditions to describe the sample. Use delimiter "," if multiple descriptors are used. Default is TREATMENT,TIME_POINT')
+						help='Experimental conditions to describe the sample. Use delimiter "," if multiple descriptors are used. Default is TREATMENT,TIME_POINT')
 	return parser.parse_args(argv[1:])
 
 
