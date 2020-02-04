@@ -7,19 +7,38 @@ import glob
 import copy
 from utils import *
 
+def main(argv):
+	parsed = parse_args(argv)
+	if not os.path.exists(parsed.samples):
+		sys.exit('ERROR: %s does not exist.' % parsed.samples)
+
+	## get conditions
+	conditions = [c.strip() for c in parsed.condition_descriptors.split(',')]
+
+	## load sample summary
+	summary_df = pd.read_excel(parsed.samples)
+	## sift data based on group and quality
+	summary_df = (summary_df['MANUAL_AUDIT']==0)
+	## prepare design table
+	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
+
+	design_table_filepath = os.path.join(parsed.output_dir, parsed.experiment_name + '_design_table')
+	save_dataframe(design_table_filepath, design_df)
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-s', '--samples', required=True,
-						help='Sample summary metadata file.')
+						help='[Required] Sample summary metadata file.')
 	parser.add_argument('-g', '--group_num', required=True,
-						help='Analysis group number. It is required if mutilple metadata files are used.')
-	parser.add_argument('-d', '--design_table', required=True,
-						help='Auto-gen design table for DE anlaysis.')
+						help='[Required] Analysis group number. It is required if mutilple metadata files are used.')
+	parser.add_argument('-o', '--output_dir', required=True,
+						help='[Required] Auto-gen design table for DE anlaysis.')
+	parser.add_argument('-n', '--experiment_name', required=True,
+						help="[Required] the name of your experiment (this will be used for naming the DE table output)")
 	parser.add_argument('-w',  '--wildtype',
-						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
+						help='[Required] Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
-						help='Experimental conditions to describe the sample. Use delimiter "," if multiple descriptors are used. Default is TREATMENT,TIME_POINT')
+						help='[Required] Experimental conditions to describe the sample. Use delimiter "," if multiple descriptors are used. Default is TREATMENT,TIME_POINT')
 	return parser.parse_args(argv[1:])
 
 
@@ -78,25 +97,6 @@ def save_dataframe(filepath, df, df_cols=None):
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
 	df.to_excel(filepath, index=False, columns=df_cols)
-
-
-
-def main(argv):
-	parsed = parse_args(argv)
-	if not os.path.exists(parsed.samples):
-		sys.exit('ERROR: %s does not exist.' % parsed.samples)
-
-	## get conditions
-	conditions = [c.strip() for c in parsed.condition_descriptors.split(',')]
-
-	## load sample summary
-	summary_df = pd.read_excel(parsed.samples)
-	## sift data based on group and quality
-	summary_df = summary_df[(summary_df['GROUP']==parsed.group_num) & \
-							(summary_df['MANUAL_AUDIT']==0)]
-	## prepare design table
-	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
-	save_dataframe(parsed.design_table, design_df)
 
 
 if __name__ == '__main__':
