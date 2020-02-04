@@ -7,6 +7,58 @@ import numpy as np
 from utils import *
 import os
 
+def main(argv):
+	parsed = parse_args(argv)
+	## validate args
+	output_dir = parsed.output
+	filename = os.path.dirname(parsed.experiment_directory) + '_quality_summary.csv'
+	output_name = os.path.join(output_dir, filename)
+
+	if os.path.exists(output_name):
+		sys.exit('WARNING: %s already exists, rename the file to proceed.' % output_name)
+	if not os.path.exists(parsed.count_matrix):
+		sys.exit('ERROR: %s does not exist.' % parsed.count_matrix)
+	if not os.path.exists(os.path.dirname(output_name)):
+		sys.exit('ERROR: %s does not exist.' % os.path.dirname(output_name))
+
+	## load QC config data
+	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
+	global QC_dict
+	QC_dict = load_config(parsed.qc_configure)
+	## get conditions
+	conditions = None if parsed.condition_descriptors is None else \
+				[c.strip() for c in parsed.condition_descriptors.split(',')]
+
+	## do QA
+	print('... Preparing QA dataframe')
+	if parsed.resistance_cassettes is None:
+		resistance_cassettes = None
+		resistance_cassettes_columns = []
+	else:
+		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
+		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
+	df_columns = ['GENOTYPE','REPLICATE','FASTQFILENAME'] \
+				+ conditions \
+				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
+				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
+				+ resistance_cassettes_columns \
+				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))]
+	df = initialize_dataframe(parsed.query, df_columns, conditions)
+	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
+	print('... Assessing reads mapping')
+	df = assess_mapping_quality(df, parsed.experiment_directory)
+	print('... Assessing efficiency of gene mutation')
+	if parsed.descriptors_specific_fow:
+		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
+	else:
+		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
+	print('... Assessing insertion of resistance cassette')
+	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
+	print('... Assessing concordance among replicates')
+	df = assess_replicate_concordance(df, expr, sample_dict, conditions)
+	print('... Auto auditing')
+	df = update_auto_audit(df, parsed.auto_audit_threshold)
+	save_dataframe(output_name, df, df_columns, conditions, len(conditions))
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
@@ -16,8 +68,8 @@ def parse_args(argv):
 						help='[REQUIRED] the path to the experiment directory created by create_expirement')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='[REQUIRED] Maximal number of replicate in experiment design.')
-	parser.add_argument('-o', '--output_filepath', required=True,
-						help='[REQUIRED] Filepath of sample quality summary.')
+	parser.add_argument('-o', '--output', required=True,
+						help='[REQUIRED] directory in which to deposit the sample quality summary.')
 	parser.add_argument('-c', '--count_matrix', required=True,
 						help='[REQUIRED] Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
 	parser.add_argument('-l', '--gene_list',
@@ -290,56 +342,6 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
-
-
-def main(argv):
-	parsed = parse_args(argv)
-	## validate args
-	if os.path.exists(parsed.output_filepath):
-		sys.exit('WARNING: %s already exists, rename the file to proceed.' % parsed.output_filepath)
-	if not os.path.exists(parsed.count_matrix):
-		sys.exit('ERROR: %s does not exist.' % parsed.count_matrix)
-	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
-		sys.exit('ERROR: %s does not exist.' % os.path.dirname(parsed.output_filepath))
-
-	## load QC config data
-	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
-	global QC_dict
-	QC_dict = load_config(parsed.qc_configure)
-	## get conditions
-	conditions = None if parsed.condition_descriptors is None else \
-				[c.strip() for c in parsed.condition_descriptors.split(',')]
-
-	## do QA
-	print('... Preparing QA dataframe')
-	if parsed.resistance_cassettes is None:
-		resistance_cassettes = None
-		resistance_cassettes_columns = []
-	else:
-		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
-		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
-	df_columns = ['GENOTYPE','REPLICATE','FASTQFILENAME'] \
-				+ conditions \
-				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
-				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
-				+ resistance_cassettes_columns \
-				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] 
-	df = initialize_dataframe(parsed.query, df_columns, conditions)
-	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
-	print('... Assessing reads mapping')
-	df = assess_mapping_quality(df, parsed.experiment_directory)
-	print('... Assessing efficiency of gene mutation')
-	if parsed.descriptors_specific_fow:
-		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
-	else:
-		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
-	print('... Assessing insertion of resistance cassette')
-	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
-	print('... Assessing concordance among replicates')
-	df = assess_replicate_concordance(df, expr, sample_dict, conditions)
-	print('... Auto auditing')
-	df = update_auto_audit(df, parsed.auto_audit_threshold)
-	save_dataframe(parsed.output_filepath, df, df_columns, conditions, len(conditions))
 	
 
 if __name__ == '__main__':

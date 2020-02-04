@@ -69,7 +69,7 @@ def main(argv):
     run_num = args.run_number
     output = args.output
 
-    sum_name = "run_{}_summary.csv".format(run_num)
+    sum_name = "run_{}_quality_summary.csv".format(run_num)
     output_csv = os.path.join(output, sum_name)
 
     align_df = compile_data(align_count, "_novoalign.log")
