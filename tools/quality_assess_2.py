@@ -11,15 +11,15 @@ import os
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-q', '--query', required=True,
-						help='The output of queryDB that was used to create this experiment')
+						help='[REQUIRED] The output of queryDB that was used to create this experiment')
 	parser.add_argument('-e', '--experiment_directory', required=True,
-						help='the path to the experiment directory created by create_expirement')
+						help='[REQUIRED] the path to the experiment directory created by create_expirement')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
-						help='Maximal number of replicate in experiment design.')
+						help='[REQUIRED] Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output_filepath', required=True,
-						help='Filepath of sample quality summary.')
+						help='[REQUIRED] Filepath of sample quality summary.')
 	parser.add_argument('-c', '--count_matrix', required=True,
-						help='Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
+						help='[REQUIRED] Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
 	parser.add_argument('-l', '--gene_list',
 						help='Use a custom gene list other than the list in gene annotation file.')
 	parser.add_argument('-w', '--wildtype',
