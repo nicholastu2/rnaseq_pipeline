@@ -8,6 +8,65 @@ import re
 FASTQ_TYPES = ["fastq.gz", "fq.gz"]
 FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
 
+def main(argv):
+
+    args = parse_args(argv)
+    fastq_path = args.fastq_path
+    geno_idx_file = args.genome_index_file
+    gene_ann_file = args.gene_annotation_file
+    ann_feat_type = args.annotation_feature_type
+    strandness = args.strandness
+    user_email = args.user_email
+    align_only = args.align_only
+    run_num = args.run_num
+    output_path = os.path.join(args.output_path, 'run_{}'.format(run_num))
+
+    print('...parsing input')
+    # Parse default variables
+    if output_path is None:
+        output_path = fastq_path
+
+    if gene_ann_file is None:
+        gene_ann_prefix = ".".join(geno_idx_file.split(".")[:-1])
+        gene_ann_file = find_annotation_file(gene_ann_prefix)
+
+    if ann_feat_type is None:
+        feat_type = get_feature_type(gene_ann_file)
+
+    if run_num is None:
+        run_num = get_run_number(fastq_path)
+
+    print('...writing sbatch job script')
+    # Write sbatch script
+    fastq_list_file = "job_scripts/fastq_list.txt"
+    sbatch_job_file = "job_scripts/mblab_rnaseq.sbatch"
+    os.system("mkdir -p sbatch_log/")
+    os.system("mkdir -p job_scripts/")
+
+    num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
+
+    write_job_script(sbatch_job_file, output_path,
+                     fastq_list_file, num_fastqs,
+                     geno_idx_file, gene_ann_file, feat_type,
+                     strandness, align_only)
+
+    print('...submitting job')
+    # Submit sbatch job
+    if user_email is None:
+        os.system("sbatch {}".format(sbatch_job_file))
+    else:
+        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(user_email, sbatch_job_file))
+
+    # create a subdirectory in run_#### (where align/counts are stored) for pipeline and annotation version info
+    output_subdir_path = os.path.join(output_path, "pipeline_info")
+    os.system("mkdir -p {}".format(output_subdir_path))
+    # get version info from the module .lua file (see the .lua whatis statements)
+    pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
+    os.system("module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path))
+    with open(pipeline_info_path, "a+") as file:
+        file.write("\n")
+    os.system("head {} >> pipeline_info_path".format(gene_ann_file))
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
@@ -123,59 +182,6 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
                 "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
                     output_path, strandness, feat_type, gene_ann_file))
 
-def main(argv):
-    args = parse_args(argv)
-    fastq_path = args.fastq_path
-    geno_idx_file = args.genome_index_file
-    gene_ann_file = args.gene_annotation_file
-    ann_feat_type = args.annotation_feature_type
-    strandness = args.strandness
-    user_email = args.user_email
-    align_only = args.align_only
-    run_num = args.run_num
-    output_path = os.path.join(args.output_path, 'run_{}'.format(run_num))
-
-    print('...parsing input')
-    # Parse default variables
-    if output_path is None:
-        output_path = fastq_path
-
-    if gene_ann_file is None:
-        gene_ann_prefix = ".".join(geno_idx_file.split(".")[:-1])
-        gene_ann_file = find_annotation_file(gene_ann_prefix)
-
-    if ann_feat_type is None:
-        feat_type = get_feature_type(gene_ann_file)
-
-    if run_num is None:
-        run_num = get_run_number(fastq_path)
-
-    print('...writing sbatch job script')
-    # Write sbatch script
-    fastq_list_file = "job_scripts/fastq_list.txt"
-    sbatch_job_file = "job_scripts/mblab_rnaseq.sbatch"
-    os.system("mkdir -p sbatch_log/")
-    os.system("mkdir -p job_scripts/")
-
-    num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
-
-    write_job_script(sbatch_job_file, output_path,
-                     fastq_list_file, num_fastqs,
-                     geno_idx_file, gene_ann_file, feat_type,
-                     strandness, align_only)
-
-    print('...submitting job')
-    # Submit sbatch job
-    if user_email is None:
-        os.system("sbatch {}".format(sbatch_job_file))
-    else:
-        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(user_email, sbatch_job_file))
-
-    # create a subdirectory where alignment and count files are stored. This will be where the pipeline version info and summary sheet will go
-    output_subdir_path = os.path.join(output_path, "pipeline_info")
-    os.system("mkdir -p {}".format(output_subdir_path))
-    # get version info from the module .lua file (see the .lua whatis statements)
-    os.system("module whatis rnaseq_pipeline 2> {}".format(os.path.join(output_subdir_path, 'pipeline_version.txt')))
 
 if __name__ == "__main__":
     main(sys.argv)

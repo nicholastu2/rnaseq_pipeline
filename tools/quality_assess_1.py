@@ -10,6 +10,19 @@ ALIGN_VARS = ["Read Sequences", "Unique Alignment", "Multi Mapped", "No Mapping 
 COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "too_low_aQual", "not_aligned",
               "alignment_not_unique"]
 
+def main(argv):
+    args = parse_args(argv)
+    align_count = args.align_count_path
+    run_num = args.run_number
+    output = args.output
+
+    sum_name = "run_{}_quality_summary.csv".format(run_num)
+    output_csv = os.path.join(output, sum_name)
+
+    align_df = compile_data(align_count, "_novoalign.log")
+    count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
+    combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
+    combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
@@ -63,19 +76,6 @@ def parse_gene_count(file_path):
         out[k] /= float(out[COUNT_VARS[0]])
     return out
 
-def main(argv):
-    args = parse_args(argv)
-    align_count = args.align_count_path
-    run_num = args.run_number
-    output = args.output
-
-    sum_name = "run_{}_quality_summary.csv".format(run_num)
-    output_csv = os.path.join(output, sum_name)
-
-    align_df = compile_data(align_count, "_novoalign.log")
-    count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
-    combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
-    combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 
 if __name__ == "__main__":
     main(sys.argv)
