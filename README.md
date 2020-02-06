@@ -19,7 +19,7 @@ git clone https://gitlab.com/brentlab/rnaseq_pipe.git
 ```
 
 ### Wiki
-For detailed intallation, usage, and file descriptions, check out our [wiki page](https://gitlab.com/brentlab/rnaseq_pipe/-/wikis/home).
+For detailed intallation, usage, and file descriptions, check out our [wiki page](https://github.com/BrentLab/rnaseq_pipeline/wiki/home).
 
 ### Contribution
 You are more than welcomed to contribute. Feel free to submit any pull request.
