@@ -31,7 +31,7 @@ def parse_args(argv):
     parser.add_argument("-rn", "--run_number", required=True,
                         help='the run number corresponding to this batch of fastq files')
     parser.add_argument("-o", "--output", required=True,
-                        help="Suggested Usage: in reports/run_####/run_processing_metadata  \
+                        help="Suggested Usage: in reports/run_####/pipeline_info  \
                         File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     args = parser.parse_args(argv[1:])
     return args
