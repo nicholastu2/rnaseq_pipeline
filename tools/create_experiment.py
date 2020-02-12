@@ -59,7 +59,7 @@ def filepathList(query, type):
 
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
-    fastq_file_basename = [os.path.basename(x) for x in query['fastqFileName']]
+    fastq_file_basename = [os.path.basename(fileBaseName(x)) for x in query['fastqFileName']]
     read_count_basename = [x + type for x in fastq_file_basename]
 
     if not len(read_count_basename) == len(base_path):
