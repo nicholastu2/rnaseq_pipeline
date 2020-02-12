@@ -74,7 +74,8 @@ def getFilePaths(datadir, datadir_keys = datadir_keys):
         dir_path = os.path.join(datadir, key)
         subdir_files = glob.glob(os.path.join(dir_path, '*'))
         for file in subdir_files:
-            if file.startswith('~') or file.startswith('._') or file.startswith('.~') or file.startswith('~$'):
+            basename = os.path.basename(file)
+            if basename.startswith('~') or basename.startswith('._') or basename.startswith('.~') or basename.startswith('~$'):
                 subdir_files.remove(file)
 
         # test whether any of the key subdirectories of datadir are empty, throw error if so

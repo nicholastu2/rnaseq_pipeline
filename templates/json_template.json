@@ -5,3 +5,7 @@ other columns are strings and require ""
 
 search on column headings and row values is case insensitive.
 
+Example json:
+
+{"libraryDate": ["date1", "date2"], "runNumber": [4238, 4821], "treatment": ["EtoH"]}
+
