@@ -22,7 +22,7 @@ depends_on("igv/2.4.7")
 
 -- message to print on module load
 if(mode() == 'load') then
-   LmodMessage("\nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://gitlab.com/brentlab/rnaseq_pipe/-/wikis/home for usage instructions.\n")
+   LmodMessage("\nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://github.com/BrentLab/rnaseq_pipeline/wiki for usage instructions.\n")
 end
 
 -- prepend the following to $PATH
