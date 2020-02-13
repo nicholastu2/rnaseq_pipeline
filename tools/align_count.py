@@ -38,8 +38,8 @@ def main(argv):
 
     print('...writing sbatch job script')
     # Write sbatch script
-    fastq_list_file = "job_scripts/fastq_list.txt"
-    sbatch_job_file = "job_scripts/mblab_rnaseq.sbatch"
+    fastq_list_file = "job_scripts/run_{}_fastq_list.txt".format(run_num)
+    sbatch_job_file = "job_scripts/run_{}_mblab_rnaseq.sbatch".format(run_num)
     os.system("mkdir -p sbatch_log/")
     os.system("mkdir -p job_scripts/")
 
@@ -65,7 +65,7 @@ def main(argv):
     os.system("module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path))
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
-    os.system("head {} >> pipeline_info_path".format(gene_ann_file))
+    os.system("head {} >> {}}".format(gene_ann_file, pipeline_info_path))
 
 
 def parse_args(argv):
