@@ -65,7 +65,7 @@ def main(argv):
     os.system("module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path))
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
-    os.system("head {} >> {}}".format(gene_ann_file, pipeline_info_path))
+    os.system("head {} >> {}".format(gene_ann_file, pipeline_info_path))
 
 
 def parse_args(argv):
