@@ -180,12 +180,9 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
         if align_only is False:
             if feat_type == 'gene': # this is a bad way of saying "if gff, specify -i ID. Else (it is a gtf) do not specify ID. TODO: This needs to be cleaned up
                 f.write(
-                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
-                        output_path, strandness, feat_type, gene_ann_file))
+                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
             else:
-                f.write(
-                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
-                        output_path, strandness, feat_type, gene_ann_file))
+                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
 
 if __name__ == "__main__":
     main(sys.argv)
