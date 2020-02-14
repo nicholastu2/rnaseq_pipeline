@@ -31,7 +31,7 @@ def main(argv):
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-q', '--query', required=True,
+    parser.add_argument('-qs', '--query_sheet', required=True,
                         help='query the database using queryDB.py for the libraries you wish to analyze')
     parser.add_argument('-o', '--output_location', required=True,
                         help='Suggested usage: /scratch/$USER or /scratch/$USER/rnaseq  The location where you want \
