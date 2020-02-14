@@ -16,7 +16,12 @@ import re
 import os
 from queryDB import *
 
-keys = [Index(['libraryDate', 'libraryPreparer', 'librarySampleNumber'], dtype='object'), Index(['s2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'], dtype='object'), Index(['s1cDNADate', 's1cDNAPreparer', 's1cDNASampleNumber'], dtype='object'), Index(['rnaDate', 'rnaPreparer', 'rnaSampleNumber'], dtype='object'), Index(['harvestDate', 'harvester', 'biosampleNumber'], dtype='object')]
+unique_key_columns = {"fastqFiles": ['libraryDate', 'libraryPreparer', 'librarySampleNumber'],
+        "library":['libraryDate', 'libraryPreparer', 'librarySampleNumber','s2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'],
+        "s2cDNASample": ['s2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber','s1cDNADate', 's1cDNAPreparer', 's1cDNASampleNumber'],
+        "s1cDNASample": ['s1cDNADate', 's1cDNAPreparer', 's1cDNASampleNumber', 'rnaDate', 'rnaPreparer', 'rnaSampleNumber'],
+        "rnaSample": ['rnaDate', 'rnaPreparer', 'rnaSampleNumber','harvestDate', 'harvester', 'biosampleNumber'],
+        "bioSample": ['harvestDate', 'harvester', 'biosampleNumber']}
 
 def main(argv):
     args = parseArgs(argv)
@@ -36,10 +41,20 @@ def main(argv):
             print("\nThere is an unnamed column in one of the sheets in subdirectory {}. This must be found and fixed before proceeding.".format(key))
             quit()
 
-#    for key in concat_dict:
-#        uniqueKeys(key_cols[key], concat_dict[key])
+    for key in concat_dict:
+        uniqueKeys(unique_key_columns[key], concat_dict[key])
 
     print('\n::verify_metadata_complete::\nPlease fix any issues found before pushing to remote')
+
+def parseArgs(argv):
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--database', required=True,
+                        help='Suggested usage: database-files path to metadata base')
+    parser.add_argument('-k', '--database_subdir', required=False,
+                        help='if you do not wish to verify all metadata subdirectories, you may list the ones you would like to check. Default is to check all metadata subdirs in database')
+
+    return parser.parse_args(argv[1:])
 
 def checkCSV(file):
     # test whether a given file is a .csv or .xlsx
@@ -59,22 +74,12 @@ def getKeys(datadir_keys, concat_dict):
         key_cols.append(concat_dict[datadir_keys[i]].keys().intersection(concat_dict[datadir_keys[i+1]].keys()))
     return key_cols
 
-def parseArgs(argv):
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--database', required=True,
-                        help='Suggested usage: database-files path to metadata base')
-    parser.add_argument('-k', '--database_subdir', required=False,
-                        help='if you do not wish to verify all metadata subdirectories, you may list the ones you would like to check. Default is to check all metadata subdirs in database')
-
-    return parser.parse_args(argv[1:])
-
 def uniqueKeys(key, df):
     # test whether the key columns in a given sheet are unique
     # Args: the keys (passed as list) and the path to the dataframe
     # Return: none
     # to std_out: info on uniqueness of key
-    if os.isfile(df):
+    if not isinstance(df, pd.DataFrame) and os.path.isfile(df):
         if checkCSV(df):
             sheet = pd.read_csv(df)
         else:
