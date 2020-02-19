@@ -5,6 +5,7 @@ import os
 import sys
 import argparse
 import pandas as pd
+import shutil
 from shutil import copy2 as cp
 
 def main(argv):
@@ -27,7 +28,7 @@ def main(argv):
 
     pipeline_info = os.path.join(args.reports, 'pipeline_info')
     if os.path.isdir(pipeline_info):
-        cp(pipeline_info, dest_path_complete)
+        shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info"))
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
