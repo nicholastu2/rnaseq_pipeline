@@ -5,6 +5,7 @@ import os
 import sys
 import argparse
 import pandas as pd
+import shutil
 from shutil import copy2 as cp
 
 def main(argv):
@@ -27,7 +28,7 @@ def main(argv):
 
     pipeline_info = os.path.join(args.reports, 'pipeline_info')
     if os.path.isdir(pipeline_info):
-        cp(pipeline_info, dest_path_complete)
+        shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info"))
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
@@ -156,17 +157,11 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
             if not os.path.isfile(file):
                 print('{} cannot be found and therefore can not be moved. Please check cmd line inputs'.format(file))
                 sys.exit(1)
-            # this is to move pipeline_info
-            if os.path.isdir(file):
-                print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
-                shutil.copytree(file, destination_file_path)
-                cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
-                move_dict.setdefault((run_num, index), []).append(destination_file_path)
-            else:
-                print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
-                cp(file, destination_file_path)
-                cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
-                move_dict.setdefault((run_num, index), []).append(destination_file_path)
+            
+            print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
+            cp(file, destination_file_path)
+            cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
+            move_dict.setdefault((run_num, index), []).append(destination_file_path)
 
     return move_dict
 
