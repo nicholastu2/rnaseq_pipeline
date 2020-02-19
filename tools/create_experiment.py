@@ -18,7 +18,7 @@ def main(argv):
 
     args = parseArgs(argv)
 
-    query = pd.read_csv(args.query)
+    query = pd.read_csv(args.query_sheet)
 
     dest_dir = createExperimentDir(args.output_location, args.experiment_name)
 
