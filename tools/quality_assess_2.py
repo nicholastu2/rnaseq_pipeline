@@ -43,7 +43,7 @@ def main(argv):
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))]
-	df = initialize_dataframe(parsed.query, df_columns, conditions)
+	df = initialize_dataframe(parsed.query_sheet, df_columns, conditions)
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df, parsed.experiment_directory)
@@ -62,10 +62,10 @@ def main(argv):
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-q', '--query', required=True,
+	parser.add_argument('-qs', '--query_sheet', required=True,
 						help='[REQUIRED] The output of queryDB that was used to create this experiment')
 	parser.add_argument('-e', '--experiment_directory', required=True,
-						help='[REQUIRED] the path to the experiment directory created by create_expirement')
+						help='[REQUIRED] the path to the experiment directory created by create_experiment')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='[REQUIRED] Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output', required=True,
@@ -102,6 +102,10 @@ def initialize_dataframe(query, df_cols, conditions):
 	# force all column headers to upper case
 	df2.columns = df2.columns.str.upper()
 
+	# cast replicate to int
+	df2 = df2.astype({'REPLICATE': 'float'})
+	df2 = df2.astype({'REPLICATE': 'int32'})
+
 	if conditions:
 		conditions = [x.upper() for x in conditions]
 
@@ -133,11 +137,12 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 		genotype = row['GENOTYPE']
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
-		sample = str(row['FASTQFILENAME'])
+		#sample = str(row['FASTQFILENAME'])
+		sample = 'JRtimeCourse/' + fileBaseName(row['FASTQFILENAME']) +'_read_count.tsv'
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}
-			sample_dict[key][row['replicate']] = sample
+			sample_dict[key][row['REPLICATE']] = sample
 	return count, sample_dict
 
 
@@ -281,18 +286,19 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 
 	## calcualte COV medians for replicate combinations
 	for key in sorted(sample_dict.keys()):
-		sample_ids = [s.split('-')[1] for s in sample_dict[key].values()]
+		sample_ids = [s for s in sample_dict[key].items()]
 		cov_meds_dict = {}
 		rep_combos = make_combinations(sample_dict[key].keys())
 		for rep_combo in rep_combos:
 			## sort as integers
-			rep_combo = np.array(sorted(np.array(rep_combo,dtype=int)), dtype=str)
+			#rep_combo = np.array(sorted(np.array(rep_combo,dtype=int)), dtype=str)
 			rep_num = len(rep_combo)
 			sample_combo = [sample_dict[key][rep] for rep in rep_combo]
 			## calculate COV median
 			cov_median = calculate_cov_median(expr[sample_combo])
 			rep_combo_col = 'COV_MED_REP'+''.join(np.array(rep_combo, dtype=str))
-			df.loc[df['FASTQFILENAME'].isin(sample_ids), rep_combo_col] = cov_median
+			fastq_file_names = [os.path.basename(fileBaseName(tup[1])[:-11]) +'.fastq.gz' for tup in sample_ids]
+			df.loc[df['FASTQFILENAME'].isin(fastq_file_names), rep_combo_col] = cov_median
 			## store COV median at the respective rep number
 			if rep_num not in cov_meds_dict.keys():
 				cov_meds_dict[rep_num] = {'rep_combos': [], 'cov_meds': []}
