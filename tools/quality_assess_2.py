@@ -11,7 +11,8 @@ def main(argv):
 	parsed = parse_args(argv)
 	## validate args
 	output_dir = parsed.output
-	filename = os.path.dirname(parsed.experiment_directory) + '_quality_summary.csv'
+	experiment_dir = os.path.basename(parsed.experiment_directory)
+	filename = experiment_dir + '_quality_summary.xlsx'
 	output_name = os.path.join(output_dir, filename)
 
 	if os.path.exists(output_name):
@@ -43,7 +44,14 @@ def main(argv):
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))]
-	df = initialize_dataframe(parsed.query_sheet, df_columns, conditions)
+	df, rep_max = initialize_dataframe(parsed.query_sheet, df_columns, conditions)
+	if rep_max != parsed.max_replicates:
+		print('The max number of replicates is {}. Please re-launch this script with -r {}.'.format(rep_max, rep_max))
+	if rep_max > 7:
+		print('Calculating the power set of 7 replicates for the CoV will result in many columns. Are you sure you want to proceed? Enter y or n')
+		user_response = input()
+		if user_response == 'n':
+			quit()
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df, parsed.experiment_directory)
@@ -114,7 +122,15 @@ def initialize_dataframe(query, df_cols, conditions):
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([np.nan]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
 
-	return df1.append(df2)
+	# create sample_summary dataframe
+	sample_summary_df = df1.append(df2)
+	## re-index replicates in case there are technical replicates of a biological replicate
+	# add GENOTYPE to conditions
+	conditions.append('GENOTYPE')
+	sample_summary_df['REPLICATE'] =  sample_summary_df.groupby(conditions).cumcount() +1
+	rep_max = sample_summary_df.groupby(conditions).cumcount().max()
+
+	return sample_summary_df, rep_max
 
 
 def load_expression_data(df, cnt_mtx, gene_list, conditions):
@@ -345,8 +361,8 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	Save dataframe of quality assessment
 	"""
 	df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
-	if not filepath.endswith('.xlsx'):
-		filepath += '.xlsx'
+	#if not filepath.endswith('.xlsx'):
+	#	filepath += '.xlsx'
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 	
 

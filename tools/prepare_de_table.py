@@ -18,7 +18,7 @@ def main(argv):
 	## load sample summary
 	summary_df = pd.read_excel(parsed.samples)
 	## sift data based on group and quality
-	summary_df = (summary_df['MANUAL_AUDIT']==0)
+	#summary_df = (summary_df['MANUAL_AUDIT']==0)
 	## prepare design table
 	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
 
@@ -48,7 +48,8 @@ def build_design_table(summary_df, cmp_cols, wt=None):
 	"""
 	print('... Building design table')
 	## intialize design dataframe
-	design_df = summary_df[['GENOTYPE', 'REPLICATE', 'SAMPLE'] + cmp_cols].copy()
+	design_df = summary_df[['GENOTYPE', 'REPLICATE'] + cmp_cols].copy()
+	#design_df = summary_df[['GENOTYPE', 'REPLICATE', 'SAMPLE'] + cmp_cols].copy()
 	cmp_cols = ['GENOTYPE'] + cmp_cols
 	## create a dict for col: vals
 	col_dict = {}
