@@ -18,6 +18,7 @@ import glob
 import verify_metadata_accuracy
 import sys
 import argparse
+import time
 
 # list of subdirectories of datadir to be used as keys of dictionary. When these files are searched, only .csv and .xlsx
 # are listed for concatenating. The search through these directories is not recursive.
@@ -34,17 +35,20 @@ def main(argv):
     datadir_dict = getFilePaths(args.database)
     # combine on the common columns the files in the subdirs (the datadir_keys) passed in cmd line
     combined_df = createDB(datadir_dict)
-    # query the combined db based on json input from cmd line
-    query_df = queryDB(combined_df, args.json)
 
-    # write out
-    query_name = os.path.basename(args.json).split('.')[0]
-    query_output = os.path.join(args.output, query_name)
-    query_df.to_csv(query_output + '.csv', index=False)
+    # if there is a query, parse and write query
+    if args.json:
+        # query the combined db based on json input from cmd line
+        query_df = queryDB(combined_df, args.json)
+        # write out
+        query_name = os.path.basename(args.json).split('.')[0]
+        query_output = os.path.join(args.output, query_name)
+        query_df.to_csv(query_output + '.csv', index=False)
 
-    # print full db if print_full = True in cmd line
+    # if user enters -pf, print full database
     if args.print_full:
-        combined_output = os.path.join(args.output, query_name + '_combined_df.csv')
+        time_stamp = (time.strftime("%Y_%m_%d", time.gmtime()))
+        combined_output = os.path.join(args.output, 'combined_df_{}.csv'.format(time_stamp))
         combined_df.to_csv(combined_output, index=False)
 
 def parseArgs(argv):
@@ -53,11 +57,11 @@ def parseArgs(argv):
                         help = 'topmost directory of metadata database. On cluster, /scratch/mblab/database-files. \
                                 If using the rnaseq_pipeline module, you may use $METADATA. Do make sure that $METADATA \
                                 is up to date by running git pull in the directory')
-    parser.add_argument('-j', '--json', required = True,
+    parser.add_argument('-j', '--json',
                         help = 'path to json file used to parse metadata. See ')
     parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
-    parser.add_argument( '-pf', '--print_full', default = False,
+    parser.add_argument( '-pf', '--print_full', action='store_true',
                          help = 'boolean true/false to print full DB')
 
     return parser.parse_args(argv[1:])
@@ -113,7 +117,7 @@ def concatMetadata(metadata_sheet_list):
 
     return concatenated_df
 
-def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = True, coerce_cols = False):
+def createDB(datadir_dict, datadir_keys = datadir_keys, drop_fastq_na = False, coerce_cols = False):
     # create joined data frame from data directory
     # Args: datadir_dict is a dictionary of subdirectories (keys) and lists of files in the subdirs (values);
     #       datadir_keys are the subdirectories to search through; drop_fastq_na = True means that rows that are entirely
@@ -150,7 +154,7 @@ def queryDB(df, query):
     #TODO: make query case insensitive
 
     # read in json
-    query = pd.read_json(query, typ='series')
+    query = pd.read_json(query, typ='series', dtype = False)
 
     # begin a string to store the query formula
     fltr_str='('
