@@ -46,7 +46,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 		}
 	}
 	return(contrast_dict)
-}
+}# end parse_metadata()
 
 
 run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
@@ -62,7 +62,6 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		## prepare DESeq2 dataset
 		dds <- DESeqDataSetFromMatrix(countData=cnt_mtx[samples], 
 									colData=coldata, design=~condition)
-		## TODO: filter low count genes (as in EdgeR)
 		## normalize with in contrast group
 		dds <- estimateSizeFactors(dds)
 		## DESeq2 testing
@@ -73,7 +72,7 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		filepath <- paste0(output_dir, '/', header, '.txt')
 		write.table(res, file=filepath, quote=FALSE, sep='\t')
 	}
-}
+} # end run_deseq2
 
 
 run_edger <- function(cnt_mtx, contrast_dict, header, output_dir, mode='classic') {
@@ -118,4 +117,4 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir, mode='classic'
 		filepath <- paste0(output_dir, '/', header, '.txt')
 		write.table(res, file=filepath, quote=FALSE, sep='\t')
 	}	
-}
+} # end run_edgeR

@@ -44,3 +44,28 @@ if (parsed_opt$de_module == 'deseq2') {
 } else {
 	cat('ERROR: DE module', parsed_opt$de_module, 'is unavailable.\n')
 }
+
+# output DESeq2 QA
+#### create heatmap to examine similiarities btwn samples
+# rld <- rlogTransformation(ddsTxi, blind=TRUE)
+# 
+# distsRL <- dist(t(assay(rld)))
+# distsRL
+# mat <- as.matrix(distsRL)
+# rownames(mat) <- colData(rld)$condition
+# colnames(mat) <- colData(rld)$condition
+# 
+# hmcol <- colorRampPalette(brewer.pal(9, "Blues"))(255)
+# pheatmap(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
+# 
+# # PCA
+# # from the vignette re: vst : DESeq2 offers transformations for count data that stabilize the variance across the mean: the regularize logarithm (rlog) and the variance stabilizing transformation (VST). 
+# # These have slightly different implementations, discussed a bit in the DESeq2 paper and in the vignette, but a similar goal of stablizing the variance across the range of values. 
+# # Both produce log2-like values for high counts
+# vsd <- vst(ddsTxi)
+# plotPCA(vsd, 'condition')
+# 
+# ### plot dispersion
+# ddsTxi_disp <- estimateSizeFactors(ddsTxi)
+# ddsTxi_disp <- estimateDispersions(ddsTxi_disp)
+# plotDispEsts(ddsTxi_disp, main = "Dispersion")

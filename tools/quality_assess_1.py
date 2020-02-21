@@ -11,7 +11,7 @@ COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "
               "alignment_not_unique"]
 
 def main(argv):
-    args = parse_args(argv)
+    args = parseArgs(argv)
     align_count = args.align_count_path
     run_num = args.run_number
     output = args.output
@@ -19,12 +19,12 @@ def main(argv):
     sum_name = "run_{}_quality_summary.csv".format(run_num)
     output_csv = os.path.join(output, sum_name)
 
-    align_df = compile_data(align_count, "_novoalign.log")
-    count_df = compile_data(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
+    align_df = compileData(align_count, "_novoalign.log")
+    count_df = compileData(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
     combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
     combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 
-def parse_args(argv):
+def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
     parser.add_argument("-ac", "--align_count_path", required=True,
                         help="Directory for alignment log files. This currently only works for Novoalign output.")
@@ -36,20 +36,20 @@ def parse_args(argv):
     args = parser.parse_args(argv[1:])
     return args
 
-def compile_data(dir_path, suffix):
+def compileData(dir_path, suffix):
     df = pd.DataFrame()
     file_paths = glob("{}/*{}".format(dir_path, suffix))
     for file_path in file_paths:
         sample = re.findall(r'(.+?){0}'.format(suffix), os.path.basename(file_path))[0]
         if "novoalign" in suffix:
-            data = parse_alignment_log(file_path)
+            data = parseAlignmentLog(file_path)
         elif "read_count" in suffix:
-            data = parse_gene_count(file_path)
+            data = parseGeneCount(file_path)
         data.update({"Sample": sample})
         df = df.append(pd.Series(data), ignore_index=True)
     return df.set_index("Sample")
 
-def parse_alignment_log(file_path):
+def parseAlignmentLog(file_path):
     with open(file_path, "r") as f:
         lines = f.readlines()
     out = {}
@@ -61,7 +61,7 @@ def parse_alignment_log(file_path):
                 out[k] = v if k == ALIGN_VARS[0] else v / float(out[ALIGN_VARS[0]])
     return out
 
-def parse_gene_count(file_path):
+def parseGeneCount(file_path):
     with open(file_path, "r") as f:
         lines = f.readlines()
     out = {COUNT_VARS[1]: 0}

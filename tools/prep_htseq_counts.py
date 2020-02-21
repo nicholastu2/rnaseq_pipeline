@@ -8,14 +8,29 @@ import glob
 from utils import addForwardSlash
 
 
+def main(argv):
+    parsed = parse_args(argv)
+    if not os.path.exists(parsed.experiment_directory):
+        sys.exit('ERROR: %s does not exist.' % parsed.input_lookup)
+    if not os.path.exists(parsed.gene_list):
+        sys.exit('ERROR: %s does not exist.' % parsed.gene_list)
+
+    count_matrix = createCountMatrix(parsed.experiment_directory, parsed.gene_list)
+
+    count_file_path = os.path.join(parsed.output, os.path.dirname(parsed.experiment_directory)) + '_raw_count.csv'
+
+    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
+
+    print(count_matrix[1:10])
+
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment_directory', required=True,
                         help='The directory created by create_experiment')
-    parser.add_argument('-o', '--output', required=True,
-                        help='Output directory for count matrix.')
     parser.add_argument('-l', '--gene_list', required=True,
                         help='Gene list. This gene list should be a subset or the same set of annotated genes in GTF/GFF.')
+    parser.add_argument('-o', '--output', required=True,
+                        help='Output directory for count matrix.')
     return parser.parse_args(argv[1:])
 
 def createCountMatrix(exp_dir, gene_list):
@@ -54,21 +69,6 @@ def createCountMatrix(exp_dir, gene_list):
     count_mtx = np.vstack((header, count_mtx))
 
     return count_mtx
-
-def main(argv):
-    parsed = parse_args(argv)
-    if not os.path.exists(parsed.experiment_directory):
-        sys.exit('ERROR: %s does not exist.' % parsed.input_lookup)
-    if not os.path.exists(parsed.gene_list):
-        sys.exit('ERROR: %s does not exist.' % parsed.gene_list)
-
-    count_matrix = createCountMatrix(parsed.experiment_directory, parsed.gene_list)
-
-    count_file_path = os.path.join(parsed.output, os.path.dirname(parsed.experiment_directory)) + '_raw_count.csv'
-
-    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
-
-    print(count_matrix[1:10])
 
 
 if __name__ == '__main__':

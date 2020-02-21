@@ -9,6 +9,7 @@ import shutil
 from shutil import copy2 as cp
 
 def main(argv):
+
     # read in cmd line args
     args = parseArgs(argv)
     log_name = 'run_{}_move_log.csv'.format(args.run_number)
@@ -33,19 +34,23 @@ def main(argv):
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--reports', required = True,
-                        help='the reports/run_## directory in which the alignment and count files are')
-    parser.add_argument('-d', '--destination_path', required = True,
-                        help = 'Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
+                        help='[Required] the reports/run_## directory in which the alignment and count files are')
     parser.add_argument('-rn', '--run_number', required=True,
-                        help = 'The run number corresponding to the set of fastq files')
-    parser.add_argument('-l', '--log', required = True,
-                        help = 'suggested usage: log. This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
+                        help = '[Required] The run number corresponding to the set of fastq files')
+    parser.add_argument('-d', '--destination_path', required = True,
+                        help = '[Requierd] Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
     parser.add_argument('-c', '--count_metadata', required = True,
-                        help = 'Suggested usage: database-files/alignCount   path to alignCount directory in metadata database')
+                        help = '[Required] Suggested usage: database-files/alignCount   path to alignCount directory in metadata database')
+    parser.add_argument('-l', '--log',
+                        help = '[Optional, but highly recommended] suggested usage: ./log. You will need to mkdir log if it does not exist already. \
+                         This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
 
     return parser.parse_args(argv[1:])
 
 def writeCountSheet(align_dict, log_dict, count_metadata):
+    # This generates the alignCounts automatically generated metadata sheet for the database-files
+    # Args: a dictionry of alignment files, log files, and the path to database-files/alignCount
+    # Output: a dataframe written to the path provided in the cmd line input -c
 
     # combine dictionaries
     for key, value in log_dict.items():

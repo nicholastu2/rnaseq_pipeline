@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-# Purpose: copy count files from /lts into /scratch/mblab/$USER for analysis
-# Input: QueryDB result, location of stored count files, name of experiment, output location (default .)
-
+"""
+Purpose: copy count files from /lts into /scratch/mblab/$USER for analysis
+Usage: create_experiment.py -qs <your_query>.csv -o . -n <exp_name>
+"""
 import os
 import sys
 import pandas as pd
@@ -13,19 +14,28 @@ from utils import *
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
 
 def main(argv):
+
+    # store suffixes of the files we wish to move
     count_suffix = '_read_count.tsv'
     novoalign_log_suffix = '_novoalign.log'
 
+    # parse cmd line arguments
     args = parseArgs(argv)
 
+    # read in query sheet (The path to the result of a query against the metadata base using queryDB)
     query = pd.read_csv(args.query_sheet)
 
+    # create a directory for the experiment
     dest_dir = createExperimentDir(args.output_location, args.experiment_name)
 
+    # get list of count files
     count_file_list = filepathList(query, count_suffix)
+    # get list of novoalign logs
     novoalign_log_list = filepathList(query, novoalign_log_suffix)
+    # concat the lists together
     file_list = count_file_list + novoalign_log_list
 
+    # move the files from /lts to the output directory (generally the user's scratch)
     moveFiles(file_list, dest_dir, len(query))
 
 
@@ -50,9 +60,9 @@ def createExperimentDir(output, exp_name):
 
     return dir_name
 
-def filepathList(query, type):
+def filepathList(query, file_type):
     # create filepath from COUNT_LTS, runNumber and fastqFileName
-    # Args: queryDB output
+    # Args: queryDB output, the file_type of file to create (default is read_count.tsv and novoalign.log)
     # Return: list of count filepaths
 
     run_num = list(query['runNumber'])
@@ -60,7 +70,7 @@ def filepathList(query, type):
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
     fastq_file_basename = [os.path.basename(fileBaseName(x)) for x in query['fastqFileName']]
-    read_count_basename = [x + type for x in fastq_file_basename]
+    read_count_basename = [x + file_type for x in fastq_file_basename]
 
     if not len(read_count_basename) == len(base_path):
         print('the number of runNumbers and fastqFilePaths is not equal. Please check the query and filter out any lines \
@@ -90,11 +100,12 @@ def moveFiles(file_list, dest_dir, query_len):
         cp(file, dest_full_path)
         count = count + 1
 
-    if not count == query_len:
-        print("\nThe number of files moved is {} and the number of rows in the query is {}.\n \
-               If moving count and bam files (default), this should be twice the number of rows.\n \
-               If it is not, Check the query, {}, and try again".format(count, query_len, COUNT_LTS))
-
+    if not count == 2*query_len:
+        print("\nThe number of files moved is {}. The number of rows in the query is {}.\n \
+               If moving count and bam files (default), the number of files should be twice the number of rows.\n \
+               If it is not, Check the query, and {}, and try again".format(count, query_len, COUNT_LTS))
+    else:
+        print("Your data has been copied to your output directory!")
 
 if __name__ == '__main__':
     main(sys.argv)
