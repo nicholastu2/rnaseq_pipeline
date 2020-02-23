@@ -127,7 +127,7 @@ def initialize_dataframe(query, df_cols, conditions):
 	## re-index replicates in case there are technical replicates of a biological replicate
 	# add GENOTYPE to conditions
 	conditions.append('GENOTYPE')
-	sample_summary_df['REPLICATE'] =  sample_summary_df.groupby(conditions).cumcount() +1
+	sample_summary_df['REPLICATE'] = sample_summary_df.groupby(conditions).cumcount() +1
 	rep_max = sample_summary_df.groupby(conditions).cumcount().max()
 
 	return sample_summary_df, rep_max
@@ -141,7 +141,7 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 	count = pd.read_csv(cnt_mtx)
 	count = count.rename(columns={'Unnamed: 0':'gene'})
 	## find the intersected gene list
-	if gene_list is not None:
+	if gene_list:
 		gids = pd.read_csv(gene_list, names=['gene'])
 		if len(np.setdiff1d(gids, count['gene'])) > 0:
 			print('WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.')
@@ -153,8 +153,8 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 		genotype = row['GENOTYPE']
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
-		#sample = str(row['FASTQFILENAME'])
-		sample = 'JRtimeCourse/' + fileBaseName(row['FASTQFILENAME']) +'_read_count.tsv'
+		# sample is the fastqFilename + _read_count.tsv
+		sample = fileBaseName(row['FASTQFILENAME']) +'_read_count.tsv'
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}

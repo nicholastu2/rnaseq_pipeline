@@ -9,15 +9,15 @@ from utils import addForwardSlash
 
 
 def main(argv):
-    parsed = parse_args(argv)
-    if not os.path.exists(parsed.experiment_directory):
-        sys.exit('ERROR: %s does not exist.' % parsed.input_lookup)
-    if not os.path.exists(parsed.gene_list):
-        sys.exit('ERROR: %s does not exist.' % parsed.gene_list)
+    args = parse_args(argv)
+    if not os.path.exists(args.experiment_directory):
+        sys.exit('ERROR: %s does not exist.' % args.experiment_directory)
+    if not os.path.exists(args.gene_list):
+        sys.exit('ERROR: %s does not exist.' % args.gene_list)
 
-    count_matrix = createCountMatrix(parsed.experiment_directory, parsed.gene_list)
+    count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
 
-    count_file_path = os.path.join(parsed.output, os.path.dirname(parsed.experiment_directory)) + '_raw_count.csv'
+    count_file_path = os.path.join(args.experiment_directory, os.path.basename(args.experiment_directory) + '_raw_count.csv')
 
     np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
@@ -26,11 +26,9 @@ def main(argv):
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment_directory', required=True,
-                        help='The directory created by create_experiment')
+                        help='The directory created by create_experiment. The raw_count csv will be output in this directory with the name <experiment_dir/experiment_dirname>_raw_count.csv')
     parser.add_argument('-l', '--gene_list', required=True,
                         help='Gene list. This gene list should be a subset or the same set of annotated genes in GTF/GFF.')
-    parser.add_argument('-o', '--output', required=True,
-                        help='Output directory for count matrix.')
     return parser.parse_args(argv[1:])
 
 def createCountMatrix(exp_dir, gene_list):
@@ -41,10 +39,7 @@ def createCountMatrix(exp_dir, gene_list):
     exp_dir = addForwardSlash(exp_dir)
     search_pattern = exp_dir + '*_read_count.tsv'
     sample_counts_list = glob.glob(search_pattern)
-    # verify that the files exist
-    for file_path in sample_counts_list:
-        if not os.path.exists(file_path):
-            sys.exit('ERROR: %s does not exist.\n... Aborted preparing count matrix.' % file_path)
+    # TODO: sanity check against num rows in query?
 
     # import list of genes from genome
     gene_list = np.loadtxt(gene_list, dtype=str)
@@ -59,10 +54,10 @@ def createCountMatrix(exp_dir, gene_list):
         # append sample column counts
         print('... working on %s' % file)
         count = np.loadtxt(file, dtype=str)
+        # TODO: ask yiming about this line
         indx = np.where([gene_list[i] == count[:, 0] for i in range(len(gene_list))])[1]
         count_mtx = np.hstack((count_mtx, count[indx, 1].reshape(-1, 1)))
-        # append sample column heading name 
-        sample_header = re.sub(".fastq.gz|.fastq", "", file)
+        sample_header = os.path.basename(file)
         header.append(sample_header)
 
     # combine count matrix and column headings
