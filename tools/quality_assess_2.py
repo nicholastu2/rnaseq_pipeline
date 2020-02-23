@@ -12,7 +12,7 @@ def main(argv):
 	## validate args
 	output_dir = parsed.output
 	experiment_dir = os.path.dirname(parsed.experiment_directory)
-	filename = experiment_dir + '_quality_summary.xlsx'
+	filename = experiment_dir + '_quality_summary_2.xlsx'
 	output_name = os.path.join(output_dir, filename)
 
 	if os.path.exists(output_name):
