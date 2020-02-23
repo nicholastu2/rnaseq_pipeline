@@ -26,8 +26,8 @@ def query_metadata_features(metadata, descriptors):
 	for feature in features:
 		## print messages for querying user input
 		feature_values = [x.encode("utf-8") for x in pd.unique(metadata[feature])]
-		print "... Querying %s :" % feature  
-		print np.array(feature_values)
+		print("... Querying %s :" % feature  )
+		print(np.array(feature_values))
 		user_input = raw_input("Select from above: (Press 'Enter' to select all. If mutliple values selected, use delimiter ',')\n")
 		## parse user input
 		if user_input.strip() == "":
@@ -49,7 +49,7 @@ def query_metadata_features(metadata, descriptors):
 
 def query_genes_of_interest():
 	## print messages for querying user input
-	print "... Querying genes of interest :"
+	print("... Querying genes of interest :")
 	user_input = raw_input("Type in genes of interest: (Press 'Enter' to select all. If mutliple values selected, use delimiter ',')\n")
 	## parse user input
 	if user_input.strip() == "":
@@ -73,8 +73,8 @@ def main(argv):
 	## load expression matrix and subset based on the query
 	expr_matrix = pd.read_csv(parsed.expr_matrix, index_col=0)
 	output_matrix = expr_matrix.loc[gene_list, np.intersect1d(sample_list, expr_matrix.columns.values)]
-	print "\n... Expression matrix filtered from query:"
-	print output_matrix
+	print("\n... Expression matrix filtered from query:")
+	print(output_matrix)
 	## optionally save output matrix
 	if parsed.output_matrix:
 		np.savetxt(parsed.output_matrix, output_matrix, delimiter=',', fmt='%s')

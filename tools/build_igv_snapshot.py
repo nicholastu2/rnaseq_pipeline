@@ -105,7 +105,7 @@ def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank, fig_form
 
 def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png', email=None, job_script='job_scripts/igv_snapshot.sbatch'):
 	"""
-	Write job script to make IGV snapshot
+	Write sbatch job script to make IGV snapshot
 	"""
 	num_samples = len(ineffmut_dict.keys())
 	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --mem=5G\n'
@@ -116,6 +116,7 @@ def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png'
 	for sample in ineffmut_dict.keys():
 		bam_file = ineffmut_dict[sample]['bam']
 		bed_file = ineffmut_dict[sample]['bed']
+		# this is a call to another script in the rnaseq_pipeline/tools
 		job += 'python -u tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' % (bam_file, bed_file, igv_genome, fig_format, igv_output_dir)
 	writer = open(job_script, 'w')
 	writer.write('%s' % job)

@@ -137,12 +137,12 @@ def main(argv):
 
 	feature_types = [x.strip() for x in parsed.feature_types.split(",")]
 	
-	print '... Building header'
+	print('... Building header')
 	jobs = build_header(parsed.samples, parsed.group_num, feature_types[0],
 						cpus=parsed.cpus, mem=parsed.mem, email=parsed.mail_user)
-	print '... Building scripts for reads alignment'
+	print('... Building scripts for reads alignment')
 	jobs += build_alignment(parsed.genome_index)
-	print '... Building scripts for gene expression quantification'
+	print('... Building scripts for gene expression quantification')
 	jobs += build_expression_quantification(parsed.reference_gtf, feature_types, 
 						stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)

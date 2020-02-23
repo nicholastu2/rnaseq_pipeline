@@ -72,7 +72,7 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
     parser.add_argument("-f", "--fastq_path", required=True,
                         help="[Required] Directory path of fastq files of type: {}".format(FASTQ_TYPES))
-    parser.add_argument('-r', '--run_num', required=True,
+    parser.add_argument('-rn', '--run_num', required=True,
                         help='[Required] To be used in the event that there is no run number in the fastq_path')
     parser.add_argument("-i", "--genome_index_file", required=True,
                         help="[Required] File path of genome index. This is specific to the aligner.")
@@ -186,6 +186,7 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
                     "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
             else:
                 f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
+
 
 if __name__ == "__main__":
     main(sys.argv)

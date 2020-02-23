@@ -62,7 +62,8 @@ def parseArgs(argv):
     parser.add_argument('-o', '--output', required = True,
                         help = 'filepath to directory to intended queryDB output')
     parser.add_argument( '-pf', '--print_full', action='store_true',
-                         help = 'boolean true/false to print full DB')
+                         help = 'Use this in the absence of -j to print out the full metadata database. The name will be combined_df_[date].csv. \
+                         Use it in addition to -j to print out both the query and the full database. Note: simply add -pf. No value is necessary')
 
     return parser.parse_args(argv[1:])
 

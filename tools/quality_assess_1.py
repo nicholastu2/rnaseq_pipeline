@@ -20,7 +20,7 @@ def main(argv):
     output_csv = os.path.join(output, sum_name)
 
     align_df = compileData(align_count, "_novoalign.log")
-    count_df = compileData(align_count, "_read_count.tsv") # this repeat is artifact of older system. TODO: update
+    count_df = compileData(align_count, "_read_count.tsv") # this repeat of compileData is artifact of older system. TODO: update
     combined_df = pd.concat([align_df, count_df], axis=1, sort=True, join="inner")
     combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 

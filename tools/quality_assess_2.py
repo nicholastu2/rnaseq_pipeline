@@ -11,7 +11,7 @@ def main(argv):
 	parsed = parse_args(argv)
 	## validate args
 	output_dir = parsed.output
-	experiment_dir = os.path.basename(parsed.experiment_directory)
+	experiment_dir = os.path.dirname(parsed.experiment_directory)
 	filename = experiment_dir + '_quality_summary.xlsx'
 	output_name = os.path.join(output_dir, filename)
 

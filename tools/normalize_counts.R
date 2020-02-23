@@ -5,7 +5,7 @@ suppressMessages(library(DESeq2))
 
 parse_arguments <- function() {
 	option_list <- list(
-		make_option(c('-i', '--file_count_mtx'), 
+		make_option(c('-c', '--file_count_mtx'),
 					help='Read count matrix (genes x samples).'),
 		make_option(c('-o', '--output'), 
 					help='FULL!! Filepath to normalized count file(s). This includes filename and extension Suggested use: <path>/<experiment_norm_count.csv>'))

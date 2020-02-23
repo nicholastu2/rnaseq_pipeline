@@ -7,6 +7,7 @@ import yaml
 import sys
 
 
+
 def decompose_status2bit(n):
     """
 	Decompose the bit status 
@@ -125,6 +126,7 @@ def check_dir(d):
 
 
 def addForwardSlash(path):
+    # duplicate of check_dir -- check_dir is yiming's function, addForwardSlash is chase's. This is a redundant artifact of multiple writers -- needs to be fixed.
     if not path[-1] == '/':
         path = path + '/'
     return path
@@ -132,7 +134,7 @@ def addForwardSlash(path):
 
 # the below functions strip file extensions, including in cases where there are two eg fq.gz
 def fileBaseName(file_name):
-    # https: // stackoverflow.com / a / 46811091
+    # https://stackoverflow.com/a/46811091
     if '.' in file_name:
         separator_index = file_name.index('.')
         base_name = file_name[:separator_index]
@@ -142,7 +144,7 @@ def fileBaseName(file_name):
 
 
 def pathBaseName(path):
-    # https://stackoverflow.com/a/46811091
+    # This gets the basename of a given path, and then strips all file extensions (even if multiple). see fileBaseName
     file_name = os.path.basename(path)
     return fileBaseName(file_name)
 
@@ -153,3 +155,12 @@ def checkCSV(file):
         return True
     else:
         return False
+
+class FileWriter:
+    pass
+
+class SlurmJobscriptWriter:
+    def __init__(self):
+        self
+    @classmethod
+    def novoalign(cls):

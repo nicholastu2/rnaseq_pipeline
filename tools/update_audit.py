@@ -84,7 +84,7 @@ def main(argv):
 	QC_dict = load_config(parsed.qc_configure)
 	QC_dict_rev = reverse_QC_dict(QC_dict)
 
-	print '... Updating sample summary'
+	print('... Updating sample summary')
 	qa = pd.read_excel(parsed.sample_quality)
 	samples = pd.read_excel(parsed.sample_summary)
 	df_columns = samples.columns.values

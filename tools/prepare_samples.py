@@ -31,7 +31,7 @@ def build_sample_summary(samples, metadata, df_cols, qc_cols, group, conditions)
 	for md in metadata:
 		if not os.path.exists(md):
 			sys.exit('ERROR: %s does not exist.' % md)
-		print '... Adding samples from %s' % md
+		print('... Adding samples from %s' % md)
 		df = populate_sample_summary(df, md, df_cols, qc_cols, conditions, group)
 	## sort dataframe
 	df = df.sort_values(['SAMPLE'])
@@ -43,7 +43,7 @@ def initialize_sample_summary(samples, df_cols):
 	Initialize the dataframe.
 	"""
 	if not os.path.exists(samples):
-		print '... Creating sample summary %s' % samples
+		print('... Creating sample summary %s' % samples)
 		df = pd.DataFrame(columns=df_cols)
 	else:
 		df = pd.read_excel(samples)
@@ -75,7 +75,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 		sample_descriptor = [row[col] for col in sorted(check_cols)]
 		if sample_descriptor in exist_samples:
 			# sys.exit('WARNING: found existing sample:\n%s\nCheck the redundancy issue.\n... Abort updating sample summary.' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
-			print 'WARNING: found existing sample: %s' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)])
+			print('WARNING: found existing sample: %s' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
 			continue
 		added_sample_indx.append(i)
 		## add the unique sample id
@@ -96,7 +96,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 			df2.loc[i, 'FILE'] = files_found[0]
 	## add only valid samples
 	df2 = df2.iloc[added_sample_indx]
-	print 'Total samples added: %d' % len(added_sample_indx)
+	print('Total samples added: %d' % len(added_sample_indx))
 	## force group number if multiple metadata are given
 	if group is not None:
 		df2['GROUP'] = group

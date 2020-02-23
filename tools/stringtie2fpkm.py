@@ -16,5 +16,5 @@ f.close()
 gids = [data[i].strip() for i in range(len(data))]
 
 fpkm_out = map(expr_dict.get, gids)
-print '%s' % '\n'.join(map(str, fpkm_out))
+print('%s' % '\n'.join(map(str, fpkm_out)))
 

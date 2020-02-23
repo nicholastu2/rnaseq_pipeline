@@ -147,6 +147,7 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
     with open(log_file, 'a+') as cp_log:
         for file in file_list:
             try:
+                # TODO: There was a problem with this in certain filenames, namely holly's crypto
                 regex_index = r".*_Index\d*_([ATGC]*)"
                 index = re.search(regex_index, file).group(1)
             except AttributeError:
