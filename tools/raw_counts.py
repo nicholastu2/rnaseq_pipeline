@@ -5,6 +5,7 @@ import os.path
 import numpy as np
 import re
 import glob
+import utils
 from utils import addForwardSlash
 
 
@@ -17,11 +18,7 @@ def main(argv):
 
     count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
 
-    # get the experiment name from the path provided in cmd line -e
-    if os.path.split(args.experiment_directory)[1] == "":
-        exp_name = os.path.dirname(args.experiment_directory)
-    else:
-        exp_name = os.path.basename(args.experiment_directory)
+    exp_name = utils.getDirName(args.experiment_directory)
 
     count_file_path = os.path.join(args.experiment_directory, exp_name + '_raw_count.csv')
 

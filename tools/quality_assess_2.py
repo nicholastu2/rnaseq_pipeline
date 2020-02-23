@@ -4,6 +4,7 @@ import argparse
 import re
 import pandas as pd
 import numpy as np
+import utils
 from utils import *
 import os
 
@@ -11,7 +12,7 @@ def main(argv):
 	parsed = parse_args(argv)
 	## validate args
 	output_dir = parsed.output
-	experiment_dir = os.path.dirname(parsed.experiment_directory)
+	experiment_dir = utils.getDirName(parsed.experiment_directory)
 	filename = experiment_dir + '_quality_summary_2.xlsx'
 	output_name = os.path.join(output_dir, filename)
 

@@ -156,6 +156,17 @@ def checkCSV(file):
     else:
         return False
 
+def getDirName(path):
+    """
+    get the experiment name from the path provided in cmd line -e
+    """
+    if os.path.split(path)[1] == "":
+        exp_name = os.path.dirname(path)
+    else:
+        exp_name = os.path.basename(path)
+        
+    return exp_name
+
 class FileWriter:
     pass
 
