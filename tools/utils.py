@@ -164,3 +164,4 @@ class SlurmJobscriptWriter:
         self
     @classmethod
     def novoalign(cls):
+        pass
