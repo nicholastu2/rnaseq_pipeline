@@ -129,7 +129,7 @@ def initialize_dataframe(query, df_cols, conditions):
 	# add GENOTYPE to conditions
 	conditions.append('GENOTYPE')
 	sample_summary_df['REPLICATE'] = sample_summary_df.groupby(conditions).cumcount() +1
-	rep_max = sample_summary_df.groupby(conditions).cumcount().max()
+	rep_max = sample_summary_df.groupby(conditions).cumcount().max() +1
 
 	return sample_summary_df, rep_max
 
