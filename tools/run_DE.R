@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 suppressMessages(library(optparse))
-source('/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/tools/DE_modules.r')
+source('/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/tools/DE_modules.R')
 
 parse_arguments <- function(){
 	option_list <- list(
