@@ -364,6 +364,9 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
 	#if not filepath.endswith('.xlsx'):
 	#	filepath += '.xlsx'
+
+	# TODO: work this in earlier in the process
+	df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 	
 

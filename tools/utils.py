@@ -35,7 +35,7 @@ def make_combinations(lst):
     return combo
 
 
-def make_list_product(lst):
+def makeListProduct(lst):
     """
 	Make all possible value combination, with each value coming from a each list. Support up to 10 lists.
 	"""
@@ -52,7 +52,7 @@ def make_list_product(lst):
     elif len(lst) == 5:
         return list(product(lst[0], lst[1], lst[2], lst[3], lst[4]))
     else:
-        sys.exit('ERROR: List length beyond what I can handle')
+        sys.exit('ERROR: The number of contrasts is greater than 10. This length beyond what I can handle')
 
 
 def load_config(json_file):
@@ -164,7 +164,7 @@ def getDirName(path):
         exp_name = os.path.dirname(path)
     else:
         exp_name = os.path.basename(path)
-        
+
     return exp_name
 
 class FileWriter:
