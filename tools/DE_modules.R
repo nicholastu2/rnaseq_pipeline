@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-suppressMessages(library(xlsx))
+#suppressMessages(library(xlsx))
 
 import_deseq2 <- function() suppressMessages(library(DESeq2))
 import_edger <- function() suppressMessages(library(edgeR))
@@ -9,14 +9,14 @@ import_edger <- function() suppressMessages(library(edgeR))
 parse_metadata <- function(design_filepath, qa_filepath) {
 	## Parse design table and sample quality sheet, and output contrast dictionary
 	## load files
-	design <- read.xlsx(design_filepath, sheetIndex=1, check.names=FALSE, na.string="NA")
-	qa <- read.xlsx(qa_filepath, sheetIndex=1, check.names=FALSE)
+	design <- readxl::read_xlsx(design_filepath)#<- read.xlsx(design_filepath, sheetIndex=1, check.names=FALSE, na.string="NA")
+	qa <- readxl::read_xlsx(qa_filepath)#read.xlsx(qa_filepath, sheetIndex=1, check.names=FALSE)
 	## find valid samples
 	valid_samples <- c()
 	for (i in 1:nrow(qa)) {
 		if (!is.na(qa$MANUAL_AUDIT[i])) { 
 			if (qa$MANUAL_AUDIT[i] == 0) 
-				valid_samples <- c(valid_samples, as.character(qa$SAMPLE[i]))
+				valid_samples <- c(valid_samples, as.character(qa$FASTQFILENAME[i]))
 		}
 	}
 	## group samples using constrast descriptor as key and valid samples as value
@@ -31,7 +31,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 		contrast_dict[[col]] <- list('0'=c(), '1'=c())
 		for (i in 1:nrow(design)) {
 			## for each sample if is assigned with a number and is valid 
-			sample_id <- as.character(design[i,'SAMPLE'])
+			sample_id <- as.character(design[i,'FASTQFILENAME'])
 			if (is.na(design[i,col]))
 				next
 			if (design[i,col] == 0 & sample_id %in% valid_samples)

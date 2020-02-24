@@ -11,7 +11,7 @@ parse_arguments <- function(){
 		make_option(c('-d', '--design_table'), 
 					help='Design table containing sample grouping indicator.'),
 		make_option(c('-q', '--qa_table'), 
-					help='QC table containing audit stauts.'),
+					help='QC table containing audit status.'),
 		make_option(c('-o', '--output_dir'), 
 					help='Table of DE genes ranked by ajusted p-value.'))
 	opt <- parse_args(OptionParser(option_list=option_list))
