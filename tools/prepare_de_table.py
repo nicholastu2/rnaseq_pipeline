@@ -21,7 +21,7 @@ def main(argv):
 	## sift data based on group and quality
 	summary_df = summary_df[(summary_df['MANUAL_AUDIT']==0)]
 	## prepare design table
-	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
+	design_df = build_design_table(summary_df, conditions, parsed.control)
 
 	design_table_filepath = os.path.join(parsed.output_dir, parsed.experiment_name + '_design_table')
 	save_dataframe(design_table_filepath, design_df)
