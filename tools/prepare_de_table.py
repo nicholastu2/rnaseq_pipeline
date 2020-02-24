@@ -21,7 +21,7 @@ def main(argv):
 	## sift data based on group and quality
 	summary_df = summary_df[(summary_df['MANUAL_AUDIT']==0)]
 	## prepare design table
-	design_df = build_design_table(summary_df, conditions, 'EtoH')
+	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
 
 	design_table_filepath = os.path.join(parsed.output_dir, parsed.experiment_name + '_design_table')
 	save_dataframe(design_table_filepath, design_df)
@@ -36,8 +36,8 @@ def parse_args(argv):
 						help='[Required] Auto-gen design table for DE anlaysis.')
 	parser.add_argument('-n', '--experiment_name', required=True,
 						help="[Required] the name of your experiment (this will be used for naming the DE table output)")
-	parser.add_argument('-w',  '--wildtype',
-						help='[Required] Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
+	parser.add_argument('-c',  '--control',
+						help='[Required] Control, e.g. CNAG_00000 for crypto, BY4741 for yeast, EtoH if control is a condition, -1 if a timePoint.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIMEPOINT',
 						help='Experimental conditions to describe the sample. Use delimiter "," if multiple descriptors are used. Default is TREATMENT,TIME_POINT')
 	return parser.parse_args(argv[1:])
