@@ -7,11 +7,11 @@ parse_arguments <- function(){
 		make_option(c('-m', '--de_module'), 
 					help='Differential analysis module to use. Choose `deseq2` or `edger`'),
 		make_option(c('-c', '--count_matrix'), 
-					help='Read count matrix (genes x samples).'),
+					help='raw count matrix (genes x samples).'),
 		make_option(c('-d', '--design_table'), 
 					help='Design table containing sample grouping indicator.'),
 		make_option(c('-q', '--qa_table'), 
-					help='QC table containing audit status.'),
+					help='output of quality_assess_2.py. Table must contain audit status (see the github instructions).'),
 		make_option(c('-o', '--output_dir'), 
 					help='Table of DE genes ranked by ajusted p-value.'))
 	opt <- parse_args(OptionParser(option_list=option_list))
