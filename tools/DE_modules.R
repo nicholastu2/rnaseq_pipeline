@@ -35,7 +35,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 			if (is.na(design[i,col]))
 				next
 			if (design[i,col] == 0 & sample_id %in% valid_samples)
-				contrast_dict[[col]][['0']] <- c(contrast_dict[[col]][['0']], paste(design[i,'GENOTYPE'], sample_id, sep='-'))
+				contrast_dict[[col]][['0']] <- c(contrast_dict[[col]][['0']], paste(design[i,'GENOTYPE'], sample_id, sep='-')) # change parsing based on change in colname in prepare_de_table
 			else if (design[i,col] == 1 & sample_id %in% valid_samples)
 				contrast_dict[[col]][['1']] <- c(contrast_dict[[col]][['1']], paste(design[i,'GENOTYPE'], sample_id, sep='-'))
 		}
