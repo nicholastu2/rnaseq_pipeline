@@ -5,7 +5,7 @@ import argparse
 from glob import glob
 import re
 
-FASTQ_TYPES = ["fastq.gz", "fq.gz"]
+FASTQ_TYPES = ["fastq.gz", "fq.gz", '.fq']
 FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
 
 def main(argv):

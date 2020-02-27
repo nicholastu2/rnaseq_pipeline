@@ -28,7 +28,7 @@ normalize_count <- function(count_mtx, samples) {
 					rep('dummy1',n_samples-floor(n_samples/2)))
 	coldata <- data.frame(conditions, row.names=samples)
 	dds <- DESeqDataSetFromMatrix(countData=count_mtx, colData=coldata, 
-									design=~conditions)
+									design=~conditions) # remove design and conditions
 	dds <- estimateSizeFactors(dds)
 	norm_count_mtx <- counts(dds, normalized=TRUE)
 	return(norm_count_mtx)
