@@ -4,6 +4,7 @@ import os
 import argparse
 from glob import glob
 import re
+import datetime
 
 FASTQ_TYPES = ["fastq.gz", 'fastq', "fq.gz", 'fq']
 FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
@@ -64,6 +65,8 @@ def main(argv):
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
     os.system("module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path))
     with open(pipeline_info_path, "a+") as file:
+        file.write("\n")
+        file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
         file.write("\n")
     os.system("head {} >> {}".format(gene_ann_file, pipeline_info_path))
 
