@@ -7,47 +7,55 @@ import argparse
 import pandas as pd
 import shutil
 from shutil import copy2 as cp
+import time
 
 def main(argv):
 
     # read in cmd line args
     args = parseArgs(argv)
-    log_name = 'run_{}_move_log.csv'.format(args.run_number)
+    # create log file path
+    log_name = 'run_{}_move_log.tsv'.format(args.run_number)
     write_log_file = os.path.join(args.log, log_name )
-    # get file_paths
+
+    # get file_paths to alignment and count files
     alignment_files = getAlignmentFiles(args.reports)
     novo_log_files = getLogFiles(args.reports)
 
+    # create destination directory
     dest_path_complete = os.path.join(args.destination_path, 'run_{}'.format(args.run_number))
-    # make run_num sub directory in destination path
+    # TODO: check if exists, especially in the event that adding another organism to already half processed run
     os.system("mkdir -p {}".format(dest_path_complete))
 
-    align_dict = moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
-    log_dict = moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
+    # move the alignment files
+    moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
+    # move the log files
+    moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
 
-    writeCountSheet(align_dict, log_dict, args.count_metadata)
-
+    # move the pipeline info directory. If a pipeline info directory already exists, append date time to pipeline_info dir in question
     pipeline_info = os.path.join(args.reports, 'pipeline_info')
     if os.path.isdir(pipeline_info):
-        shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info"))
+        if os.path.isdir(os.path.join(dest_path_complete, 'pipeline_info')):
+            os.system('rsync -aHv {} {}'.format(pipeline_info, os.path.join(dest_path_complete, "pipeline_info" + '_' + time.strftime("%Y%m%d-%H%M%S"))))
+            #shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info" + '_' + time.strftime("%Y%m%d-%H%M%S")))
+        else:
+            os.system('rsync -aHv {} {}'.format(pipeline_info, os.path.join(dest_path_complete, "pipeline_info")))
+            #shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info"))
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--reports', required = True,
-                        help='[Required] the reports/run_## directory in which the alignment and count files are')
+                        help='[REQUIRED] the reports/run_## directory in which the alignment and count files are')
     parser.add_argument('-rn', '--run_number', required=True,
-                        help = '[Required] The run number corresponding to the set of fastq files')
+                        help = '[REQUIRED] The run number corresponding to the set of fastq files')
     parser.add_argument('-d', '--destination_path', required = True,
-                        help = '[Requierd] Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
-    parser.add_argument('-c', '--count_metadata', required = True,
-                        help = '[Required] Suggested usage: database-files/alignCount   path to alignCount directory in metadata database')
-    parser.add_argument('-l', '--log',
-                        help = '[Optional, but highly recommended] suggested usage: ./log. You will need to mkdir log if it does not exist already. \
+                        help = '[REQUIRED] Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
+    parser.add_argument('-l', '--log', required = True,
+                        help = '[REQUIRED] suggested usage: ./log. You will need to mkdir log if it does not exist already. \
                          This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
 
     return parser.parse_args(argv[1:])
 
-def writeCountSheet(align_dict, log_dict, count_metadata):
+def writeMoveLog(align_dict, log_dict, count_metadata):
     # This generates the alignCounts automatically generated metadata sheet for the database-files
     # Args: a dictionry of alignment files, log files, and the path to database-files/alignCount
     # Output: a dataframe written to the path provided in the cmd line input -c
@@ -146,12 +154,6 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
 
     with open(log_file, 'a+') as cp_log:
         for file in file_list:
-            try:
-                # TODO: There was a problem with this in certain filenames, namely holly's crypto
-                regex_index = r".*_Index\d*_([ATGC]*)"
-                index = re.search(regex_index, file).group(1)
-            except AttributeError:
-                print('no index found in file {}'.format(file))
 
             # create destination_file_path. This will be in pattern inputted_dest_path/run_####/.*.bam etc
             run_dir = 'run_{}'.format(run_num)
@@ -165,11 +167,8 @@ def moveFiles(file_list, destination_dir,run_num, log_file):
                 sys.exit(1)
 
             print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
-            cp(file, destination_file_path)
-            cp_log.write('{}\t{}\t{}\t{}\n'.format(run_num, index, file, destination_file_path))
-            move_dict.setdefault((run_num, index), []).append(destination_file_path)
-
-    return move_dict
+            os.system('rsync -aHv {} {}'.format(file, destination_file_path))
+            cp_log.write('{}\t{}\t{}\n'.format(run_num, file, destination_file_path))
 
 
 if __name__ == '__main__':
