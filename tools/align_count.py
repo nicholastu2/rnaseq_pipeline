@@ -6,7 +6,7 @@ from glob import glob
 import re
 import datetime
 
-FASTQ_TYPES = ["fastq.gz", 'fastq', "fq.gz", 'fq']
+FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
 FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
 
 def main(argv):
