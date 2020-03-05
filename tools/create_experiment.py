@@ -11,7 +11,8 @@ import argparse
 from shutil import copy2 as cp
 from utils import *
 
-COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+#COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+COUNT_LTS = '/home/chase/Desktop/align_expr'
 
 def main(argv):
 
