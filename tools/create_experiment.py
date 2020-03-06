@@ -55,9 +55,10 @@ def parseArgs(argv):
     parser.add_argument('-n', '--experiment_name', required=True,
                         help='The name of this experiment. This will be used as the subdirectory of output')
     parser.add_argument('-lz', '--leading_zero_rn', nargs='+',
-                       help='If any of the run numbers in your query have a leading zero, and you tried the script once and it errored on these same run numbers, \
-                             try adding this flag. Run numbers should be added sequentially with quotes, eg 0641 0537. You may also try the run number with no leading 0, eg 773\
-                              if the run number 0773 is giving you trouble. If both of these fail, see me.')
+                        help='If any of the run numbers in your query have a leading zero, and you tried the script once and it errored on these same run numbers, \
+                             try adding this flag. Run numbers should be added sequentially, eg 0641 0537. You may also try the run number with no leading 0, eg 773\
+                              if the run number 0773 is giving you trouble. If both of these (eg 0773 and 773) fail, and the file exists in align_expr, you may need to\
+                              get into the code to add a conditional for an unusual run number. This is more common with older runs.')
     return parser.parse_args(argv[1:])
 
 def createExperimentDir(output, exp_name):
