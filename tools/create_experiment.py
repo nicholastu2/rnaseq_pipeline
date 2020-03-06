@@ -12,6 +12,8 @@ from shutil import copy2 as cp
 from utils import *
 
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+# this needs to be here b/c align_counts currently only removes f*q.gz (this was legacy code that I did not catch before running the old data, which has a variety of extensions other than variations of strictly f*q.gz)
+FASTQ_TYPES = [".fastq.gz",".fq.gz"]
 
 def main(argv):
 
@@ -69,7 +71,14 @@ def filepathList(query, file_type):
 
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
-    fastq_file_basename = [os.path.basename(fileBaseName(x)) for x in query['fastqFileName']]
+    fastq_file_basename = [os.path.basename(x) for x in query['fastqFileName']]
+    # remove fastq extensions without removing the .txt extensions that are sometimes placed in the middle of fastq names in older runs
+    # this is to account for legacy code -- see the note at the top
+    for i in range(len(fastq_file_basename)):
+        for ext in FASTQ_TYPES:
+            if fastq_file_basename[i].endswith(ext):
+                fastq_file_basename[i] = fastq_file_basename[i][:-len(ext)]
+
     read_count_basename = [x + file_type for x in fastq_file_basename]
 
     if not len(read_count_basename) == len(base_path):
@@ -97,7 +106,7 @@ def moveFiles(file_list, dest_dir, query_len):
 
         dest_full_path = os.path.join(dest_dir, os.path.basename(file))
         print('...copying {} to {}'.format(os.path.basename(file), dest_full_path))
-        cp(file, dest_full_path)
+        os.system('rsync -aHv {} {}'.format(file, dest_full_path))
         count = count + 1
 
     if not count == 2*query_len:
