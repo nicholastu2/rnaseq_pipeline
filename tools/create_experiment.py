@@ -23,6 +23,10 @@ def main(argv):
 
     # parse cmd line arguments
     args = parseArgs(argv)
+    if args.leading_zero_rn:
+        leading_zero_list = args.leading_zero_rn
+    else:
+        leading_zero_list = ''
 
     # read in query sheet (The path to the result of a query against the metadata base using queryDB)
     query = pd.read_csv(args.query_sheet)
@@ -31,9 +35,9 @@ def main(argv):
     dest_dir = createExperimentDir(args.output_location, args.experiment_name)
 
     # get list of count files
-    count_file_list = filepathList(query, count_suffix)
+    count_file_list = filepathList(query, count_suffix, leading_zero_list)
     # get list of novoalign logs
-    novoalign_log_list = filepathList(query, novoalign_log_suffix)
+    novoalign_log_list = filepathList(query, novoalign_log_suffix, leading_zero_list)
     # concat the lists together
     file_list = count_file_list + novoalign_log_list
 
@@ -50,6 +54,9 @@ def parseArgs(argv):
                             to put the directory containing the counts for your analysis')
     parser.add_argument('-n', '--experiment_name', required=True,
                         help='The name of this experiment. This will be used as the subdirectory of output')
+    parser.add_argument('--leading_zero_rn', nargs='+',
+                       help='If any of the run numbers in your query have a leading zero, and you tried the script once and it errored on these same run numbers, \
+                             try adding this flag. Run numbers should be added sequentially with quotes, eg 0641 0537')
     return parser.parse_args(argv[1:])
 
 def createExperimentDir(output, exp_name):
@@ -62,12 +69,17 @@ def createExperimentDir(output, exp_name):
 
     return dir_name
 
-def filepathList(query, file_type):
+def filepathList(query, file_type, leading_zero_list):
     # create filepath from COUNT_LTS, runNumber and fastqFileName
     # Args: queryDB output, the file_type of file to create (default is read_count.tsv and novoalign.log)
     # Return: list of count filepaths
 
     run_num = list(query['runNumber'])
+    if leading_zero_list:
+        for i in range(len(run_num)):
+            for leading_zero_run_num in leading_zero_list:
+                if run_num[i] == int(leading_zero_run_num):
+                    run_num[i] = str(leading_zero_run_num)
 
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
