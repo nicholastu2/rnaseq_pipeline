@@ -54,9 +54,10 @@ def parseArgs(argv):
                             to put the directory containing the counts for your analysis')
     parser.add_argument('-n', '--experiment_name', required=True,
                         help='The name of this experiment. This will be used as the subdirectory of output')
-    parser.add_argument('--leading_zero_rn', nargs='+',
+    parser.add_argument('-lz', '--leading_zero_rn', nargs='+',
                        help='If any of the run numbers in your query have a leading zero, and you tried the script once and it errored on these same run numbers, \
-                             try adding this flag. Run numbers should be added sequentially with quotes, eg 0641 0537')
+                             try adding this flag. Run numbers should be added sequentially with quotes, eg 0641 0537. You may also try the run number with no leading 0, eg 773\
+                              if the run number 0773 is giving you trouble. If both of these fail, see me.')
     return parser.parse_args(argv[1:])
 
 def createExperimentDir(output, exp_name):
@@ -75,11 +76,15 @@ def filepathList(query, file_type, leading_zero_list):
     # Return: list of count filepaths
 
     run_num = list(query['runNumber'])
+    # the following is to address the various run number formats with leading 0s eg 0773. There is some inconsistency
     if leading_zero_list:
         for i in range(len(run_num)):
             for leading_zero_run_num in leading_zero_list:
-                if run_num[i] == int(leading_zero_run_num):
-                    run_num[i] = str(leading_zero_run_num)
+                if run_num[i] == int(leading_zero_run_num) or run_num[i] == str(leading_zero_run_num):
+                    if not str(leading_zero_run_num).startswith('0'):
+                        run_num[i] = '0'+str(leading_zero_run_num)
+                    else:
+                        run_num[i] = str(leading_zero_run_num)
 
     base_path = [os.path.join(COUNT_LTS, 'run_{}'.format(x)) for x in run_num]
 
@@ -111,9 +116,7 @@ def moveFiles(file_list, dest_dir, query_len):
     for file in file_list:
         # throw error/exit if file isn't found in src_dir
         if not os.path.isfile(file):
-            print('{} cannot be found and therefore can not be moved. Please check {} for the directory with the \
-                   run number in the filename'.format(
-                    file, COUNT_LTS))
+            print('{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(file, COUNT_LTS))
             sys.exit(1)
 
         dest_full_path = os.path.join(dest_dir, os.path.basename(file))
