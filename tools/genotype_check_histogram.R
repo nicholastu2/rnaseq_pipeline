@@ -23,9 +23,9 @@ main = function(){
   output_dir = parsed$output
 
   # read in data
-  log2_cpm = read_csv(path_to_log2_cpm)
+  log2_cpm = suppressMessages(read_csv(path_to_log2_cpm))
   # read in query and raw counts
-  parsed_query_df = read_csv(path_to_query_sheet)
+  parsed_query_df = suppressMessages(read_csv(path_to_query_sheet))
 
   # create list of columns to parse out of query_sheet
   columns_to_parse = c('COUNTFILENAME', 'REPLICATE', input_cols)
