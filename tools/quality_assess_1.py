@@ -129,7 +129,7 @@ def genotypeCheck(standard_data):
     if not (hasattr(standard_data,'query_sheet_path') and hasattr(standard_data,'raw_count_path') and
             hasattr(standard_data, 'log2_cpm') and standard_data.experiment_columns and
             os.path.exists(standard_data.query_sheet_path) and
-            os.path.exists(standard_data.raw_count_path) and os.path.exits(standard_data.log2_cpm)):
+            os.path.exists(standard_data.raw_count_path) and os.path.exists(standard_data.log2_cpm)):
         sys.exit('query_sheet_path or raw_count data was either entered to StandardDataFormat incorrectly'
                  'or the paths do not exist. Check both the code constructing standard_data and the paths')
     else:
