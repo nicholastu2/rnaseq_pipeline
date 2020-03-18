@@ -31,7 +31,7 @@ main = function(){
   columns_to_parse = c('COUNTFILENAME', 'REPLICATE', input_cols)
 
   # split the query_df into separate sheets based on cols_of_interest
-  split_parsed_query_df = suppressMessages((parsed_query_df, columns_to_parse, input_cols))
+  split_parsed_query_df = suppressMessages(splitParsedQuery(parsed_query_df, columns_to_parse, input_cols))
 
   createHistograms(split_parsed_query_df, input_cols, log2_cpm, output_dir)
 
