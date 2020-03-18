@@ -44,7 +44,7 @@ main = function(){
 
 parseArguments = function() {
 	option_list = list(
-		make_option(c('-q', '--parsed_standardized_query_sheet'),
+		make_option(c('-q', '--standardized_query_sheet'),
 					help='a query sheet for the samples that has been standardized by class StandardDataFormat'),
         make_option(c('-c', '--log2_cpm'),
 					help='raw count matrix produced by raw_counts.py'),
