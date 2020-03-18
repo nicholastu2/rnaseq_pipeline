@@ -134,7 +134,7 @@ def genotypeCheck(standard_data):
                  'or the paths do not exist. Check both the code constructing standard_data and the paths')
     else:
         # create script command for genotype_check_histogram.R
-        script_cmd = 'genotype_check_histogram.R -q {} -c {} -o {}'.format(standard_data.query_sheet_path,
+        script_cmd = 'genotype_check_histogram.R -q {} -c {} -o {}'.format(standard_data.standardized_query_path,
                                                                               standard_data.log2_cpm,
                                                                               standard_data.output_dir)
         exp_column_statement = ' -e '

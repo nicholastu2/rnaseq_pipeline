@@ -7,6 +7,9 @@ from itertools import combinations, product
 import yaml
 import sys
 import pandas as pd
+import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
+import time
+#used in StandardDataFormat
 
 
 def decompose_status2bit(n):
@@ -115,9 +118,18 @@ def parse_gff3(filename):
     return bed_dict
 
 
-def mkdir_p(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
+def mkdir_p(path_to_directory):
+    """
+    Function to create a directory. Equivalent to mkdir -p in bash. Will create directory if the path does not already exist.
+    :param path_to_directory: path to a directory to be created if DNE already
+    """
+    if not os.path.exists(path_to_directory):
+        try:
+            os.makedirs(path_to_directory)
+        except OSError:
+            print("Directory {} cannot be created. See mkdir_p function call "
+                  "in the script from which this error occurred".format(path_to_directory))
+
 
 
 def check_dir(d):
@@ -127,14 +139,23 @@ def check_dir(d):
 
 
 def addForwardSlash(path):
-    # duplicate of check_dir -- check_dir is yiming's function, addForwardSlash is chase's. This is a redundant artifact of multiple writers -- needs to be fixed.
-    if not path[-1] == '/':
+    """
+    add forward slash to path
+    :param path: a path, typically to the lowest subdir prior to adding a file
+    :returns: the path with a trailing slash added
+    """
+    if not path.endswith('/'):
         path = path + '/'
     return path
 
 
 # the below functions strip file extensions, including in cases where there are two eg fq.gz
 def fileBaseName(file_name):
+    """
+    strip everything after first . in path (may be too extreme -- make sure there are no 'necessary' . in filepaths. However, please try to avoid putting a . in a filepath other than the extension(s)
+    :param file_name: the base filename of a file (not a path!)
+    :returns: the filename stripped of all extensions
+    """
     # https://stackoverflow.com/a/46811091
     if '.' in file_name:
         separator_index = file_name.index('.')
@@ -145,12 +166,22 @@ def fileBaseName(file_name):
 
 
 def pathBaseName(path):
+    """
+    strips directory structure and extensions. eg /path/to/file.fastq.gz --> file
+    :param path: a filepath that includes a directory structure and file (see description)
+    :returns: the basename of the file stripped of the directory structure and extensions
+    """
     # This gets the basename of a given path, and then strips all file extensions (even if multiple). see fileBaseName
     file_name = os.path.basename(path)
     return fileBaseName(file_name)
 
 
 def checkCSV(file):
+    """
+    test whether a given file is a .csv or something else
+    :param file: a file that ends with .csv, .xlsx, .tsv, etc.
+    :returns: True if .csv, false otherwise
+    """
     # test whether a given file is a .csv or .xlsx
     if re.search('\.csv', file):
         return True
@@ -160,14 +191,16 @@ def checkCSV(file):
 
 def getDirName(path):
     """
-    get the experiment name from the path provided in cmd line -e
+    get the directory name of the directory one level up from the end of the path provided. eg /path/to/file.fastq.gz returns 'to'
+    :param path: a path to a directory or file
+    :returns: the name of the directory one level up from the final level of path. see description for example
     """
     if os.path.split(path)[1] == "":
-        exp_name = os.path.dirname(path)
+        dirname = os.path.dirname(path)
     else:
-        exp_name = os.path.basename(path)
+        dirname = os.path.basename(path)
 
-    return exp_name
+    return dirname
 
 class FileWriter:
     pass
@@ -329,10 +362,14 @@ class StandardDataFormat:
         # list of expected attribute names
         self._attributes = ['query_sheet_path', 'raw_count_path', 'norm_counts_path', 'align_expr_path',
                             'sequence_path', 'database_files_path', 'genome_files', 'tmp_dir']
+        self._user = getpass.getuser()
+        self.tmp_dir = '/scratch/{}/'.format(self._user)
+        mkdir_p(self.tmp_dir) # make sure this is accessible to the class when reformat utils
         self.setAttributes(kwargs)
         if hasattr(self, 'query_sheet_path'):
             # set attribute 'query_df' to store the standardizedQuerySheet
             setattr(self, 'query_df', self.standardizeQuery(self.query_sheet_path))
+            self.writeStandardizedQueryToTmp()
         if hasattr(self, 'raw_counts_path'):
             # set attribute raw_counts_df to store raw_counts
             setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path))
@@ -386,6 +423,16 @@ class StandardDataFormat:
         # else, return the entire dataframe
         else:
             return df
+
+    def writeStandardizedQueryToTmp(self):
+        """
+        write self.query_df to self.tmp_dir. format is date_time_standardized_query.csv eg 20200312_115103_standardized_query.csv
+        also sets attribute to this path
+        """
+        timestr = time.strftime("%Y%m%d_%H%M%S")
+        standardized_query_name = '{}_standardized_query.csv'.format(timestr)
+        self.query_df.to_csv(standardized_query_name, index=False)
+        setattr(self, 'standardized_query_path', os.path.join(self.tmp_dir, standardized_query_name))
 
     @staticmethod
     def countsPerMillion(raw_count_path, output_FULL_path):

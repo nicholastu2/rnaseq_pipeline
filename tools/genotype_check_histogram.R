@@ -51,19 +51,11 @@ parseArguments = function() {
 	return(args)
 } # end parseArguments()
 
-countDataFrame = function(raw_count_path){
-
-  raw_count_df = read_csv(raw_count_path)
-  colnames(raw_count_df)[1] = 'gene'
-
-  return(raw_count_df)
-} # end rawCountsDf
-
-splitParsedQuery = function(parsed_query_df, cols_of_interest, input_cols){
+splitParsedQuery = function(parsed_query_df, columns_to_parse, input_cols){
 
   # split parsed_query_df into groups based on cols_of_interest
   split_parsed_query_df = parsed_query_df %>%
-                          select(cols_of_interest) %>%
+                          select(columns_to_parse) %>%
                           # The ugly code below 'unquoting' the character vector in order to pass
                           # the arguments as column variables see https://adv-r.hadley.nz/quasiquotation.html
                           group_split(!!! rlang::syms(input_cols))
