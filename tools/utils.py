@@ -363,7 +363,7 @@ class StandardDataFormat:
         self._attributes = ['query_sheet_path', 'raw_count_path', 'norm_counts_path', 'align_expr_path',
                             'sequence_path', 'database_files_path', 'genome_files', 'tmp_dir']
         self._user = getpass.getuser()
-        self.tmp_dir = '/scratch/{}/'.format(self._user)
+        self.tmp_dir = '/scratch/mblab/{}/rnaseq_tmp'.format(self._user)
         mkdir_p(self.tmp_dir) # make sure this is accessible to the class when reformat utils
         self.setAttributes(kwargs)
         if hasattr(self, 'query_sheet_path'):
