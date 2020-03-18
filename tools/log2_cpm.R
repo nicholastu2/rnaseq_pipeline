@@ -12,7 +12,7 @@ main = function(args){
   parsed = args
   path_to_raw_counts = parsed$raw_counts
   # read in raw counts data.frame
-  raw_counts = read.csv(path_to_raw_counts, row.names = 'gene_id', check.names = FALSE) # without check.names = FALSE, R will insert X in front of colnames that start with a number
+  raw_counts = read.csv(path_to_raw_counts, row.names = 'gene_id', check.names = FALSE) # without check.names = FALSE, R will insert X in front of colnames that start with a number https://stackoverflow.com/a/58951644/9708266
   # convert to edgeR DGEList object
   dgelist = DGEList(raw_counts)
   # cpm returns the log2 of counts per million
