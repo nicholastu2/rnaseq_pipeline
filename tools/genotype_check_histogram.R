@@ -152,4 +152,4 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
   } # end for
 } # end createHistograms
 
-main(parseArguments()) # call main method
+main() # call main method
