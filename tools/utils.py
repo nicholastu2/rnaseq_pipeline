@@ -492,8 +492,9 @@ def genotypeCheck(standard_data):
             exp_column_statement = exp_column_statement + '{},'.format(i)
         exp_column_statement = exp_column_statement[:-1]
         script_cmd = script_cmd + exp_column_statement
+        print(script_cmd)
         # execute genotype_check_histogram.R
-        os.system(script_cmd)
+        #os.system(script_cmd)
 
 
 class QualityAssessmentObject(ABC):
