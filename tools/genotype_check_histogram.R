@@ -79,20 +79,21 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
     # edgeR cpm adds a psuedocount scaled to the library size prior to performing calculations/log. This results in negative values.
     # here, my goal is the shift the lowest value in the count matrix to 0
     offset_to_0 = abs(min(log2_count_cpm[, group$COUNTFILENAME]))
-    print(offset_to_0)
-    # subset_log2_cpm = log2_count_cpm[, group$COUNTFILENAME] + offset_to_zero
-    # subset_log2_cpm = as.data.frame(subset_log2_cpm)
-    # subset_log2_cpm$MEDIAN = apply(subset_log2_cpm, 1, median)
-    # # summarize by median
-    # subset_log2_cpm = select(subset_log2_cpm, MEDIAN)
-    #
-    # # plot histogram of median log2 cpm of a given group in split_parsed_query_df
-    # overall_dist = ggplot(subset_log2_cpm, aes(MEDIAN))+
-    #   geom_histogram(na.rm = TRUE, bins = 105, alpha = .5, fill = 'tan2') +
-    #   labs(title=group_desc, y=y_label, x=x_label)+
-    #   coord_cartesian(xlim = c(-2,15))+
-    #   ylim(0,400)
-    #
+    subset_log2_cpm = log2_count_cpm[, group$COUNTFILENAME] + offset_to_zero
+    subset_log2_cpm = as.data.frame(subset_log2_cpm)
+    subset_log2_cpm$MEDIAN = apply(subset_log2_cpm, 1, median)
+    # summarize by median
+    subset_log2_cpm = select(subset_log2_cpm, MEDIAN)
+
+    # plot histogram of median log2 cpm of a given group in split_parsed_query_df
+    overall_dist = ggplot(subset_log2_cpm, aes(MEDIAN))+
+      geom_histogram(na.rm = TRUE, bins = 105, alpha = .5, fill = 'tan2') +
+      labs(title=group_desc, y=y_label, x=x_label)+
+      coord_cartesian(xlim = c(-2,15))+
+      ylim(0,400)
+
+    ggsave(output_path, plot=overall_dist)
+
     # # extract genotype of the group (there will be only one)
     # genotype = unique(group[,'GENOTYPE'])[[1]]
     # # remove "_over" if it is present
