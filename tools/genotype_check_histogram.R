@@ -70,21 +70,27 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
 
     group_desc = paste(as.character(unique(group[,input_cols])), collapse = "_")
     x_label = "median of log2(cpm) of replicates"
-    y_label = "frequency"
+    y_label = "count"
 
     # arbitrarily re-number replicates
     group$REPLICATE = 1:nrow(group) # this should be done already in StandardizeDataFormat
 
     # subset log2_count_cpm by the countfilename (samples) in a given group in split_parsed_query_df
-    subset_log2_cpm = log2_count_cpm[, group$COUNTFILENAME]
+    # edgeR cpm adds a psuedocount scaled to the library size prior to performing calculations/log. This results in negative values.
+    # here, my goal is the shift the lowest value in the count matrix to 0
+    offset_to_0 = abs(min(log2_count_cpm[, group$COUNTFILENAME]))
+    subset_log2_cpm = log2_count_cpm[, group$COUNTFILENAME] + offset_to_zero
     subset_log2_cpm = as.data.frame(subset_log2_cpm)
     subset_log2_cpm$MEDIAN = apply(subset_log2_cpm, 1, median)
     # summarize by median
-    subset_log2_cpm = select(subset_log2_cpm, median)
+    subset_log2_cpm = select(subset_log2_cpm, MEDIAN)
 
     # plot histogram of median log2 cpm of a given group in split_parsed_query_df
-    overall_dist = ggplot(subset_log2_cpm, aes(median))+
-      geom_histogram(na.rm = TRUE, bins = 105, alpha = .5, fill = 'tan2')
+    overall_dist = ggplot(subset_log2_cpm, aes(MEDIAN))+
+      geom_histogram(na.rm = TRUE, bins = 105, alpha = .5, fill = 'tan2') +
+      labs(title=group_desc, y=y_label, x=x_label)+
+      coord_cartesian(xlim = c(-2,15))+
+      ylim(0,400)
 
     # extract genotype of the group (there will be only one)
     genotype = unique(group[,'GENOTYPE'])[[1]]
@@ -102,7 +108,7 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
     drug_markers = c("CNAG_G418", "CNAG_NAT")
 
     # extract expression of perturbed gene
-    perturbed_df = as_tibble(log2_count_cpm[genotype, countfilename_list])
+    perturbed_df = log2_count_cpm[which (log2_count_cpm$gene_id %in% genotype),countfilename_list]
     if (ncol(perturbed_df) == 1){
       perturbed_df$SAMPLE = countfilename_list
       perturbed_df$GENOTYPE = genotype
@@ -116,27 +122,29 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
 
     # get expression of drug markers
     drug_markers = c("CNAG_G418", "CNAG_NAT")
-    drug_markers_df = as_tibble(log2_count_cpm[drug_markers, countfilename_list])
+    drug_markers_df = log2_count_cpm[which (log2_count_cpm$gene_id %in% drug_markers),countfilename_list]
     drug_markers_df = stack(drug_markers_df)
     drug_markers_df$gene = drug_markers
     colnames(drug_markers_df)[2] = "SAMPLE"
     colnames(drug_markers_df)[3] = "GENOTYPE"
-    colnames(drug_markers_df) = toupper(drug_markers_df)
+    colnames(drug_markers_df) = toupper(colnames(drug_markers_df))
+
+    # shift drug markers and perturbed genes over 1 (see note on subset_log2_cpm)
+    drug_markers_df$VALUES = drug_markers_df$VALUES + offset_to_0
+    perturbed_df$VALUES = perturbed_df$VALUES + offset_to_0
 
     # plot points representing expression of a genotype (or marker) in a given sample
     overall_dist = overall_dist +
-      # uncomment this to display dots by sample (countfilename)
+      # uncomment this to display dots by sample (fastqFileName)
       #geom_point(data = perturbed_df, aes(perturbed_df$value,y=0, color = perturbed_df$sample)) +
-      geom_text_repel(data = perturbed_df, aes(x = perturbed_df$VALUE, y = perturbed_df$VALUE, label = perturbed_df$GENOTYPE),
+      theme(legend.justification = c(1,1), legend.position = c(1,1))+
+      geom_text_repel(data = perturbed_df, aes(x = perturbed_df$VALUES, y = perturbed_df$VALUES, label = perturbed_df$GENOTYPE),
                       nudge_y = 200,
                       vjust = 0,
                       segment.size = .2) +
-      geom_point(data = drug_markers_df, aes(drug_markers_df$VALUE,y=100, color = drug_markers_df$GENOTYPE))+
-      theme(legend.justification = c(1,1), legend.position = c(1,1))+
-      labs(title=group_desc, y=y_label, x=x_label)+
-      xlim(0,15)+
-      ylim(0,400)
+      geom_point(data = drug_markers_df, aes(drug_markers_df$VALUES,y=100, color = drug_markers_df$GENOTYPE))
 
+    print(overall_dist)
     output_path = file.path(output_dir, paste(group_desc, '.png', sep=''))
     ggsave(output_path, plot=overall_dist)
   } # end for
