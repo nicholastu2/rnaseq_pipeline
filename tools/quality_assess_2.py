@@ -47,12 +47,26 @@ def main(argv):
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))]
 	df, rep_max = initialize_dataframe(parsed.query_sheet, df_columns, conditions)
 	if rep_max != parsed.max_replicates:
-		print('The max number of replicates is {}. Please re-launch this script with -r {}.'.format(rep_max, rep_max))
+		print('The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(rep_max, rep_max))
 	if rep_max > 7:
-		print('Calculating the power set of 7 replicates for the CoV will result in many columns. Are you sure you want to proceed? Enter y or n')
+		print('Calculating the power set of 7 replicates for the CoV is not currently possible as it exceeds the pandas maximum sheet size. A QA sample summary will be returned, but CoV will not be calculated. Do you wish to continue? Enter y or n')
 		user_response = input()
 		if user_response == 'n':
-			quit()
+			sys.exit()
+		else: #TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
+			expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
+			print('... Assessing reads mapping')
+			df = assess_mapping_quality(df, parsed.experiment_directory)
+			print('... Assessing efficiency of gene mutation')
+			if parsed.descriptors_specific_fow:
+				df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
+			else:
+				df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
+			print('... Assessing insertion of resistance cassette')
+			df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
+			df = update_auto_audit(df, parsed.auto_audit_threshold)
+			save_dataframe(output_name, df, df_columns, conditions, len(conditions))
+			sys.exit()
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print('... Assessing reads mapping')
 	df = assess_mapping_quality(df, parsed.experiment_directory)
@@ -90,7 +104,7 @@ def parse_args(argv):
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIMEPOINT',
 						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
 	parser.add_argument('--descriptors_specific_fow', action='store_true',
-						help = 'Set this flag to find the wildtype samples that match the condition descriptors of the mutant sample when calcualting the fold change over wildtype (FOW).')
+						help = 'Set this flag to find the wildtype samples that match the condition descriptors of the mutant sample when calculating the fold change over wildtype (FOW).')
 	parser.add_argument('--qc_configure', default='/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/templates/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -155,7 +169,11 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 		key = tuple([genotype]) if len(conditions) == 0 else \
 				tuple([genotype] + [row[c] for c in conditions])
 		# sample is the fastqFilename + _read_count.tsv
-		sample = fileBaseName(row['FASTQFILENAME']) +'_read_count.tsv'
+		# TODO: fix this once you change all sequence and metadata to fastq.gz
+		#if '.fq' in str(row['FASTQFILENAME']):
+		#	sample = os.path.basename(row['FASTQFILENAME']) + '_read_count.tsv'
+		#else:
+		sample = os.path.basename(fileBaseName(str(row['FASTQFILENAME']))) +'_read_count.tsv'
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}
@@ -169,7 +187,11 @@ def assess_mapping_quality(df, exp_dir, aligner_tool='novoalign'):
 	"""
 	for i,row in df.iterrows():
 		# fileBaseName from utils
-		sample = fileBaseName(str(row['FASTQFILENAME'])) + '_' + aligner_tool + '.log'
+		# TODO: fix metadata and sequence directory so all extensions are .fastq.gz, and then use only fileBaseName. For now, dumb fix
+		#if '.fq' in str(row['FASTQFILENAME']):
+		#	sample = os.path.basename(str(row['FASTQFILENAME'])) + '_' + aligner_tool + '.log'
+		#else:
+		sample = os.path.basename(fileBaseName(str(row['FASTQFILENAME']))) + '_' + aligner_tool + '.log'
 		filepath = os.path.join(exp_dir, sample)
 		## read alignment log
 		reader = open(filepath, 'r')
@@ -366,7 +388,8 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	#	filepath += '.xlsx'
 
 	# TODO: work this in earlier in the process
-	df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
+	for index,row in df.iterrows():
+	    df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 	
 
