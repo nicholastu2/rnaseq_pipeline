@@ -431,8 +431,9 @@ class StandardDataFormat:
         """
         timestr = time.strftime("%Y%m%d_%H%M%S")
         standardized_query_name = '{}_standardized_query.csv'.format(timestr)
-        self.query_df.to_csv(standardized_query_name, index=False)
-        setattr(self, 'standardized_query_path', os.path.join(self.tmp_dir, standardized_query_name))
+        standardized_query_path = os.path.join(self.tmp_dir, standardized_query_name)
+        self.query_df.to_csv(standardized_query_path, index=False)
+        setattr(self, 'standardized_query_path', os.path.join(self.tmp_dir, standardized_query_path))
 
     @staticmethod
     def countsPerMillion(raw_count_path, output_FULL_path):

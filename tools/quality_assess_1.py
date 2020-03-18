@@ -14,6 +14,7 @@ ALIGN_VARS = ["READ_SEQUENCES", "UNIQUE_ALIGNMENT", "MULTI_MAPPED", "NO_MAPPING_
 COUNT_VARS = ["TOTAL_MAPPED_READS", "WITH_FEATURE", "NO_FEATURE", "AMBIGUOUS", "TOO_LOW_A_QUAL", "NOT_ALIGNED",
               "ALIGNMENT_NOT_UNIQUE"]
 
+
 def main(argv):
     """
     qual_assess_1 main method
@@ -24,7 +25,7 @@ def main(argv):
     # create StandardDataFormat object
     standard_data = utils.StandardDataFormat(align_count_path=args.align_count_path, run_number=args.run_number,
                                              output_dir=args.output, query_sheet_path=args.query_sheet_path,
-                                             log2_cpm = args.log2cpm, experiment_columns = args.exp_columns)
+                                             log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
 
     # If -gc not passed, this will be empty. Otherwise, this will store True
     genotype_check = args.genotype_check
@@ -126,20 +127,20 @@ def genotypeCheck(standard_data):
     """
 
     # verify standard_data has correct attributes and the paths to the query_sheet and raw_counts exit
-    if not (hasattr(standard_data,'query_sheet_path') and hasattr(standard_data,'raw_count_path') and
-            hasattr(standard_data, 'log2_cpm') and standard_data.experiment_columns and
+    if not (hasattr(standard_data, 'query_sheet_path') and hasattr(standard_data, 'raw_count_path') and
+            hasattr(standard_data, 'log2_cpm_path') and standard_data.experiment_columns and
             os.path.exists(standard_data.query_sheet_path) and
-            os.path.exists(standard_data.raw_count_path) and os.path.exists(standard_data.log2_cpm)):
+            os.path.exists(standard_data.raw_count_path) and os.path.exists(standard_data.log2_cpm_path)):
         sys.exit('query_sheet_path or raw_count data was either entered to StandardDataFormat incorrectly'
                  'or the paths do not exist. Check both the code constructing standard_data and the paths')
     else:
         # create script command for genotype_check_histogram.R
         script_cmd = 'genotype_check_histogram.R -q {} -c {} -o {}'.format(standard_data.standardized_query_path,
-                                                                              standard_data.log2_cpm,
-                                                                              standard_data.output_dir)
+                                                                           standard_data.log2_cpm_path,
+                                                                           standard_data.output_dir)
         exp_column_statement = ' -e '
         for i in standard_data.experiment_columns:
-            exp_column_statement = exp_column_statement +'{},'.format(i)
+            exp_column_statement = exp_column_statement + '{},'.format(i)
         exp_column_statement = exp_column_statement[:-1]
         script_cmd = script_cmd + exp_column_statement
         # execute genotype_check_histogram.R
