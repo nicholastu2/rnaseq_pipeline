@@ -22,8 +22,6 @@ main = function(){
   input_cols = toupper(str_split(parsed$experiment_columns, ',')[[1]]) # parse on comma and cast to uppercase
   output_dir = parsed$output
 
-  print(output_dir)
-
   # read in data
   log2_cpm = read_csv(path_to_log2_cpm)
   # read in query and raw counts
@@ -33,7 +31,7 @@ main = function(){
   columns_to_parse = c('COUNTFILENAME', 'REPLICATE', input_cols)
 
   # split the query_df into separate sheets based on cols_of_interest
-  split_parsed_query_df = splitParsedQuery(path_to_query_sheet, cols_of_interest, input_cols)
+  split_parsed_query_df = splitParsedQuery(parsed_query_df, columns_to_parse, input_cols)
 
   createHistograms(split_parsed_query_df, input_cols, log2_cpm, output_dir)
 
