@@ -387,8 +387,6 @@ class StandardDataFormat:
         else:
             return df
 
-
-
     @staticmethod
     def countsPerMillion(raw_count_path, output_FULL_path):
         os.system('log2_cpm.R -r raw_count_path -o output_FULL_path')
@@ -411,6 +409,35 @@ class StandardDataFormat:
         delattr(object, old_attribute_name)
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
+
+def genotypeCheck(standard_data):
+    """
+    function to perform genotype check
+    :param standard_data: an instance of StandardDataFormat with attributes query_sheet_path, raw_count_path, log2_cpm,
+                          output_dir, experiment_columns
+    :returns: None. However, outputs in subdir of align_counts a series of IGV screenshots and histograms corresponding to the genes in the
+    """
+
+    # verify standard_data has correct attributes and the paths to the query_sheet and raw_counts exit
+    if not (hasattr(standard_data,'query_sheet_path') and hasattr(standard_data,'raw_count_path') and
+            hasattr(standard_data, 'log2_cpm') and standard_data.experiment_columns and
+            os.path.exists(standard_data.query_sheet_path) and
+            os.path.exists(standard_data.raw_count_path) and os.path.exits(standard_data.log2_cpm)):
+        sys.exit('query_sheet_path or raw_count data was either entered to StandardDataFormat incorrectly'
+                 'or the paths do not exist. Check both the code constructing standard_data and the paths')
+    else:
+        # create script command for genotype_check_histogram.R
+        script_cmd = 'genotype_check_histogram.R -q {} -c {} -o {}'.format(standard_data.query_sheet_path,
+                                                                              standard_data.log2_cpm,
+                                                                              standard_data.output_dir)
+        exp_column_statement = ' -e '
+        for i in standard_data.experiment_columns:
+            exp_column_statement = exp_column_statement +'{},'.format(i)
+        exp_column_statement = exp_column_statement[:-1]
+        script_cmd = script_cmd + exp_column_statement
+        # execute genotype_check_histogram.R
+        os.system(script_cmd)
+
 
 class QualityAssessmentObject(ABC):
     def __init__(self, source_dir, output_dir):
