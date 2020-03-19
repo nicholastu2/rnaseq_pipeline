@@ -64,6 +64,7 @@ def find_inefficient_mutation(df, wt):
     for i, row in df.iterrows():
         sample = str(row['FASTQFILENAME'])
         mutants = row['GENOTYPE'].split('.')
+        # type(row['MUT_FOW']) == np.str is for handling a strand with multiple perturbations. MUT_FOW will be reported as 0.1,0.2 for double KO for example.
         if type(row['MUT_FOW']) == np.str:
             mutfows = [float(x) for x in row['MUT_FOW'].split(',')]
             ## find the corresponding bit
