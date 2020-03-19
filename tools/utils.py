@@ -353,7 +353,7 @@ class CreateDesignMatrixColumns:
 
 ### end CreateDesignMatrix
 
-class StandardDataFormat:
+class StandardData:
     def __init__(self, **kwargs):
         """
         initialize StandardDataFormat with arbitrary number of keyword arguments.
