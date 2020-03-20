@@ -191,9 +191,9 @@ class StandardData:
         print('the extracted value is {}'.format(extracted_value))
 
         if (extract_column == 'RUNNUMBER' or extract_column == 'runNumber') and check_leading_zero:
-            print(check_leading_zero + 'first')
+            print('{} first'.format(check_leading_zero))
             if extracted_value in self._run_numbers_with_zeros:
-                print(check_leading_zero + 'second')
+                print('{} second'.format(check_leading_zero))
                 return str(self._run_numbers_with_zeros[extracted_value])
 
         return extracted_value
