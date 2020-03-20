@@ -47,3 +47,9 @@ cmd = 'ml rnaseq_pipeline'
 utils.executeSubProcess(cmd)
 
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
+
+# >>> class TestConfigure:
+# ...     def __init__(self, config_file):
+# ...         self.config_file = config_file
+# ...         self.self_type = 'StandardData'
+# ...         utils.configure(self)
