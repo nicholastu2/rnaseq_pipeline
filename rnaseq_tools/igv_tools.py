@@ -1,11 +1,28 @@
+"""
+tools to create browser shots
+
+makeIgvSnapshotDict create a dict with the following format
+igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...],
+                     'bam': file.bam, 'bed': file.bed},
+                     'perturbed_sample.fastq.gz': {'gene': [gene_1, gene_2],
+                     'bam': file.bam, 'bed': file.bed},
+                     'perturbed_sample.fastq.gz': {'gene': [gene_1],
+                     'bam': file.bam, 'bed': file.bed}
+                  }
+and ensures that all alignment files (.bam) and their index companions (.bam.bai) are in the experiment directory, which
+is either supplied or created in rnaseq_tmp
+
+"""
+
 from rnaseq_tools import utils
 from rnaseq_tools import StandardData
 import pandas as pd
-import pysam
 import sys
 import os
+import time
+import subprocess
 
-#in current code ineffmut_dict
+
 # igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...], 'bam':
 #                  file.bam, 'bed': file_1.bed},
 #                  'perturbed_sample.fastq.gz': {'gene': [gene_1, gene_2], 'bam':
@@ -22,56 +39,90 @@ class IgvObject(StandardData.StandardData):
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
 
 
-
     def makeIgvSnapshotDict(self):
         """
         from list of samples, create dictionary in format {'sample': {'gene': [gene_1, gene_2,...], 'bed': /path/to/bed, 'bam': /path/to/bam}
         # ASSUMPTION: THE SAMPLE LIST IS EITHER A LIST OF .FASTQ.GZ OR *_read_count.tsv
         """
-        if not hasattr(self, self.sample_list):
+        # module load samtools
+        os.system('ml samtools')
+        # raise attribute error if sample list is not found
+        if not hasattr(self, 'sample_list'):
             raise AttributeError('Your instance of IgvObject does not have a list of samlpes. '
                                  'It must have a list of samples (list of fastq or count file names) to create the igv_dict.')
-        if not hasattr(self, self.query_df):
+        # raise attribute error if no (standardized) query_df. this should be created by passing query_sheet_path to the constructor. See StandardData
+        if not hasattr(self, 'query_df'):
             raise AttributeError('No query_df (standardized query_df object in StandardData object). This is necessary '
                                  'and created if you input a query_sheet_path to the constructor of any StandardData '
                                  'object instance. However, you can input the full database (queryDB.py with flag -pf). '
                                  'It will just make the searches for a given sample somewhat longer (though likely not much).')
+        # if an experiment_dir is not passed in constructor of IgvObject, create one in rnaseq_tmp/<timenow>_igv_files and store the path in self.experiment_dir
+        if not hasattr(self, 'exp_dir'):
+            print('creating a directory in rnaseq_tmp to store alignment files so that the scheduler has access to them.'
+                  'This assumes that the count and alignment files have already been processed and moved to '
+                  '/lts/mblab/Crypto/rnaseq_data/align_expr')
+            timestr = time.strftime("%Y%m%d_%H%M%S")
+            setattr(self, 'experiment_dir', os.path.join(self.rnaseq_tmp, '{}_igv_files'.format(timestr)))
+            utils.mkdirp(self.experiment_dir)
         igv_snapshot_dict = {}
         genotype_list = []
-        bam_file_list = []
+        wt_sample_list = []
         for sample in self.sample_list:
+            # strip .fastq.gz if it is there and add _read_count.tsv -- remember that self.query_df which has fastqFileName --> COUNTFILENAME and .fastq.gz converted to _read_count.tsv extensions. All column headings CAPITAL
             if sample.endswith('.fastq.gz'):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
-            query_row_with_sample = super.query_df[super.query_df['COUNTFILENAME'] == sample]
-            # extract value in genotype column
-            genotype = query_row_with_sample['GENOTYPE'].values[0]
-            # split on period if this is a double perturbation. Regardless of whether a . is present, genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
+            genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE')
+            # extract run_number just in case needed to find bam file in align_expr
+            run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', True)
+            # create bamfile name
+            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            # if it is not in the exp dir, then add it
+            if not os.path.exists(os.path.join(self.experiment_dir, bamfile)):
+                prefix = utils.addForwardSlash(self.align_expr)
+                bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
+                exit_status = subprocess.call('rsync -aHv {} {}'.format(bamfile_align_expr_path,
+                                                                        utils.addForwardSlash(self.experiment_dir)),
+                                              shell = True)
+                if exit_status == 1:
+                    sys.exit('could not move {} to {}. Cannot make browser shot without it'.format(bamfile_align_expr_path,
+                                                                                                   self.experiment_dir))
+            # store full path to bam file in experiment dir
+            bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
+            if not os.path.exists(bamfile_fullpath + '.bai'): # test if indexed bam exists
+                self.indexBam(bamfile_fullpath)
+            # split on period if this is a double perturbation. Regardless of whether a '.' is present,
+            # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
             genotype = genotype.split('.')
             # if not wildtype, add to igv_snapshot_dict
             if not genotype[0] == self.wildtype:
+                # add the genotypes to genotype_list (not as a list of list, but as a list of genotypes)
                 genotype_list.extend(genotype)
-                # create bamfile name
-                bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
                 # add to igv_snapshot_dict
                 igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)
-                igv_snapshot_dict[sample]['bam'] = bamfile
+                igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
                 igv_snapshot_dict[sample]['bed'] = None
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
             else:
-                wt_sample = sample
+                wt_sample_list.append([sample, bamfile_fullpath]) # wt_sample_list will be a list of lists
         # if the wt genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
-        if wt_sample:
-            igv_snapshot_dict[wt_sample]['gene'] = genotype_list
-            igv_snapshot_dict[wt_sample]['bam'] = bamfile
-            igv_snapshot_dict[wt_sample]['bed'] = None
+        for wt_sample in wt_sample_list:
+            igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
+            igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
+            igv_snapshot_dict[wt_sample[0]]['bed'] = None
 
-
-
-
-
-
-
-
+    def indexBam(self, bamfile_fullpath):
+        """
+        Index the bam files. The .bai file (indexed bam) will be deposited in the same directory as the bam file itself.
+        for igv, as long as the .bai is in the same directory as the .bam file, it will work.
+        :param bamfile
+        """
+        print('\nindexing {}'.format(bamfile_fullpath))
+        # subprocess.call will wait until subprocess is complete
+        exit_status = subprocess.call('samtools index -b {}'.format(bamfile_fullpath), shell = True)
+        if exit_status == 0:
+            print('\nindexing complete. .bai is deposited in {}'.format(self.experiment_dir))
+        else:
+            sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
 
     def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank, fig_format='png'):
         """
@@ -120,26 +171,4 @@ class IgvObject(StandardData.StandardData):
         writer.write('%s' % job)
         writer.close()
 
-    def index_bams(ineffmut_dict, exp_dir_path):
-        """
-        Index the bam files in the same directory of bam, and add bam filepath
-        """
-        # create file in the experiment directory to store the alignment files copied from /lts (these must out of /lts to be accessible to the scheduler)
-        experiment_alignment_dir = os.path.join(exp_dir_path, 'alignment_files')
-        os.system("mkdir -p {}".format(experiment_alignment_dir))
-        # index bams in ineffmut_dict
-        for sample in ineffmut_dict.keys():
-            # TODO: bam_filepath
-            # get the path to the alignment file in /lts
-            seq_dir_bam_file = os.path.join('/lts/mblab/Crypto/rnaseq_data',
-                                            utils.fileBaseName(sample) + "_sorted_aligned_reads.bam")
-            # move the file to the scratch space experiment directory
-            os.system("rsync -aHv {} {}".format(seq_dir_bam_file, experiment_alignment_dir))
-            # store the path to the bam in scratch
-            bam_file = os.path.join(experiment_alignment_dir, os.path.basename(seq_dir_bam_file))
-            ineffmut_dict[sample]['bam'] = bam_file
-            # index the bam file if it is not already
-            if not os.path.isfile(bam_file + '.bai'):
-                print('\t Indexing', bam_file)
-                out = pysam.index(bam_file)
-        return ineffmut_dict
+

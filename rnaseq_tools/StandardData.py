@@ -6,6 +6,7 @@ import re
 import time
 import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
 import configparser
+import subprocess
 
 class StandardData:
     def __init__(self, expected_attributes = None, *args, **kwargs):
@@ -19,6 +20,9 @@ class StandardData:
                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'align_expr',
                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
                             'query_sheet_path', 'raw_count_path', 'norm_counts_path']
+
+        self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
+                                        731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
 
         # This is to extend _attributes if a class extends StandardData
         if isinstance(expected_attributes, list):
@@ -39,7 +43,7 @@ class StandardData:
             self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write
         if hasattr(self, 'raw_counts_path'):
             # set attribute raw_counts_df to store raw_counts
-            setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path))
+            setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
 
     def configure(self):
         """
@@ -57,21 +61,23 @@ class StandardData:
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
         # first, create pipeline directory if dne
-        setattr(self, 'scratch_rnaseq_pipeline', '/scratch/mblab/{}/rnaseq_pipeline'.format(self._user))
-        if not os.path.exists(self.scratch_rnaseq_pipeline):
-            utils.mkdirp(self.scratch_rnaseq_pipeline)
+        setattr(self, 'user_rnaseq_pipeline', '/scratch/mblab/{}/rnaseq_pipeline'.format(self._user))
+        if not os.path.exists(self.user_rnaseq_pipeline):
+            utils.mkdirp(self.user_rnaseq_pipeline)
 
         # check for the directories to be soft linked from /scratch/mblab/mblab.shared (self.mblab_shared). soft link if not, setattr in either case
         mblab_shared_dirs = ['scratch_sequence', 'database_files']
-        self.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.scratch_rnaseq_pipeline)
+        self.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline)
+
         # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
         lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
-        self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.scratch_rnaseq_pipeline)
+        self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
+
         # next, make directories if dne
         process_directories = ['reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp']
         for directory in process_directories:
             # store path
-            path = os.path.join(self.scratch_rnaseq_pipeline, directory)
+            path = os.path.join(self.user_rnaseq_pipeline, directory)
             # this will only create the path if it dne
             utils.mkdirp(path)
             # set the attribute
@@ -93,7 +99,8 @@ class StandardData:
                 # if it does not, store the path to intended_dir_path/directory as path
                 path = os.path.join(intended_dir_path, directory)
                 # soft link ln -s origin_dir_path/directory to intended_dir_path/directory
-                os.system('ln -s {}/{} {}'.format(origin_dir_path, directory, path))
+                cmd = 'ln -s {}/{} {}'.format(origin_dir_path, directory, path)
+                utils.executeSubProcess(cmd)
             # set attribute named directory (from for loop above) that points towards intended_dir_path/directory
             setattr(object_instance, directory, path)
 
@@ -173,3 +180,22 @@ class StandardData:
         delattr(object, old_attribute_name)
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
+
+    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, run_num_with_leading_zero = False):
+        """
+        extract a value from a row (selected by filter_value) of self.query_df
+        :param filter_column:
+        :param filter_value:
+        :param extract_column:
+        :param run_num_with_leading_zero: if true, return the run number as a string with a leading 0 if it is in self._run_numbers_with_zeros
+        :returns: a value extracted from a certain column of a certain row
+        """
+        row = self.query_df[self.query_df[filter_column] == filter_value]
+
+        extracted_value = row[extract_column].values(0)
+
+        if run_num_with_leading_zero:
+            if extracted_value in self._run_numbers_with_zeros:
+                extracted_value = self._run_numbers_with_zeros[extracted_value]
+
+        return extracted_value

@@ -4,6 +4,7 @@ import numpy as np
 from itertools import combinations, product
 import yaml
 import sys
+import subprocess
 
 def decomposeStatus2Bit(status):
     """
@@ -161,4 +162,14 @@ def countsPerMillion(raw_count_path, output_FULL_path):
     :param raw_count_path: path to output of raw_counts.py
     :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R. eg <experiment_name>_log2_cpm.csv
     """
-    os.system('log2_cpm.R -r {} -o {}'.format(raw_count_path, output_FULL_path))
+    cmd = 'log2_cpm.R -r {} -o {}'.format(raw_count_path, output_FULL_path)
+    executeSubProcess(cmd)
+
+def executeSubProcess(cmd):
+    """ TODO: re-do this with package subprocess and store rather than write. write to logger
+    executes command, sys.exit with message if the subprocess fails
+    :param cmd: the full command to be run
+    """
+    exit_status = subprocess.call(cmd, shell=True)
+    if exit_status == 1:
+        sys.exit("{} failed to execute. check the code.")
