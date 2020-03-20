@@ -5,7 +5,7 @@ import argparse
 from glob import glob
 import re
 import datetime
-from utils import pathBaseName
+from tools_utils import pathBaseName
 
 FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
 FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}

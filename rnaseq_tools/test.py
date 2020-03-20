@@ -1,4 +1,4 @@
-import utils
+import tools_utils
 import pandas as pd
 import subprocess
 
@@ -44,7 +44,7 @@ query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 wildtype = 'CNAG_05420'
 
 cmd = 'ml rnaseq_pipeline'
-utils.executeSubProcess(cmd)
+tools_utils.executeSubProcess(cmd)
 
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 

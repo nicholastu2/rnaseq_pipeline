@@ -4,15 +4,15 @@ import argparse
 import re
 import pandas as pd
 import numpy as np
-import utils
-from utils import *
+import tools_utils
+from tools_utils import *
 import os
 
 def main(argv):
 	parsed = parse_args(argv)
 	## validate args
 	output_dir = parsed.output
-	experiment_dir = utils.getDirName(parsed.experiment_directory)
+	experiment_dir = tools_utils.getDirName(parsed.experiment_directory)
 	filename = experiment_dir + '_quality_summary_2.xlsx'
 	output_name = os.path.join(output_dir, filename)
 
@@ -389,7 +389,7 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 
 	# TODO: work this in earlier in the process
 	for index,row in df.iterrows():
-	    df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
+	    df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: tools_utils.fileBaseName(row) + '_read_count.tsv')
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 	
 
