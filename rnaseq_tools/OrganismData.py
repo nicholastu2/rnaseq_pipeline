@@ -8,7 +8,7 @@ class OrganismData(StandardData):
         # set (overwrite?) self_type depending on cmdline input
         self.self_type = 'OrganismData'
         # and configure
-        utils.configure(self)
+        utils.configure(self, super.config_file, self.type)
         self.list_of_known_organisms = ['H99', 'KN99', 'S288C_R64']
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
