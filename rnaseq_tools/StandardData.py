@@ -176,20 +176,21 @@ class StandardData:
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
 
-    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, run_num_with_leading_zero = False):
+    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, check_leading_zero = False):
         """
         extract a value from a row (selected by filter_value) of self.query_df
         :param filter_column:
         :param filter_value:
         :param extract_column:
-        :param run_num_with_leading_zero: if true, return the run number as a string with a leading 0 if it is in self._run_numbers_with_zeros
+        :param check_leading_zero: if true, return the run number as a string with a leading 0 if it is in self._run_numbers_with_zeros
         :returns: a value extracted from a certain column of a certain row
         """
         row = self.query_df[self.query_df[filter_column] == filter_value]
 
         extracted_value = row[extract_column].values[0]
 
-        if run_num_with_leading_zero:
+        return_with_leading_zero = check_leading_zero
+        if return_with_leading_zero:
             if extracted_value in self._run_numbers_with_zeros:
                 extracted_value = self._run_numbers_with_zeros[extracted_value]
 

@@ -73,19 +73,15 @@ class IgvObject(OrganismData):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
             genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE')
             # extract run_number just in case needed to find bam file in align_expr
-            run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', True)
+            run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', check_leading_zero=True)
             # create bamfile name
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             # if it is not in the exp dir, then add it
             if not os.path.exists(os.path.join(self.experiment_dir, bamfile)):
                 prefix = utils.addForwardSlash(self.lts_align_expr)
                 bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
-                exit_status = subprocess.call('rsync -aHv {} {}'.format(bamfile_align_expr_path,
-                                                                        utils.addForwardSlash(self.experiment_dir)),
-                                              shell = True)
-                if exit_status == 1:
-                    sys.exit('could not move {} to {}. Cannot make browser shot without it'.format(bamfile_align_expr_path,
-                                                                                                   self.experiment_dir))
+                cmd = 'rsync -aHv {} {}'.format(bamfile_align_expr_path, utils.addForwardSlash(self.experiment_dir))
+                utils.executeSubProcess(cmd)
             # store full path to bam file in experiment dir
             bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
             if not os.path.exists(bamfile_fullpath + '.bai'): # test if indexed bam exists
