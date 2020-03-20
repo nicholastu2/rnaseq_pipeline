@@ -62,10 +62,11 @@ class StandardData:
         self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
 
         # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline
-        genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
-        cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline)
-        utils.executeSubProcess(cmd)
         setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline, 'genome_files'))
+        if not os.path.exists(self.genome_files):
+            genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
+            cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline)
+            utils.executeSubProcess(cmd)
 
         # next, make directories if dne
         process_directories = ['reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp']
@@ -147,14 +148,14 @@ class StandardData:
 
     def writeStandardizedQueryToTmp(self):
         """
-        write self.query_df (standardized query_sheet) to self.tmp_dir. format is date_time_standardized_query.csv
+        write self.query_df (standardized query_sheet) to self.rnaseq_tmp. format is date_time_standardized_query.csv
         eg 20200312_115103_standardized_query.csv also sets attribute to this path
         """
         timestr = time.strftime("%Y%m%d_%H%M%S")
         standardized_query_name = '{}_standardized_query.csv'.format(timestr)
-        standardized_query_path = os.path.join(self.tmp_dir, standardized_query_name)
+        standardized_query_path = os.path.join(self.rnaseq_tmp, standardized_query_name)
         self.query_df.to_csv(standardized_query_path, index=False)
-        setattr(self, 'standardized_query_path', os.path.join(self.tmp_dir, standardized_query_path))
+        setattr(self, 'standardized_query_path', os.path.join(self.rnaseq_tmp, standardized_query_path))
 
     @staticmethod
     def userInputCorrectPath(message, object, attribute):
