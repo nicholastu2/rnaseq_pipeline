@@ -176,7 +176,7 @@ class StandardData:
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
 
-    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, check_leading_zero = False):
+    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, check_leading_zero):
         """
         extract a value from a row (selected by filter_value) of self.query_df
         :param filter_column:
@@ -189,8 +189,7 @@ class StandardData:
 
         extracted_value = row[extract_column].values[0]
 
-        return_with_leading_zero = check_leading_zero
-        print(return_with_leading_zero)
+        print(check_leading_zero)
         if return_with_leading_zero:
             if extracted_value in self._run_numbers_with_zeros:
                 return str(self._run_numbers_with_zeros[extracted_value])
