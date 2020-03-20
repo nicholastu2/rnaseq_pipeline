@@ -31,7 +31,7 @@ import subprocess
 #                  'bed': file_1.bed}
 #                  }
 
-class IgvObject(OrganismData.OrganismData):
+class IgvObject(OrganismData):
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
         self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wt', 'experiment_dir']
