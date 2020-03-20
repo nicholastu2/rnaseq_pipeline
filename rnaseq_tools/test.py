@@ -39,6 +39,20 @@ sample_list = ['sequence/run_1045_samples/run_1045_s_7_withindex_sequence_CACCTC
 'sequence/run_1045_samples/run_1045_s_7_withindex_sequence_CTTGGAA.fastq.gz',
 ]
 
+sample_list = [
+'sequence/run_1800_samples/1800_Brent_12_TAACAAG_S12_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_13_GAGGCGT_S13_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_14_TTTAACT_S14_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_15_GGTCCTC_S15_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_19_GAGTACG_S19_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_20_ACAGATA_S20_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_21_CTCAATG_S21_R1_001.fastq.gz',
+'sequence/run_0773_samples/run_773_s_2_withindex_sequence_GGCAGCG.fastq.gz',
+'sequence/run_0773_samples/run_773_s_2_withindex_sequence_CCATCAT.fastq.gz',
+'sequence/run_0773_samples/run_773_s_2_withindex_sequence_TAACAAG.fastq.gz',
+'sequence/run_0773_samples/run_773_s_2_withindex_sequence_GAGTACG.fastq.gz',
+]
+
 query_path = '/scratch/mblab/chasem/old_rnaseq/query/CNAG_05420_all.csv'
 
 
@@ -74,6 +88,23 @@ print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 #
 #     return extracted_value
 
-{'run_1045_s_7_withindex_sequence_AGACTGA_read_count.tsv': {'gene': ['CNAG_05420_over'], 'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161132_igv_files/run_1045_s_7_withindex_sequence_AGACTGA_sorted_aligned_reads.bam', 'bed': None},
- 'run_1045_s_7_withindex_sequence_CTTGGAA_read_count.tsv': {'gene': ['CNAG_05420_over'], 'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161132_igv_files/run_1045_s_7_withindex_sequence_CTTGGAA_sorted_aligned_reads.bam', 'bed': None}}
 
+{'run_1045_s_7_withindex_sequence_CACCTCC_read_count.tsv':
+       {'gene': ['CNAG_05420_over', 'CNAG_05420_over'],
+        'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161653_igv_files/run_1045_s_7_withindex_sequence_CACCTCC_sorted_aligned_reads.bam',
+        'bed': None},
+ 'run_1045_s_7_withindex_sequence_ATCGAGC_read_count.tsv':
+       {'gene': ['CNAG_05420_over', 'CNAG_05420_over'],
+        'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161653_igv_files/run_1045_s_7_withindex_sequence_ATCGAGC_sorted_aligned_reads.bam',
+        'bed': None},
+'run_1045_s_7_withindex_sequence_TACTCTA_read_count.tsv':
+       {'gene': ['CNAG_05420_over', 'CNAG_05420_over'],
+        'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161653_igv_files/run_1045_s_7_withindex_sequence_TACTCTA_sorted_aligned_reads.bam',
+        'bed': None},
+'run_1045_s_7_withindex_sequence_AGACTGA_read_count.tsv':
+       {'gene': ['CNAG_05420_over'],
+        'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161653_igv_files/run_1045_s_7_withindex_sequence_AGACTGA_sorted_aligned_reads.bam',
+        'bed': None},
+'run_1045_s_7_withindex_sequence_CTTGGAA_read_count.tsv': {'gene': ['CNAG_05420_over'],
+        'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161653_igv_files/run_1045_s_7_withindex_sequence_CTTGGAA_sorted_aligned_reads.bam',
+        'bed': None}}
