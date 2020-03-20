@@ -1,39 +1,38 @@
 from rnaseq_tools import utils
 import pandas as pd
-# import os
-# import sys
-# import re
-# import time
-# import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
-#
+import os
+import sys
+import re
+import time
+import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
+
 class StandardData:
-    pass
-#     def __init__(self, expected_attributes = None, *args, **kwargs):
-#         """
-#         initialize StandardDataFormat with arbitrary number of keyword arguments.
-#         :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
-#         :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
-#         """
-#         self.self_type = 'StandardData'
-#         # list of expected/standard attribute names
-#         self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
-#                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'align_expr',
-#                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
-#                             'query_sheet_path', 'raw_count_path', 'norm_counts_path', 'config_file']
-#
-#         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
-#                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
-#
-#         # This is to extend _attributes if a class extends StandardData
-#         if isinstance(expected_attributes, list):
-#             self._attributes.extend(expected_attributes)
-#         # get user name and set as _user
-#         self._user = getpass.getuser()
-#         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-#         kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
-#         utils.setAttributes(self, self._attributes, kwargs)
-#         # load config file
-#         utils.configure(self)
+    def __init__(self, expected_attributes = None, *args, **kwargs):
+        """
+        initialize StandardDataFormat with arbitrary number of keyword arguments.
+        :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
+        :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
+        """
+        self.self_type = 'StandardData'
+        # list of expected/standard attribute names
+        self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
+                            'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'align_expr',
+                            'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
+                            'query_sheet_path', 'raw_count_path', 'norm_counts_path', 'config_file']
+
+        self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
+                                        731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
+
+        # This is to extend _attributes if a class extends StandardData
+        if isinstance(expected_attributes, list):
+            self._attributes.extend(expected_attributes)
+        # get user name and set as _user
+        self._user = getpass.getuser()
+        # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
+        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+        utils.setAttributes(self, self._attributes, kwargs)
+        # load config file
+        utils.configure(self)
 #         self.version = str(float(self.version)) # double check to make sure version is string and hasn't dropped a zero eg '1.0'
 #         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
 #         self.standardDirectoryStructure()
