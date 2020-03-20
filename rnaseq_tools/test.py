@@ -61,14 +61,11 @@ sample_list = ['sequence/run_0773_samples/run_773_s_2_withindex_sequence_GGCAGCG
 
 query_path = '/scratch/mblab/chasem/old_rnaseq/query/CNAG_05420_all.csv'
 
-
-query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
-
 wildtype = 'CNAG_05420'
 
 igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list, wildtype = 'CNAG_05420')
 
-
+query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 
 
