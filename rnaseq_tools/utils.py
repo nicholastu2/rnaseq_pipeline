@@ -173,7 +173,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        sys.exit("{} failed to execute. check the code.")
+        sys.exit("{} failed to execute. check the code.".format(cmd))
 
 
 def configure(object):
