@@ -187,7 +187,7 @@ class StandardData:
         """
         row = self.query_df[self.query_df[filter_column] == filter_value]
 
-        extracted_value = row[extract_column].values(0)
+        extracted_value = row[extract_column].values[0]
 
         if run_num_with_leading_zero:
             if extracted_value in self._run_numbers_with_zeros:

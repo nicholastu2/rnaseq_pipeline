@@ -1,11 +1,11 @@
-import tools_utils
+from rnaseq_tools import utils
 import pandas as pd
 import subprocess
 
 def makeIgvSnapshotDict(sample_list, query_df, wildtype):
     igv_snapshot_dict = {}
     genotype_list = []
-    bam_file_list = []
+    wildtype_sample_list = []
     for sample in sample_list:
         # if sample.endswith('.fastq.gz'):
         #     sample = utils.pathBaseName(sample) + '_read_count.tsv'
@@ -43,13 +43,26 @@ query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 
 wildtype = 'CNAG_05420'
 
-cmd = 'ml rnaseq_pipeline'
-tools_utils.executeSubProcess(cmd)
-
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 
-# >>> class TestConfigure:
-# ...     def __init__(self, config_file):
-# ...         self.config_file = config_file
-# ...         self.self_type = 'StandardData'
-# ...         utils.configure(self)
+
+# sdf = StandardData(query_sheet_path = query_df)
+#
+# def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, run_num_with_leading_zero=False):
+#     """
+#     extract a value from a row (selected by filter_value) of self.query_df
+#     :param filter_column:
+#     :param filter_value:
+#     :param extract_column:
+#     :param run_num_with_leading_zero: if true, return the run number as a string with a leading 0 if it is in self._run_numbers_with_zeros
+#     :returns: a value extracted from a certain column of a certain row
+#     """
+#     row = self.query_df[self.query_df[filter_column] == filter_value]
+#
+#     extracted_value = row[extract_column].values(0)
+#
+#     if run_num_with_leading_zero:
+#         if extracted_value in self._run_numbers_with_zeros:
+#             extracted_value = self._run_numbers_with_zeros[extracted_value]
+#
+#     return extracted_value
