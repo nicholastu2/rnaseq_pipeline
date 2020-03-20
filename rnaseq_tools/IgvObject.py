@@ -104,11 +104,13 @@ class IgvObject(OrganismData):
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
             else:
                 wildtype_sample_list.append([sample, bamfile_fullpath]) # wildtype_sample_list will be a list of lists
+        setattr(self, 'igv_snapshot_dict', igv_snapshot_dict) # TODO: for debug only -- remove when working
         # if the wildtype genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
         for wt_sample in wildtype_sample_list:
             igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
             igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
             igv_snapshot_dict[wt_sample[0]]['bed'] = None
+        setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
 
     def indexBam(self, bamfile_fullpath):
         """
