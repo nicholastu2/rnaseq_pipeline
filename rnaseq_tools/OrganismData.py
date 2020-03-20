@@ -9,7 +9,7 @@ class OrganismData(StandardData):
         self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
-        super(OrganismData, self).__init__(**kwargs)
+        super(OrganismData, self).__init__(self._configured_organisms_list, **kwargs)
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'OrganismData'
         # set organism data, if it is passed
