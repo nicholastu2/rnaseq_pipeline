@@ -31,7 +31,7 @@ class StandardData:
         # get user name and set as _user
         self._user = getpass.getuser()
         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/rnaseq_pipeline/config/rnaseq_pipeline_config.ini'
+        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
         utils.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self)
