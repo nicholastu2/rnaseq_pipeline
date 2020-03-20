@@ -39,9 +39,15 @@ sample_list = ['sequence/run_1045_samples/run_1045_s_7_withindex_sequence_CACCTC
 'sequence/run_1045_samples/run_1045_s_7_withindex_sequence_CTTGGAA.fastq.gz',
 ]
 
+query_path = '/scratch/mblab/chasem/old_rnaseq/query/CNAG_05420_all.csv'
+
+
 query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 
 wildtype = 'CNAG_05420'
+
+igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list, wildtype = 'CNAG_05420')
+
 
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 
