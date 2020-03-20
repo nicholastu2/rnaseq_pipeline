@@ -63,7 +63,7 @@ class StandardData:
         self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
 
         # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline
-        genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.version, 'genome_files.zip')
+        genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
         cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline)
         setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline, 'genome_files'))
 
