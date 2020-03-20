@@ -190,6 +190,7 @@ class StandardData:
         extracted_value = row[extract_column].values[0]
 
         return_with_leading_zero = check_leading_zero
+        print(return_with_leading_zero)
         if return_with_leading_zero:
             if extracted_value in self._run_numbers_with_zeros:
                 extracted_value = self._run_numbers_with_zeros[extracted_value]
