@@ -73,7 +73,7 @@ class IgvObject(OrganismData):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
             genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE')
             # extract run_number just in case needed to find bam file in align_expr
-            run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', check_leading_zero=True)
+            run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', True)
             print(run_number)
         #     # create bamfile name
         #     bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
