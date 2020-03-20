@@ -34,7 +34,6 @@ setenv("PYTHONPATH", base)
 -- prepend the following to $PATH
 prepend_path("PATH", base)
 prepend_path("PATH", tools)
-append_path("PYTHONPATH", tools)
 
 -- see test_conda_env in the rnaseq_pipeline code repo. This simply tests whether the directory $HOME/.conda/envs exists. If it does not, the rnaseq_pipeline_env directory is cloned by conda
 -- into $HOME/.conda/envs.
