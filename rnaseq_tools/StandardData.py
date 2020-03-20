@@ -194,6 +194,6 @@ class StandardData:
             print('{} first'.format(check_leading_zero))
             if int(extracted_value) in self._run_numbers_with_zeros:
                 print('{} second'.format(check_leading_zero))
-                return str(self._run_numbers_with_zeros[extracted_value])
+                return str(self._run_numbers_with_zeros[int(extracted_value)])
 
         return extracted_value
