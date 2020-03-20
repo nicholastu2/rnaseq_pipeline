@@ -74,41 +74,40 @@ class IgvObject(OrganismData):
             genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE')
             # extract run_number just in case needed to find bam file in align_expr
             run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', check_leading_zero=True)
-            print(run_number)
-        #     # create bamfile name
-        #     bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
-        #     # if it is not in the exp dir, then add it
-        #     if not os.path.exists(os.path.join(self.experiment_dir, bamfile)):
-        #         prefix = utils.addForwardSlash(self.lts_align_expr)
-        #         bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
-        #         cmd = 'rsync -aHv {} {}'.format(bamfile_align_expr_path, utils.addForwardSlash(self.experiment_dir))
-        #         utils.executeSubProcess(cmd)
-        #     # store full path to bam file in experiment dir
-        #     bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
-        #     if not os.path.exists(bamfile_fullpath + '.bai'): # test if indexed bam exists
-        #         self.indexBam(bamfile_fullpath)
-        #     # split on period if this is a double perturbation. Regardless of whether a '.' is present,
-        #     # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
-        #     genotype = genotype.split('.')
-        #     # if not wildtype, add to igv_snapshot_dict
-        #     if not genotype[0] == self.wildtype:
-        #         # add the genotypes to genotype_list (not as a list of list, but as a list of genotypes)
-        #         genotype_list.extend(genotype)
-        #         # add to igv_snapshot_dict
-        #         igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)
-        #         igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
-        #         igv_snapshot_dict[sample]['bed'] = None
-        #     # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
-        #     else:
-        #         igv_snapshot_dict.setdefault(sample, {'gene': None, 'bam': None, 'bed': None})
-        #         wildtype_sample_list.append([sample, bamfile_fullpath]) # wildtype_sample_list will be a list of lists
-        # setattr(self, 'igv_snapshot_dict', igv_snapshot_dict) # TODO: for debug only -- remove when working
-        # # if the wildtype genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
-        # for wt_sample in wildtype_sample_list:
-        #     igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
-        #     igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
-        #     igv_snapshot_dict[wt_sample[0]]['bed'] = None
-        # setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
+            # create bamfile name
+            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            # if it is not in the exp dir, then add it
+            if not os.path.exists(os.path.join(self.experiment_dir, bamfile)):
+                prefix = utils.addForwardSlash(self.lts_align_expr)
+                bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
+                cmd = 'rsync -aHv {} {}'.format(bamfile_align_expr_path, utils.addForwardSlash(self.experiment_dir))
+                utils.executeSubProcess(cmd)
+            # store full path to bam file in experiment dir
+            bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
+            if not os.path.exists(bamfile_fullpath + '.bai'): # test if indexed bam exists
+                self.indexBam(bamfile_fullpath)
+            # split on period if this is a double perturbation. Regardless of whether a '.' is present,
+            # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
+            genotype = genotype.split('.')
+            # if not wildtype, add to igv_snapshot_dict
+            if not genotype[0] == self.wildtype:
+                # add the genotypes to genotype_list (not as a list of list, but as a list of genotypes)
+                genotype_list.extend(genotype)
+                # add to igv_snapshot_dict
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)
+                igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
+                igv_snapshot_dict[sample]['bed'] = None
+            # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
+            else:
+                igv_snapshot_dict.setdefault(sample, {'gene': None, 'bam': None, 'bed': None})
+                wildtype_sample_list.append([sample, bamfile_fullpath]) # wildtype_sample_list will be a list of lists
+        setattr(self, 'igv_snapshot_dict', igv_snapshot_dict) # TODO: for debug only -- remove when working
+        # if the wildtype genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
+        for wt_sample in wildtype_sample_list:
+            igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
+            igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
+            igv_snapshot_dict[wt_sample[0]]['bed'] = None
+        setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
 
     def indexBam(self, bamfile_fullpath):
         """
