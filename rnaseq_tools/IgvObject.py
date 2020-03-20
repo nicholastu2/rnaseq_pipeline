@@ -34,7 +34,7 @@ import subprocess
 class IgvObject(OrganismData):
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
-        self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wt', 'experiment_dir']
+        self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wildtype', 'experiment_dir']
         # initialize Standard data with the extended _attributes
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
 
@@ -66,7 +66,7 @@ class IgvObject(OrganismData):
             utils.mkdirp(self.experiment_dir)
         igv_snapshot_dict = {}
         genotype_list = []
-        wt_sample_list = []
+        wildtype_sample_list = []
         for sample in self.sample_list:
             # strip .fastq.gz if it is there and add _read_count.tsv -- remember that self.query_df which has fastqFileName --> COUNTFILENAME and .fastq.gz converted to _read_count.tsv extensions. All column headings CAPITAL
             if sample.endswith('.fastq.gz'):
@@ -103,9 +103,9 @@ class IgvObject(OrganismData):
                 igv_snapshot_dict[sample]['bed'] = None
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
             else:
-                wt_sample_list.append([sample, bamfile_fullpath]) # wt_sample_list will be a list of lists
-        # if the wt genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
-        for wt_sample in wt_sample_list:
+                wildtype_sample_list.append([sample, bamfile_fullpath]) # wildtype_sample_list will be a list of lists
+        # if the wildtype genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
+        for wt_sample in wildtype_sample_list:
             igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
             igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
             igv_snapshot_dict[wt_sample[0]]['bed'] = None
