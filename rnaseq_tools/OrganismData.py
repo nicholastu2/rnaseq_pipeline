@@ -24,8 +24,9 @@ class OrganismData(StandardData):
                       'and create a subdir of genomes_files with an OrganismData_config.ini file, zip it into '
                       '/lts/mblab/Crypto/rnaseq_data/genome_files.zip, remove your genome_files in your {self.user_rnaseq_pipeline} directory'
                       'and either re-run this script or start an interactive python session, import and instantiate a StandardData object.\n')
-                pass
-        else:
+                setattr(self, 'organism', None)
+                utils.configure(self, self.config_file, self.self_type)
+        else:  # TODO git rid of this copy pasted code -- reformat if statement
             setattr(self, 'organism', None)
             utils.configure(self, self.config_file, self.self_type)
 
