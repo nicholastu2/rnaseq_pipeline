@@ -3,7 +3,7 @@ from rnaseq_tools.StandardData import StandardData
 import configparser
 import os
 
-class OrganismData(StandardData.StandardData):
+class OrganismData(StandardData):
     def __init__(self, **kwargs):
         # set (overwrite?) self_type depending on cmdline input
         self.self_type = 'OrganismData'
