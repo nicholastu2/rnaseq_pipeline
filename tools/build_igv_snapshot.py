@@ -5,7 +5,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import pysam
-from utils import *
+from tools_utils import *
 
 def main(argv):
     parsed = parse_args(argv)

@@ -5,7 +5,7 @@ import re
 import argparse
 from glob import glob
 import pandas as pd
-import utils
+import tools_utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
 ALIGN_VARS = ["READ_SEQUENCES", "UNIQUE_ALIGNMENT", "MULTI_MAPPED", "NO_MAPPING_FOUND"]
@@ -21,9 +21,9 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)
     # create StandardDataFormat object
-    standard_data = utils.StandardData(align_count_path=args.align_count_path, run_number=args.run_number,
-                                       output_dir=args.output, query_sheet_path=args.query_sheet_path,
-                                       log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
+    standard_data = tools_utils.StandardData(align_count_path=args.align_count_path, run_number=args.run_number,
+                                             output_dir=args.output, query_sheet_path=args.query_sheet_path,
+                                             log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
 
     # If -gc not passed, this will be empty. Otherwise, this will store True
     genotype_check = args.genotype_check
@@ -49,7 +49,7 @@ def main(argv):
 
     # genotype check
     if genotype_check:
-        utils.genotypeCheck(standard_data)
+        tools_utils.genotypeCheck(standard_data)
 
 
 def parseArgs(argv):
