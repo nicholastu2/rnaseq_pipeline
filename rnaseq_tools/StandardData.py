@@ -33,7 +33,7 @@ class StandardData:
         utils.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self)
-        self.version = str(float(self.version)) # double check to make sure version is string and hasn't dropped a zero eg '1.0'
+        self.pipeline_version = str(float(self.version)) # double check to make sure version is string and hasn't dropped a zero eg '1.0'
         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
         # automatic actions to perform on certain attributes when instantiated
