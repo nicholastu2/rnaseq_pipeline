@@ -1,5 +1,6 @@
 import utils
 import pandas as pd
+import subprocess
 
 def makeIgvSnapshotDict(sample_list, query_df, wildtype):
     igv_snapshot_dict = {}
@@ -41,5 +42,8 @@ sample_list = ['sequence/run_1045_samples/run_1045_s_7_withindex_sequence_CACCTC
 query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 
 wildtype = 'CNAG_05420'
+
+cmd = 'ml rnaseq_pipeline'
+utils.executeSubProcess(cmd)
 
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
