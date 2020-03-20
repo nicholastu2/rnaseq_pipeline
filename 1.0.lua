@@ -26,15 +26,15 @@ if(mode() == 'load') then
    LmodMessage("\nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://github.com/BrentLab/rnaseq_pipeline/wiki for usage instructions.\n")
 end
 
+-- set environmental variables
+setenv("METADATA", metadata_database)
+setenv("CODEBASE", base)
+setenv("PYTHONPATH", base)
+
 -- prepend the following to $PATH
 prepend_path("PATH", base)
 prepend_path("PATH", tools)
-
--- set environmental variables
-setenv("METADATA", metadata_database)
-setenv("PYTHONPATH", tools)
-setenv("CODEBASE", base)
-
+append_path("PYTHONPATH", tools)
 
 -- see test_conda_env in the rnaseq_pipeline code repo. This simply tests whether the directory $HOME/.conda/envs exists. If it does not, the rnaseq_pipeline_env directory is cloned by conda
 -- into $HOME/.conda/envs.

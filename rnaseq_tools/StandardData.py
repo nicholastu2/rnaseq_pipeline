@@ -35,6 +35,7 @@ class StandardData:
         utils.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self)
+        self.version = str(float(self.version)) # double check to make sure version is string and hasn't dropped a zero eg '1.0'
         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
         # automatic actions to perform on certain attributes when instantiated
@@ -62,6 +63,11 @@ class StandardData:
         # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
         lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
         self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
+
+        # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline
+        genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.version, 'genome_files.zip')
+        cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline)
+        setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline, 'genome_files'))
 
         # next, make directories if dne
         process_directories = ['reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp']
