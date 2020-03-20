@@ -53,6 +53,7 @@ sample_list = [
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_GAGTACG.fastq.gz',
 ]
 
+from rnaseq_tools.IgvObject import IgvObject
 sample_list = ['sequence/run_0773_samples/run_773_s_2_withindex_sequence_GGCAGCG.fastq.gz',
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_CCATCAT.fastq.gz',
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_TAACAAG.fastq.gz',

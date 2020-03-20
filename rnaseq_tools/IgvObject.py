@@ -71,7 +71,7 @@ class IgvObject(OrganismData):
             # strip .fastq.gz if it is there and add _read_count.tsv -- remember that self.query_df which has fastqFileName --> COUNTFILENAME and .fastq.gz converted to _read_count.tsv extensions. All column headings CAPITAL
             if sample.endswith('.fastq.gz'):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
-            genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE')
+            genotype = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'GENOTYPE', False)
             # extract run_number just in case needed to find bam file in align_expr
             run_number = self.extractValueFromStandardRow('COUNTFILENAME', sample, 'RUNNUMBER', True)
             print(run_number)
