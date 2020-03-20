@@ -73,3 +73,7 @@ print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 #             extracted_value = self._run_numbers_with_zeros[extracted_value]
 #
 #     return extracted_value
+
+{'run_1045_s_7_withindex_sequence_AGACTGA_read_count.tsv': {'gene': ['CNAG_05420_over'], 'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161132_igv_files/run_1045_s_7_withindex_sequence_AGACTGA_sorted_aligned_reads.bam', 'bed': None},
+ 'run_1045_s_7_withindex_sequence_CTTGGAA_read_count.tsv': {'gene': ['CNAG_05420_over'], 'bam': '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200320_161132_igv_files/run_1045_s_7_withindex_sequence_CTTGGAA_sorted_aligned_reads.bam', 'bed': None}}
+
