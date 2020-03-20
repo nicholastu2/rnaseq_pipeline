@@ -78,7 +78,7 @@ class IgvObject(OrganismData):
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             # if it is not in the exp dir, then add it
             if not os.path.exists(os.path.join(self.experiment_dir, bamfile)):
-                prefix = utils.addForwardSlash(self.align_expr)
+                prefix = utils.addForwardSlash(self.lts_align_expr)
                 bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
                 exit_status = subprocess.call('rsync -aHv {} {}'.format(bamfile_align_expr_path,
                                                                         utils.addForwardSlash(self.experiment_dir)),

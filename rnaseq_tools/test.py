@@ -49,6 +49,7 @@ print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 # sdf = StandardData(query_sheet_path = query_df)
 #
 # def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, run_num_with_leading_zero=False):
+# def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, run_num_with_leading_zero=False):
 #     """
 #     extract a value from a row (selected by filter_value) of self.query_df
 #     :param filter_column:
