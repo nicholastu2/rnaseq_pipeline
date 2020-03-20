@@ -15,11 +15,12 @@ class StandardData:
         :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
         :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
         """
+        self.self_type = 'StandardData'
         # list of expected/standard attribute names
         self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'align_expr',
                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
-                            'query_sheet_path', 'raw_count_path', 'norm_counts_path']
+                            'query_sheet_path', 'raw_count_path', 'norm_counts_path', 'config_file']
 
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
@@ -27,15 +28,15 @@ class StandardData:
         # This is to extend _attributes if a class extends StandardData
         if isinstance(expected_attributes, list):
             self._attributes.extend(expected_attributes)
-        # load config file
-        self.config_file = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/rnaseq_pipeline/config/rnaseq_pipeline_config.ini'
-        self.configure()
         # get user name and set as _user
         self._user = getpass.getuser()
+        # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
+        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/rnaseq_pipeline/config/rnaseq_pipeline_config.ini'
+        utils.setAttributes(self, self._attributes, kwargs)
+        # load config file
+        utils.configure(self)
         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
-        # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-        utils.setAttributes(self, self._attributes, kwargs)
         # automatic actions to perform on certain attributes when instantiated
         if hasattr(self, 'query_sheet_path'):
             # set attribute 'query_df' to store the standardizedQuerySheet (and out to rnaseq_tmp)
@@ -44,17 +45,6 @@ class StandardData:
         if hasattr(self, 'raw_counts_path'):
             # set attribute raw_counts_df to store raw_counts
             setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
-
-    def configure(self):
-        """
-        reads and sets the attributes listed in ['StandardData'] in rnaseq_pipeline/config/rnaseq_pipeline_config.ini
-        """
-        # read config file
-        config = configparser.ConfigParser()
-        config.read(self.config_file)
-        # set attributes for StandardData
-        for key, value in config['StandardData'].items():
-            setattr(self, key, value) # by default, values are read in as strings. Currently, all filepaths, so this is good
 
     def standardDirectoryStructure(self):
         """

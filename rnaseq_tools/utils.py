@@ -5,6 +5,7 @@ from itertools import combinations, product
 import yaml
 import sys
 import subprocess
+import configparser
 
 def decomposeStatus2Bit(status):
     """
@@ -173,3 +174,17 @@ def executeSubProcess(cmd):
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
         sys.exit("{} failed to execute. check the code.")
+
+
+def configure(object):
+    """
+    reads and sets the attributes in a config_file.ini in type output by configparser.
+    NOTE: the object MUST have a attribute object.self_type = 'ObjectName'
+    :param object: an object with a config_file.ini in the format output by configparser (eg [ObjectName]\n\tattribute_name: attribute_value\n\tditto)
+    """
+    # read config file
+    config = configparser.ConfigParser()
+    config.read(object.config_file)
+    # set attributes for StandardData
+    for key, value in config[object.self_type].items():
+        setattr(object, key, value) # by default, values are read in as strings. Currently, all filepaths, so this is good
