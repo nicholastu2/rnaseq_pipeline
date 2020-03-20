@@ -88,14 +88,14 @@ class StandardData:
         """
         # loop through directories in list_of_dirs
         for directory in list_of_dirs:
+            # store the path (either it exists or it will after the if not block) to the directory in intended_dir_path)
+            path = os.path.join(intended_dir_path, directory)
             # check if directory exists in the intended_dir_path
             if not os.path.exists(os.path.join(intended_dir_path, directory)):
-                # if it does not, store the path to intended_dir_path/directory as path
-                path = os.path.join(intended_dir_path, directory)
-                # soft link ln -s origin_dir_path/directory to intended_dir_path/directory
+                # if it does not, soft link ln -s origin_dir_path/directory to intended_dir_path/directory
                 cmd = 'ln -s {}/{} {}'.format(origin_dir_path, directory, path)
                 utils.executeSubProcess(cmd)
-            # set attribute named directory (from for loop above) that points towards intended_dir_path/directory
+            # set attribute named directory (from for loop above) that points towards variable path which stores intended_dir_path/directory
             setattr(object_instance, directory, path)
 
     @staticmethod
