@@ -6,7 +6,8 @@ import pandas as pd
 # import time
 # import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
 #
-# class StandardData:
+class StandardData:
+    pass
 #     def __init__(self, expected_attributes = None, *args, **kwargs):
 #         """
 #         initialize StandardDataFormat with arbitrary number of keyword arguments.
