@@ -46,7 +46,7 @@ class StandardData:
             # set attribute raw_counts_df to store raw_counts
             setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
 
-    def standardDirectoryStructure(self):
+    def standardDirectoryStructure(self): #TODO: move and unzip genome files, set attribute
         """
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """

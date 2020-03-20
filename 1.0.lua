@@ -33,6 +33,7 @@ prepend_path("PATH", tools)
 -- set environmental variables
 setenv("METADATA", metadata_database)
 setenv("PYTHONPATH", tools)
+setenv("CODEBASE", base)
 
 
 -- see test_conda_env in the rnaseq_pipeline code repo. This simply tests whether the directory $HOME/.conda/envs exists. If it does not, the rnaseq_pipeline_env directory is cloned by conda
