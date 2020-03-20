@@ -15,7 +15,7 @@ is either supplied or created in rnaseq_tmp
 """
 
 from rnaseq_tools import utils
-from rnaseq_tools import StandardData
+from rnaseq_tools.OrganismData import OrganismData
 import pandas as pd
 import sys
 import os
@@ -31,7 +31,7 @@ import subprocess
 #                  'bed': file_1.bed}
 #                  }
 
-class IgvObject(StandardData.StandardData):
+class IgvObject(OrganismData.OrganismData):
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
         self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wt', 'experiment_dir']
