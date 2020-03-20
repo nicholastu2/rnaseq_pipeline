@@ -1,4 +1,4 @@
-#from rnaseq_tools import utils
+from rnaseq_tools import utils
 import pandas as pd
 # import os
 # import sys
