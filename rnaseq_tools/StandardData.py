@@ -32,19 +32,19 @@ class StandardData:
         kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
         utils.setAttributes(self, self._attributes, kwargs)
         # load config file
-        utils.configure(self)
+        utils.configure(self, self.config_file, self.self_type)
         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
         # automatic actions to perform on certain attributes when instantiated
         if hasattr(self, 'query_sheet_path'):
             # set attribute 'query_df' to store the standardizedQuerySheet (and out to rnaseq_tmp)
             setattr(self, 'query_df', self.standardizeQuery(self.query_sheet_path))
-            self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write
+            self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write?
         if hasattr(self, 'raw_counts_path'):
             # set attribute raw_counts_df to store raw_counts
             setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
 
-    def standardDirectoryStructure(self): #TODO: move and unzip genome files, set attribute
+    def standardDirectoryStructure(self):
         """
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
