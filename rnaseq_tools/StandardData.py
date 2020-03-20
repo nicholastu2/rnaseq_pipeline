@@ -188,11 +188,12 @@ class StandardData:
         row = self.query_df[self.query_df[filter_column] == filter_value]
 
         extracted_value = row[extract_column].values[0]
-        print(extracted_value)
+        print('the extracted value is {}'.format(extracted_value))
 
         if (extract_column == 'RUNNUMBER' or extract_column == 'runNumber') and check_leading_zero:
+            print(check_leading_zero + 'first')
             if extracted_value in self._run_numbers_with_zeros:
-                print(check_leading_zero + 'in here')
+                print(check_leading_zero + 'second')
                 return str(self._run_numbers_with_zeros[extracted_value])
 
         return extracted_value
