@@ -1,10 +1,13 @@
+import re
 
-def parse_gtf(filename):
+def parseGtf(gtf_file): # TODO: comment and docstring
     """
     Convert gtf into dictionary for filling bed fields
+    :param gtf_file:
+    :returns:
     """
     bed_dict = {}
-    reader = open(filename, 'r')
+    reader = open(gtf_file, 'r')
     for line in reader.readlines():
         if not line.startswith('#'):
             ## get info from each line
@@ -29,12 +32,14 @@ def parse_gtf(filename):
     return bed_dict
 
 
-def parse_gff3(filename):
+def parseGff3(gff_file): # TODO: comment and docstring
     """
     Convert gff3 into dictionary for filling bed fields
+    :param gff_file:
+    :returns:
     """
     bed_dict = {}
-    reader = open(filename, 'r')
+    reader = open(gff_file, 'r')
     for line in reader.readlines():
         if not line.startswith('#'):
             ## get info from each line

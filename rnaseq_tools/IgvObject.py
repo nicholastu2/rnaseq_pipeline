@@ -16,7 +16,7 @@ is either supplied or created in rnaseq_tmp
 
 from rnaseq_tools import utils
 from rnaseq_tools.OrganismData import OrganismData
-import pandas as pd
+from rnaseq_tools import annotation_tools
 import sys
 import os
 import time
@@ -57,7 +57,7 @@ class IgvObject(OrganismData):
                                  'object instance. However, you can input the full database (queryDB.py with flag -pf). '
                                  'It will just make the searches for a given sample somewhat longer (though likely not much).')
         # if an experiment_dir is not passed in constructor of IgvObject, create one in rnaseq_tmp/<timenow>_igv_files and store the path in self.experiment_dir
-        if not hasattr(self, 'exp_dir'):
+        if not hasattr(self, 'experiment_dir'):
             print('creating a directory in rnaseq_tmp to store alignment files so that the scheduler has access to them.'
                   'This assumes that the count and alignment files have already been processed and moved to '
                   '/lts/mblab/Crypto/rnaseq_data/align_expr')
@@ -89,31 +89,35 @@ class IgvObject(OrganismData):
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
             # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
             genotype = genotype.split('.')
-            # if not wildtype, add to igv_snapshot_dict
-            if not genotype[0] == self.wildtype:
+            # if genotype ends with _over, remove _over
+            for index in range(len(genotype)):
+                genotype[index] = genotype[index].replace('_over', '')
+            # if the object has an attribute wildtype, and genotype is not wildtype, add to igv_snapshot_dict
+            if hasattr(self, 'wildtype') and genotype[0] == self.wildtype:
                 # add the genotypes to genotype_list (not as a list of list, but as a list of genotypes)
                 genotype_list.extend(genotype)
                 # add to igv_snapshot_dict
-                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype) # TODO: clean this up into a single line, make function to avoid repeated code below w/wildtype
                 igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
                 igv_snapshot_dict[sample]['bed'] = None
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
             else:
                 igv_snapshot_dict.setdefault(sample, {'gene': None, 'bam': None, 'bed': None})
                 wildtype_sample_list.append([sample, bamfile_fullpath]) # wildtype_sample_list will be a list of lists
-        setattr(self, 'igv_snapshot_dict', igv_snapshot_dict) # TODO: for debug only -- remove when working
-        # if the wildtype genotype was found, create entry in the following form {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
+        # if the wildtype genotype was found, create entry in the following form
+        # {sample_read_counts.tsv: {'gene': [perturbed_gene_1, perturbed_gene_2, ...], 'bam': wt.bam, 'bed': created_bed.bed}
         for wt_sample in wildtype_sample_list:
             igv_snapshot_dict[wt_sample[0]]['gene'] = genotype_list
             igv_snapshot_dict[wt_sample[0]]['bam'] = wt_sample[1]
             igv_snapshot_dict[wt_sample[0]]['bed'] = None
+        # set attribute pointing toward igv_snapshot_dict
         setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
 
     def indexBam(self, bamfile_fullpath):
         """
         Index the bam files. The .bai file (indexed bam) will be deposited in the same directory as the bam file itself.
         for igv, as long as the .bai is in the same directory as the .bam file, it will work.
-        :param bamfile
+        :param bamfile_fullpath: full path (absolute) to bamfile
         """
         print('\nindexing {}'.format(bamfile_fullpath))
         # subprocess.call will wait until subprocess is complete
@@ -123,27 +127,29 @@ class IgvObject(OrganismData):
         else:
             sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
 
-    def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank, fig_format='png'):
+    def createBedFile(self, flanking_region = 500, file_format='png'):
         """
         Create bed files to describe IGV region of interest
+        :param flanking_region: how far up/down stream from the gene to capture in the snapshot
+        :param file_format: what format to use for image file
         """
-        ## get gene dictionary with chromsom, gene coordinates, strand
-        if gene_annot.endswith('gtf'):
-            gene_annot_dict = utils.parse_gtf(gene_annot)
-        elif gene_annot.endswith('gff') or gene_annot.endswith('gff3'):
-            gene_annot_dict = utils.parse_gff3(gene_annot)
+        ## get gene dictionary with chromsome, gene coordinates, strand
+        if self.annotation_file.endswith('gtf'):
+            self.annotation_dict = annotation_tools.parseGtf(self.annotation_file)
+        elif self.annotation_file.endswith('gff') or self.annotation_file.endswith('gff3'):
+            self.annotation_dict = annotation_tools.parseGff3(self.annotation_file)
         else:
-            sys.exit("ERROR: The gene annotation format cannot be recognized.")
+            sys.exit("ERROR: The gene annotation format cannot be recognized.") # TODO: clean up preceeding blocks -- move parseGFF to OrganismData
         ## create gene body region bed file
-        for sample in ineffmut_dict.keys():
-            igv_bed_filepath = igv_output_dir + sample + '.bed'
-            ineffmut_dict[sample]['bed'] = igv_bed_filepath
+        for sample in self.igv_snapshot_dict.keys():
+            igv_bed_filepath = os.path.join(self.experiment_dir, utils.pathBaseName(sample) + '.bed')
+            self.igv_snapshot_dict[sample]['bed'] = igv_bed_filepath
             writer = open(igv_bed_filepath, 'w')
-            for gene in ineffmut_dict[sample]['gene']:
-                d = gene_annot_dict[gene]
+            for gene in self.igv_snapshot_dict[sample]['gene']:
+                d = self.annotation_dict[gene]
                 writer.write('%s\t%d\t%d\t[%s]%s.%s\n' % \
-                             (d['chrm'], d['coords'][0] - flank, d['coords'][1] + flank, sample, gene, fig_format))
-        return ineffmut_dict
+                             (d['chrm'], d['coords'][0] - flanking_region,
+                              d['coords'][1] + flanking_region, sample, gene, file_format))
 
 
     def writeIgvJobScript(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png', email=None,
