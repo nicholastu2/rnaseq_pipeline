@@ -18,7 +18,7 @@ class StandardData:
         self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'align_expr',
                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
-                            'query_sheet_path', 'raw_count_path', 'norm_counts_path', 'config_file']
+                            'query_sheet_path', 'raw_count_path', 'norm_counts_path', 'config_file', 'experiment_dir']
 
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
@@ -190,7 +190,7 @@ class StandardData:
         extracted_value = row[extract_column].values[0]
 
         return_with_leading_zero = check_leading_zero
-        if return_with_leading_zero:
+        if return_with_leading_zero: # TODO: casting this to an int is a bit ugly -- may be a point of weakness
             if int(extracted_value) in self._run_numbers_with_zeros:
                 return str(self._run_numbers_with_zeros[int(extracted_value)])
 

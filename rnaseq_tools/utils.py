@@ -121,7 +121,7 @@ def fileBaseName(file_name):
         return file_name
 
 def pathBaseName(path):
-    """
+    """ This function will work for fileBaseName and also where you want the basename of a file from a path of any length
     strips directory structure and extensions. eg /path/to/file.fastq.gz --> file
     :param path: a filepath that includes a directory structure and file (see description)
     :returns: the basename of the file stripped of the directory structure and extensions
