@@ -176,12 +176,13 @@ def executeSubProcess(cmd):
         sys.exit("{} failed to execute. check the code.".format(cmd))
 
 
-def configure(object_instance, config_file, config_header):
+def configure(object_instance, config_file, config_header, prefix = ''):
     """
     reads and sets the attributes in a config_file.ini in type output by configparser.
     :param object_instance: an object to be configured
     :param config_file: a .ini
     :param config_header: the [header] in the .ini file to read (config format created by configparser).
+    :param prefix:
     The function will loop through these key, value pairs and set attributes accordingly
     """
     # read config file
@@ -189,4 +190,4 @@ def configure(object_instance, config_file, config_header):
     config.read(config_file)
     # set attributes for StandardData
     for key, value in config[config_header].items():
-        setattr(object_instance, key, value) # by default, values are read in as strings. Currently, all filepaths, so this is good
+        setattr(object_instance, key, os.path.join(prefix,value)) # by default, values are read in as strings. Currently, all filepaths, so this is good
