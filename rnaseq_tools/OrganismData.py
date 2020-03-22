@@ -36,7 +36,8 @@ class OrganismData(StandardData):
     def setOrganismData(self):
         setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline, self.genome_files,
                                                            self.organism, 'OrganismData_config.ini'))
-        utils.configure(self, self.organism_config_file, self.self_type, self.genome_files)
+        utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
+                                                                                      self.organism))
 
 
 
