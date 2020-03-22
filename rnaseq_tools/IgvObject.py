@@ -32,9 +32,17 @@ import subprocess
 #                  }
 
 class IgvObject(OrganismData):
+    """
+    :attribute _igv_attributes: list of expected attributes of a IgvObject. Like other StandardData children, these will update
+    self._attribute (inherited from StandardData through any StandardData to current object). These attributes are attributes which
+    some level of the StandardData class will recognize and know what to do with. They are variables that are expected to be either
+    entered by a config file or by the user on instantiation. If they are not set, *typically* they will be set automatically in the script (this is a TODO OBJECT TO TAKE CARE OF THIS BETTER)
+    or a print statement will tell you the default location, or an error will be raised (again, TODO)
+    """
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
-        self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wildtype', 'experiment_dir']
+        # TODO: possibly change inheretence to a subclass of OrganismData that sets up a class for ANY scheduler manipulation (ie align_counts, this) that take email as an optional argument
+        self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wildtype', 'experiment_dir', 'igv_output_dir', 'email']
         # initialize Standard data with the extended _attributes
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
 
@@ -152,25 +160,30 @@ class IgvObject(OrganismData):
                               d['coords'][1] + flanking_region, sample, gene, file_format))
 
 
-    def writeIgvJobScript(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png', email=None,
+    def writeIgvJobScript(self, fig_format='png', email=None,
                           job_script='job_scripts/igv_snapshot.sbatch'):
         """
         Write sbatch job script to make IGV snapshot
         """
-        num_samples = len(ineffmut_dict.keys())
+        # set igv_output_dir if not entered on cmd line
+        if not hasattr(self, 'igv_output_dir'):
+            setattr(self, 'igv_output_dir', os.path.join(self.experiment_dir, 'igv_output'))
+            # TODO add a log statement, think about redirecting these job scripts to the job_script directory
+            print('the job scripts have been deposited in {}\nthis has been set as the igv_output_directory'.format(self.igv_output_dir))
+        num_samples = len(self.igv_snapshot_dict.keys())
         job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --mem=5G\n'
         job += '#SBATCH -D ./\n#SBATCH -o log/igv_snapshot_%A.out\n#SBATCH ' \
                '-e log/igv_snapshot_%A.err\n#SBATCH -J igv_snapshot\n'
-        if email is not None:
+        if hasattr(self, 'email'):
             job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % email
         job += '\nml java\n'
-        for sample in ineffmut_dict.keys():
-            bam_file = ineffmut_dict[sample]['bam']
-            bed_file = ineffmut_dict[sample]['bed']
+        for sample in self.igv_snapshot_dict.keys():
+            bam_file = self.igv_snapshot_dict[sample]['bam']
+            bed_file = self.igv_snapshot_dict[sample]['bed']
             # this is a call to another script in the rnaseq_pipeline/tools
             job += 'python -u tools/make_IGV_snapshots.py %s ' \
                    '-bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
-                   % (bam_file, bed_file, igv_genome, fig_format, igv_output_dir)
+                   % (bam_file, bed_file, self.igv_genome_index, fig_format, self.igv_output_dir)
         # write job to script
         writer = open(job_script, 'w')
         writer.write('%s' % job)
