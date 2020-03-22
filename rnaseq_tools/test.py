@@ -54,7 +54,15 @@ sample_list = [
 ]
 
 from rnaseq_tools.IgvObject import IgvObject
-sample_list = ['sequence/run_0773_samples/run_773_s_2_withindex_sequence_GGCAGCG.fastq.gz',
+sample_list = [
+'sequence/run_1800_samples/1800_Brent_12_TAACAAG_S12_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_13_GAGGCGT_S13_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_14_TTTAACT_S14_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_15_GGTCCTC_S15_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_19_GAGTACG_S19_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_20_ACAGATA_S20_R1_001.fastq.gz',
+'sequence/run_1800_samples/1800_Brent_21_CTCAATG_S21_R1_001.fastq.gz',
+'sequence/run_0773_samples/run_773_s_2_withindex_sequence_GGCAGCG.fastq.gz',
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_CCATCAT.fastq.gz',
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_TAACAAG.fastq.gz',
 'sequence/run_0773_samples/run_773_s_2_withindex_sequence_GAGTACG.fastq.gz',
@@ -64,9 +72,14 @@ query_path = '/scratch/mblab/chasem/old_rnaseq/query/CNAG_05420_all.csv'
 
 wildtype = 'CNAG_05420'
 
-igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list, wildtype = 'CNAG_05420')
+# expirement directory already make -- see constructor
+igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list,
+                wildtype = 'CNAG_05420',
+                experiment_dir = '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200322_120638_igv_files', organism = 'KN99')
 
 query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
+
+
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 
 
