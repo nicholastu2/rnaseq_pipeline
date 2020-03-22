@@ -191,3 +191,17 @@ def configure(object_instance, config_file, config_header, prefix = ''):
     # set attributes for StandardData
     for key, value in config[config_header].items():
         setattr(object_instance, key, os.path.join(prefix,value)) # by default, values are read in as strings. Currently, all filepaths, so this is good
+
+def submitSbatch(sbatch_path, email = None):
+    """
+    submit an sbatch script (see sbatch script examples in templates)
+    :param sbatch_path: path to an sbatch file
+    :param  email: user email, default None
+    """
+    print('...submitting sbatch job')
+    # Submit sbatch job
+    if email is None:
+        os.system("sbatch {}".format(sbatch_path))
+    else:
+        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(email, sbatch_path))
+

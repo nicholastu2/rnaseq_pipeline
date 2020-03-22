@@ -169,8 +169,6 @@ class IgvObject(OrganismData):
         # set igv_output_dir if not entered on cmd line
         if not hasattr(self, 'igv_output_dir'):
             setattr(self, 'igv_output_dir', os.path.join(self.experiment_dir, 'igv_output'))
-            # TODO add a log statement, think about redirecting these job scripts to the job_script directory
-            print('the job scripts have been deposited in {}\nthis has been set as the igv_output_directory'.format(self.igv_output_dir))
         num_samples = len(self.igv_snapshot_dict.keys())
         job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --mem=5G\n'
         job += '#SBATCH -D ./\n#SBATCH -o log/igv_snapshot_%A.out\n#SBATCH ' \
@@ -190,3 +188,7 @@ class IgvObject(OrganismData):
         setattr(self, 'igv_job_script', igv_job_script_path)
         with open(self.igv_job_script, 'w') as file:
             file.write('%s' % job)
+        # TODO add a log statement, think about redirecting these job scripts to the job_script directory
+        print('the job scripts have been deposited in {}\n'
+              'this has been set as the igv_output_directory'.format(self.igv_output_dir))
+
