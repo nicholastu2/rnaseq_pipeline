@@ -170,18 +170,22 @@ class IgvObject(OrganismData):
         if not hasattr(self, 'igv_output_dir'):
             setattr(self, 'igv_output_dir', os.path.join(self.experiment_dir, 'igv_output'))
         num_samples = len(self.igv_snapshot_dict.keys())
-        job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --mem=5G\n'
-        job += '#SBATCH -D ./\n#SBATCH -o log/igv_snapshot_%A.out\n#SBATCH ' \
-               '-e log/igv_snapshot_%A.err\n#SBATCH -J igv_snapshot\n'
+        job = '#!/bin/bash\n' \
+              '#SBATCH -N 1\n' \
+              '#SBATCH --mem=5G\n' \
+              '#SBATCH -o {0}/igv_snapshot_%A.out\n' \
+              '#SBATCH -e {0}/igv_snapshot_%A.err\n' \
+              '#SBATCH -J igv_snapshot\n'.format(self.log)
         if hasattr(self, 'email'):
-            job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % self.email
-        job += '\nml java\n'
+            job += '#SBATCH --mail-type=END,FAIL\n' \
+                   '#SBATCH --mail-user=%s\n' % self.email
+        job += '\nml java\n' \
+               'ml rnaseq_pipeline\n'
         for sample in self.igv_snapshot_dict.keys():
             bam_file = self.igv_snapshot_dict[sample]['bam']
             bed_file = self.igv_snapshot_dict[sample]['bed']
             # this is a call to another script in the rnaseq_pipeline/tools
-            job += 'python -u tools/make_IGV_snapshots.py %s ' \
-                   '-bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
+            job += '\nmake_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
                    % (bam_file, bed_file, self.igv_genome_index, fig_format, self.igv_output_dir)
         # write job to script
         igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '.sbatch')

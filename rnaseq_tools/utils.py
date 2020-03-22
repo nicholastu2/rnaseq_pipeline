@@ -201,7 +201,9 @@ def submitSbatch(sbatch_path, email = None):
     print('...submitting sbatch job')
     # Submit sbatch job
     if email is None:
-        os.system("sbatch {}".format(sbatch_path))
+        cmd = "sbatch {}".format(sbatch_path)
+        executeSubProcess(cmd)
     else:
-        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(email, sbatch_path))
+        cmd = "sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(email, sbatch_path)
+        executeSubProcess(cmd)
 
