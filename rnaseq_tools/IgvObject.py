@@ -141,6 +141,8 @@ class IgvObject(OrganismData):
         :param flanking_region: how far up/down stream from the gene to capture in the snapshot
         :param file_format: what format to use for image file
         """
+        # TODO if bed files exist in exp dir, just get those
+
         ## get gene dictionary with chromsome, gene coordinates, strand
         if self.annotation_file.endswith('gtf'):
             self.annotation_dict = annotation_tools.parseGtf(self.annotation_file)
@@ -160,8 +162,7 @@ class IgvObject(OrganismData):
                               d['coords'][1] + flanking_region, sample, gene, file_format))
 
 
-    def writeIgvJobScript(self, fig_format='png', email=None,
-                          job_script='job_scripts/igv_snapshot.sbatch'):
+    def writeIgvJobScript(self, fig_format='png'):
         """
         Write sbatch job script to make IGV snapshot
         """
@@ -175,7 +176,7 @@ class IgvObject(OrganismData):
         job += '#SBATCH -D ./\n#SBATCH -o log/igv_snapshot_%A.out\n#SBATCH ' \
                '-e log/igv_snapshot_%A.err\n#SBATCH -J igv_snapshot\n'
         if hasattr(self, 'email'):
-            job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % email
+            job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % self.email
         job += '\nml java\n'
         for sample in self.igv_snapshot_dict.keys():
             bam_file = self.igv_snapshot_dict[sample]['bam']
@@ -185,8 +186,7 @@ class IgvObject(OrganismData):
                    '-bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
                    % (bam_file, bed_file, self.igv_genome_index, fig_format, self.igv_output_dir)
         # write job to script
-        writer = open(job_script, 'w')
-        writer.write('%s' % job)
-        writer.close()
-
-
+        igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '.sbatch')
+        setattr(self, 'igv_job_script', igv_job_script_path)
+        with open(self.igv_job_script, 'w') as file:
+            file.write('%s' % job)

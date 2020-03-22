@@ -73,7 +73,7 @@ query_path = '/scratch/mblab/chasem/old_rnaseq/query/CNAG_05420_all.csv'
 wildtype = 'CNAG_05420'
 
 # expirement directory already make -- see constructor
-igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list,wildtype = 'CNAG_05420',experiment_dir = '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200322_120638_igv_files', organism = 'KN99')
+igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list,wildtype = 'CNAG_05420',experiment_dir = '/scratch/mblab/chasem/rnaseq_pipeline/rnaseq_tmp/20200322_120638_igv_files', organism = 'KN99', email = 'chasem@wustl.edu')
 
 query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 
