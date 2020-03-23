@@ -1,26 +1,26 @@
-# /usr/bin/env python
+#!/usr/bin/env python
 
 """
-Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
-Modified by YK
-This script will load IGV in a virtual X window, load all supplied input files
-as tracks, and take snapshots at the coorindates listed in the BED formatted
-region file.
-If you don't have a copy of IGV, get it here:
-http://data.broadinstitute.org/igv/projects/downloads/IGV_2.3.81.zip
-example IGV batch script:
-new
-snapshotDirectory IGV_Snapshots
-load test_alignments.bam
-genome hg19
-maxPanelHeight 500
-goto chr1:713167-714758
-collapse
-snapshot chr1_713167_714758_h500.[png/svg]
-goto chr1:713500-714900
-collapse
-snapshot chr1_713500_714900_h500.[png/svg]
-exit
+    Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
+    Modified by YK
+    This script will load IGV in a virtual X window, load all supplied input files
+    as tracks, and take snapshots at the coorindates listed in the BED formatted
+    region file.
+    If you don't have a copy of IGV, get it here:
+    http://data.broadinstitute.org/igv/projects/downloads/IGV_2.3.81.zip
+    example IGV batch script:
+    new
+    snapshotDirectory IGV_Snapshots
+    load test_alignments.bam
+    genome hg19
+    maxPanelHeight 500
+    goto chr1:713167-714758
+    collapse
+    snapshot chr1_713167_714758_h500.[png/svg]
+    goto chr1:713500-714900
+    collapse
+    snapshot chr1_713500_714900_h500.[png/svg]
+    exit
 """
 
 # ~~~~ LOAD PACKAGES ~~~~~~ #
@@ -32,7 +32,7 @@ import argparse
 
 
 # ~~~~ CUSTOM FUNCTIONS ~~~~~~ #
-def my_debugger(vars):
+def my_debugger(my_vars):
     """
     starts interactive Python terminal at location in script
     very handy for debugging
@@ -45,8 +45,8 @@ def my_debugger(vars):
     import readline  # optional, will allow Up/Down/History in the console
     import code
     # vars = globals().copy() # in python "global" variables are actually module-level
-    vars.update(locals())
-    shell = code.InteractiveConsole(vars)
+    my_vars.update(locals())
+    shell = code.InteractiveConsole(my_vars)
     shell.interact()
 
 
