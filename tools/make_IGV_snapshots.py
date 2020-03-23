@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#/usr/bin/env python
 
 '''
 Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
@@ -337,7 +337,6 @@ def run():
     fig_format = args.fig_format
 
     main(input_files = input_files, region_file = region_file, genome = genome, image_height = image_height, outdir = outdir, igv_jar_bin = igv_jar_bin, igv_mem = igv_mem, no_snap = no_snap, suffix = suffix, nf4_mode = nf4_mode, onlysnap = onlysnap, fig_format=fig_format)
-
 
 
 if __name__ == "__main__":
