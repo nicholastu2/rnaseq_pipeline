@@ -38,7 +38,7 @@ class OrganismData(StandardData):
                                                            self.organism, 'OrganismData_config.ini'))
         utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
                                                                                       self.organism))
-        self.feature_type = utils.pathBaseName(self.feature_type).replace('"', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. fix this!!
+        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. fix this!!
 
 
 
