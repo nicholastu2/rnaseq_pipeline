@@ -1,3 +1,7 @@
+import sys
+import os
+from rnaseq_tools import utils
+
 def genotypeCheck(standard_data):
     """
     function to perform genotype check
@@ -18,7 +22,7 @@ def genotypeCheck(standard_data):
     elif not standard_data.experiment_columns:
         print('no experiment columns provided. By default, genotype, timepoint, treatment will be used. Do you wish to continue (y/n)?\n')
         answer = input()
-        if answer == 'n' | answer == 'No' | answer == N:
+        if answer == 'n' | answer == 'No' | answer == 'N':
             sys.exit('relaunch script with appropriate experiment columns')
         setattr(standard_data, 'experiment_columns', ['genotype', 'timepoint', 'treatment'])
 
@@ -32,6 +36,5 @@ def genotypeCheck(standard_data):
             exp_column_statement = exp_column_statement + '{},'.format(i)
         exp_column_statement = exp_column_statement[:-1]
         script_cmd = script_cmd + exp_column_statement
-        print(script_cmd)
         # execute genotype_check_histogram.R
-        #os.system(script_cmd)
+        utils.executeSubProcess(script_cmd)

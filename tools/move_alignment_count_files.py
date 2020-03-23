@@ -48,7 +48,7 @@ def parseArgs(argv):
     parser.add_argument('-rn', '--run_number', required=True,
                         help = '[REQUIRED] The run number corresponding to the set of fastq files')
     parser.add_argument('-d', '--destination_path', required = True,
-                        help = '[REQUIRED] Suggested usage: /lts/mblab/Crypto/rnaseq_data/align_expr   path to destination directory')
+                        help = '[REQUIRED] Suggested usage: /lts/mblab/Crypto/rnaseq_data/lts_align_expr   path to destination directory')
     parser.add_argument('-l', '--log', required = True,
                         help = '[REQUIRED] suggested usage: ./log. You will need to mkdir log if it does not exist already. \
                          This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
