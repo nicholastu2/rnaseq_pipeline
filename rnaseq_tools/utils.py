@@ -159,20 +159,6 @@ def dirName(path):
 
     return dirname
 
-def setAttributes(object, expected_attributes, input_dict):
-    """
-    a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
-    (a check for entering 'query' instead of 'query_sheet_path'
-    :param object: a instance of a class in which you wish to set attributes
-    :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
-    :param input_dict: kwargs entered upon instantiation
-    """
-    for key, value in input_dict.items():
-        if key not in expected_attributes:
-            print("{} not in expected attributes. This is not a problem unless you expect the data corresponding to "
-                      "the values in {} to be automatically standardized or manipulated".format(key, key))
-        setattr(object, key, value)
-
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
     submit raw_count_path to log2_cpm.R (in tools/)
