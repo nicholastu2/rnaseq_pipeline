@@ -5,58 +5,48 @@ import argparse
 from glob import glob
 import re
 import datetime
-from tools_utils import pathBaseName
+from rnaseq_tools.OrganismData import OrganismData
 
 FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
-FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
 
 def main(argv):
-
     # parse command line input and store as more descriptive variables
     print('...parsing input')
     args = parse_args(argv)
-    fastq_path = args.fastq_path
-    genome_index_file = args.genome_index_file
-    genome_annotation_file = args.gene_annotation_file
-    annotation_feature_type = args.annotation_feature_type
-    strandness = args.strandness
-    user_email = args.user_email
+
+    # create OrganismData object. This will simulatenously check to ensure that the user has the required file structure in their scratch space in addition to containing the organism attributes (genome, etc)
+    sdf = OrganismData(organism=args.organism,
+                       fastq_path=args.fastq_path,
+                       strandness=args.strandness,
+                       email=args.user_email,
+                       run_number=getRunNumber(args.fastq_path))
+    sdf.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sdf.run_number))
+
+    # store flag from cmd line
     align_only = args.align_only
-    run_num = args.run_num
-    output_path = os.path.join(args.output_directory, 'run_{}'.format(run_num))
-    if run_num is None:
-        run_num = getRunNumber(fastq_path)
-    if annotation_feature_type is None:
-        annotation_feature_type = getFeatureType(genome_annotation_file)
 
     # get current datetime
     current_datetime = datetime.datetime.now()
-    # get basename of annotation file to name pipeline_info in event that there is more than one organism in the run
-    annotation_file_basename = pathBaseName(genome_annotation_file)
 
-    # Create directories to store job scripts and logs, if they dne, and create job script files
     print('...writing sbatch job script')
-    # create directories sbatch_log and job_scripts in $PWD if they do not already exist
-    os.system("mkdir -p sbatch_log/")
-    os.system("mkdir -p job_scripts/")
     # create filenames for job_scripts and sbatch_logs
-    fastq_list_file = "job_scripts/run_{}_fastq_list.txt".format(run_num)
-    sbatch_job_file = "job_scripts/run_{}_mblab_rnaseq.sbatch".format(run_num)
+    fastq_list_file = "{}/run_{}_fastq_list.txt".format(sdf.job_scripts, sdf.run_number)
+    sbatch_job_file = "{}/run_{}_mblab_rnaseq.sbatch".format(sdf.job_scripts, sdf.run_number)
     # write a list of fastqfiles in the fastq_path to ./job_scripts and store how many as num_fastqs
-    num_fastqs = writeFastqList(fastq_path, fastq_list_file)
+    num_fastqs = writeFastqList(sdf.fastq_path, fastq_list_file)
     # create a slurm submission script and write to ./job_scripts
-    writeJobScript(sbatch_job_file, output_path, fastq_list_file, num_fastqs, genome_index_file, genome_annotation_file,
-                   annotation_feature_type, strandness, align_only)
+    writeJobScript(sbatch_job_file, sdf.output_dir, fastq_list_file, num_fastqs, sdf.novoalign_index,
+                   sdf.annotation_file, sdf.feature_type, sdf.strandness, align_only)
 
     # execute slurm job
     print('...submitting job')
-    if user_email is None:
+    if sdf.email is None:
         os.system("sbatch {}".format(sbatch_job_file))
     else:
-        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(user_email, sbatch_job_file))
+        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sdf.email, sbatch_job_file))
 
     # record information about the pipeline and annotation file in output_path/<annotation_file_basename>_pipeline_info
-    output_subdir_path = os.path.join(output_path, "{}_pipeline_info".format(annotation_file_basename))
+    output_subdir_path = os.path.join(sdf.output_dir, "{}_pipeline_info".format(sdf.organism))
     os.system("mkdir -p {}".format(output_subdir_path))
     # write version info from the module .lua file (see the .lua whatis statements)
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
@@ -67,35 +57,32 @@ def main(argv):
         file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(current_datetime))
         file.write("\n")
     # include the head of the gff/gtf, also
-    os.system("head {} >> {}".format(annotation_feature_type, pipeline_info_path))
+    os.system("head {} >> {}".format(sdf.annotation_file, pipeline_info_path))
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
     parser.add_argument("-f", "--fastq_path", required=True,
-                        help="[Required] Directory path of fastq files of type: {}".format(FASTQ_TYPES))
-    parser.add_argument("-i", "--genome_index_file", required=True,
-                        help="[Required] File path of genome index. This is specific to the aligner.")
-    parser.add_argument("-ga", "--gene_annotation_file", required=True,
-                        help="[Required] File path of gene annotation. By default (if not specified), it will look for \
-                        .gff or .gtf file in the same directory and has same filename as genome index file.")
+                        help="[Required] Directory path of fastq files.\n"
+                             "Must be stored in a directory that begins with run_####_'n"
+                             "All fastq files must have extension .fastq.gz")
+    parser.add_argument("-g", "--organism", required=True,
+                        help="[REQUIRED] The organism. This corresponds to the organisms in genome_files. Currently\n"
+                             "The options are H99, KN99 and S288C_R64.")
     parser.add_argument("-s", "--strandness", required=True,
                         help="[Required] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
     parser.add_argument('-o', "--output_directory", required=True,
-                        help="[Required]  Suggested usage: reports. \n \
-                        The topmost directory in which to deposit count, bam and novoalign log files \n \
-                        in a automatically generated subdirectory named by the run number.")
-    parser.add_argument('-rn', '--run_num',
-                        help='[Optional] To be used in the event that there is no run number in the fastq_path')
+                        help="[Required]  Suggested usage: reports.\n"
+                             "The topmost directory in which to deposit a directory called \'run_####\'\n"
+                             "which will store count, alignment and log files")
     parser.add_argument("--user_email", default=None,
                         help="[Optional] Email for job status notification.")
-    parser.add_argument("--annotation_feature_type", default=None,
-                        help="[Optional]  Feature type to use for reads counting. By default (if not specified), it will \
-                        use this dictionary {} based on the annotation file type.".format(FEATURE_TYPE_DICT))
     parser.add_argument("--align_only", action="store_true",
                         help="[Optional] Set this flag to only align reads.")
 
     args = parser.parse_args(argv[1:])
     return args
+
 
 def getRunNumber(fastq_path):
     """
@@ -104,23 +91,15 @@ def getRunNumber(fastq_path):
     :returns: the run number as string (leading zero will be retained)
     """
     try:
-        regex = r"run_(\d*)_samples"
+        regex = r"run_(\d*)_"
         run_num = re.search(regex, fastq_path).group(1)
     except AttributeError:
-        print("\nrun_number not found in the fastq_filename input path. \
-              Please use the optional cmd line input to enter a run number")
+        print("\nrun_number not found in the fastq_filename input path."
+              " Please use the optional cmd line input to enter a run number")
+        sys.exit()
     else:
         return run_num
 
-def getFeatureType(file_path):
-    """
-    :param file_path: filepath to .gff or .gtf
-    :returns: feature type according to FEATURE_TYPE_DICT
-    """
-    suffix = file_path.split(".")[-1]
-    if suffix not in FEATURE_TYPE_DICT.keys():
-        sys.exit("Error: annotation file has incorrect suffix.")
-    return FEATURE_TYPE_DICT[suffix]
 
 def writeFastqList(dir_path, fastq_list_file):
     """
@@ -139,7 +118,9 @@ def writeFastqList(dir_path, fastq_list_file):
             f.write("{}\n".format(file_path))
     return len(file_paths)
 
-def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_index_file, genome_annotation_file, feature_type,
+
+def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_index_file, genome_annotation_file,
+                   feature_type,
                    strandness, align_only):
     """
     Write slurm job script to job_file (which is $PWD/job_scripts
@@ -177,11 +158,14 @@ def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_in
             "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> {0}/${{sample}}_novosort.log\n".format(
                 output_path))
         if align_only is False:
-            if feature_type == 'gene': # this is a bad way of saying "if gff, specify -i ID. Else (it is a gtf) do not specify ID. TODO: This needs to be cleaned up
+            if feature_type == 'gene':  # this is a bad way of saying "if gff, specify -i ID. Else (it is a gtf) do not specify ID. TODO: This needs to be cleaned up
                 f.write(
-                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feature_type, genome_annotation_file))
+                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
+                        output_path, strandness, feature_type, genome_annotation_file))
             else:
-                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness, feature_type, genome_annotation_file))
+                f.write(
+                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
+                        output_path, strandness, feature_type, genome_annotation_file))
 
 
 if __name__ == "__main__":

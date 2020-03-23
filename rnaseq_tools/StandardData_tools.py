@@ -19,6 +19,7 @@ def genotypeCheck(standard_data):
         sys.exit('the StandardDataFormat instance does not have attribute log2_cpm_path')
     elif not (hasattr(standard_data, 'output_dir') and os.path.exists(standard_data.output_dir)):
         sys.exit('the StandardDataFormat instance does not have attribute output_dir')
+    # TODO: if no experiment columns, currently fails -- fix
     elif not standard_data.experiment_columns:
         print('no experiment columns provided. By default, genotype, timepoint, treatment will be used. Do you wish to continue (y/n)?\n')
         answer = input()

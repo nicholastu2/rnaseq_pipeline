@@ -68,13 +68,8 @@ splitParsedQuery = function(parsed_query_df, columns_to_parse, input_cols){
 } # end splitParsedQuery
 
 dropWildtypeRows = function(df){
-
-  return(df[!(df$GENOTYPE == 'CNAG_00000' |
-              df$GENOTYPE == 'CNAG_00000_WTalpha' |
-              df$GENOTYPE == 'CNAG_00000_WTa' |
-              df$GENOTYPE == 'CNAG_00000_TDY1993' |
-              df$GENOTYPE == 'CNAG_00000_WTalpha'), ])
-
+  # drop rows with the crypto wildtype in them
+  return(df[!(df$GENOTYPE == 'CNAG_00000'), ])
 }
 
 createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, output_dir){
