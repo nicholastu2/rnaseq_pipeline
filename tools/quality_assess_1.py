@@ -5,7 +5,7 @@ import re
 import argparse
 from glob import glob
 import pandas as pd
-import tools_utils
+from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
 ALIGN_VARS = ["READ_SEQUENCES", "UNIQUE_ALIGNMENT", "MULTI_MAPPED", "NO_MAPPING_FOUND"]
@@ -21,20 +21,20 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)
     # create StandardDataFormat object
-    standard_data = tools_utils.StandardData(align_count_path=args.align_count_path, run_number=args.run_number,
-                                             output_dir=args.output, query_sheet_path=args.query_sheet_path,
-                                             log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
+    sdf = utils.StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports),
+                                   output_dir=args.output, query_sheet_path=args.query_sheet_path,
+                                   log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
 
     # If -gc not passed, this will be empty. Otherwise, this will store True
     genotype_check = args.genotype_check
 
     # create path to new quality_assessment_sheet
-    quality_assessment_filename = "run_{}_quality_summary.csv".format(standard_data.run_number)
-    output_csv = os.path.join(standard_data.output_dir, quality_assessment_filename)
+    quality_assessment_filename = "run_{}_quality_summary.csv".format(sdf.run_number)
+    output_csv = os.path.join(sdf.output_dir, quality_assessment_filename)
 
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-    alignment_files_df = compileData(standard_data.align_count_path, "_novoalign.log")
-    count_files_df = compileData(standard_data.align_count_path, "_read_count.tsv")
+    alignment_files_df = compileData(sdf.align_count_path, "_novoalign.log")
+    count_files_df = compileData(sdf.align_count_path, "_read_count.tsv")
 
     # concat the alignment and count data
     combined_df = pd.concat([alignment_files_df, count_files_df], axis=1, sort=True, join="inner")
@@ -49,15 +49,13 @@ def main(argv):
 
     # genotype check
     if genotype_check:
-        tools_utils.genotypeCheck(standard_data)
+        utils.genotypeCheck(sdf)
 
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
-    parser.add_argument("-ac", "--align_count_path", required=True,
+    parser.add_argument("-r", "--reports", required=True,
                         help="Directory for alignment log files. This currently only works for Novoalign output.")
-    parser.add_argument("-rn", "--run_number", required=True,
-                        help='the run number corresponding to this batch of fastq files')
     parser.add_argument("-o", "--output", required=True,
                         help="Suggested Usage: in reports/run_####/pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
                              " File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")

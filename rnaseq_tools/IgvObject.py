@@ -199,17 +199,17 @@ class IgvObject(OrganismData):
         print('the job scripts have been deposited in {}\n'
               'this has been set as the igv_output_directory'.format(self.igv_output_dir))
 
-    def takeSnapshot(self):
-        # TODO: check that attr exist
-
-        # TODO: with subprocess.call, can we pass python data? If so, don't write this to file
-        batchscript_file = os.path.join(outdir, "IGV_snapshots.bat")
-        # TODO: this should be to log, not to stdout
-        print('\n~~~ IGV SNAPSHOT AUTOMATOR ~~~\n')
-        print('Reference genome:\n{}\n'.format(genome))
-        print('Track height:\n{}\n'.format(image_height))
-        print('IGV binary file:\n{}\n'.format(igv_jar_bin))
-        print('Output directory will be:\n{}\n'.format(outdir))
-        print('Batchscript file will be:\n{}\n'.format(batchscript_file))
-        print('Region file:\n{}\n'.format(region_file))
-        print('Input files to snapshot:\n')
+    # def takeSnapshot(self):
+    #     # TODO: check that attr exist
+    #
+    #     # TODO: with subprocess.call, can we pass python data? If so, don't write this to file
+    #     batchscript_file = os.path.join(outdir, "IGV_snapshots.bat")
+    #     # TODO: this should be to log, not to stdout
+    #     print('\n~~~ IGV SNAPSHOT AUTOMATOR ~~~\n')
+    #     print('Reference genome:\n{}\n'.format(genome))
+    #     print('Track height:\n{}\n'.format(image_height))
+    #     print('IGV binary file:\n{}\n'.format(igv_jar_bin))
+    #     print('Output directory will be:\n{}\n'.format(outdir))
+    #     print('Batchscript file will be:\n{}\n'.format(batchscript_file))
+    #     print('Region file:\n{}\n'.format(region_file))
+    #     print('Input files to snapshot:\n')

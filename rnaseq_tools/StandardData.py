@@ -18,7 +18,8 @@ class StandardData:
         self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline',
                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
-                            'query_sheet_path', 'raw_count_path', 'log2_cpm_path', 'norm_counts_path', 'config_file', 'experiment_dir']
+                            'query_sheet_path', 'raw_count_path', 'log2_cpm_path', 'norm_counts_path', 'config_file',
+                            'experiment_dir', 'fastq_path', 'strandness', 'run_number']
 
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}

@@ -3,9 +3,9 @@ import sys
 import os
 import argparse
 from glob import glob
-import re
 import datetime
 from rnaseq_tools.OrganismData import OrganismData
+from rnaseq_tools import utils
 
 FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
 
@@ -13,18 +13,16 @@ def main(argv):
     # parse command line input and store as more descriptive variables
     print('...parsing input')
     args = parse_args(argv)
-
-    # create OrganismData object. This will simulatenously check to ensure that the user has the required file structure in their scratch space in addition to containing the organism attributes (genome, etc)
+    # create OrganismData object. This will simultaneously check to ensure that the user has the required file structure
+    # in their scratch space in addition to containing the organism attributes (genome, etc)
     sdf = OrganismData(organism=args.organism,
                        fastq_path=args.fastq_path,
                        strandness=args.strandness,
                        email=args.user_email,
-                       run_number=getRunNumber(args.fastq_path))
+                       run_number=utils.getRunNumber(args.fastq_path))
     sdf.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sdf.run_number))
-
-    # store flag from cmd line
+    # store align_only flag from cmd line
     align_only = args.align_only
-
     # get current datetime
     current_datetime = datetime.datetime.now()
 
@@ -45,20 +43,22 @@ def main(argv):
     else:
         os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sdf.email, sbatch_job_file))
 
-    # record information about the pipeline and annotation file in output_path/<annotation_file_basename>_pipeline_info
+    print('...recording annotation and pipeline information in {}/run_{}/{}'.format(sdf.output_dir, sdf.run_number,
+                                                                                    'pipeline_info'))
     output_subdir_path = os.path.join(sdf.output_dir, "{}_pipeline_info".format(sdf.organism))
-    os.system("mkdir -p {}".format(output_subdir_path))
+    utils.mkdirp(output_subdir_path)
     # write version info from the module .lua file (see the .lua whatis statements)
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
-    os.system("module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path))
+    cmd_pipline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path)
+    utils.executeSubProcess(cmd_pipline_info)
     # include the date processed in output_subdir_path/pipeline_into.txt
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
         file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(current_datetime))
         file.write("\n")
     # include the head of the gff/gtf, also
-    os.system("head {} >> {}".format(sdf.annotation_file, pipeline_info_path))
-
+    cmd_annotation_info = "head {} >> {}".format(sdf.annotation_file, pipeline_info_path)
+    utils.executeSubProcess(cmd_annotation_info)
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
@@ -82,24 +82,6 @@ def parse_args(argv):
 
     args = parser.parse_args(argv[1:])
     return args
-
-
-def getRunNumber(fastq_path):
-    """
-    extract run number from -f input. this *should be* to a file called sequence/run_####_samples
-    :param fastq_path
-    :returns: the run number as string (leading zero will be retained)
-    """
-    try:
-        regex = r"run_(\d*)_"
-        run_num = re.search(regex, fastq_path).group(1)
-    except AttributeError:
-        print("\nrun_number not found in the fastq_filename input path."
-              " Please use the optional cmd line input to enter a run number")
-        sys.exit()
-    else:
-        return run_num
-
 
 def writeFastqList(dir_path, fastq_list_file):
     """

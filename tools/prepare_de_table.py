@@ -3,10 +3,8 @@ import sys
 import argparse
 import os.path
 import pandas as pd
-import glob
-import copy
-import tools_utils
-from tools_utils import *
+from rnaseq_tools import utils
+from rnaseq_tools.ExperimentObject import CreateDesignMatrixColumns
 
 def main(argv):
     parsed = parse_args(argv)
@@ -24,7 +22,7 @@ def main(argv):
     ## prepare design table
     design_df = build_design_table(summary_df, experimental_conditions, contrast_condition, parsed.control_value)
 
-    experiment_name = fileBaseName(os.path.basename(parsed.sample_summary))
+    experiment_name = utils.fileBaseName(os.path.basename(parsed.sample_summary))
     experiment_name = experiment_name.replace('_quality_summary_2', '')
     design_table_filepath = os.path.join(parsed.output_dir, experiment_name + '_design_table')
     save_dataframe(design_table_filepath, design_df)

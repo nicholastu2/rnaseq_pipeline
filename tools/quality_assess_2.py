@@ -4,15 +4,14 @@ import argparse
 import re
 import pandas as pd
 import numpy as np
-import tools_utils
-from tools_utils import *
+from rnaseq_tools import utils
 import os
 
 def main(argv):
 	parsed = parse_args(argv)
 	## validate args
 	output_dir = parsed.output
-	experiment_dir = tools_utils.getDirName(parsed.experiment_directory)
+	experiment_dir = utils.dirName(parsed.experiment_directory)
 	filename = experiment_dir + '_quality_summary_2.xlsx'
 	output_name = os.path.join(output_dir, filename)
 
@@ -26,7 +25,7 @@ def main(argv):
 	## load QC config data
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
 	global QC_dict
-	QC_dict = load_config(parsed.qc_configure)
+	QC_dict = utils.loadConfig(parsed.qc_configure)
 	## get conditions
 	conditions = None if parsed.condition_descriptors is None else \
 				[c.strip() for c in parsed.condition_descriptors.split(',')]
@@ -44,7 +43,8 @@ def main(argv):
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
-				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))]
+				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo
+				   in utils.makeCombinations(range(1,parsed.max_replicates+1))]
 	df, rep_max = initialize_dataframe(parsed.query_sheet, df_columns, conditions)
 	if rep_max != parsed.max_replicates:
 		print('The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(rep_max, rep_max))
@@ -118,7 +118,7 @@ def initialize_dataframe(query, df_cols, conditions):
 	"""
 	df1 = pd.DataFrame(columns = df_cols)
 	# read in queryDB dataframe describing experiment
-	if checkCSV(query):
+	if utils.checkCSV(query):
 		df2 = pd.read_csv(query, dtype=np.str)
 	else:
 		df2 = pd.read_excel(query, dtype=np.str)
@@ -173,7 +173,7 @@ def load_expression_data(df, cnt_mtx, gene_list, conditions):
 		#if '.fq' in str(row['FASTQFILENAME']):
 		#	sample = os.path.basename(row['FASTQFILENAME']) + '_read_count.tsv'
 		#else:
-		sample = os.path.basename(fileBaseName(str(row['FASTQFILENAME']))) +'_read_count.tsv'
+		sample = os.path.basename(utils.fileBaseName(str(row['FASTQFILENAME']))) +'_read_count.tsv'
 		if sample in count.columns.values:
 			if key not in sample_dict.keys():
 				sample_dict[key] = {}
@@ -191,7 +191,7 @@ def assess_mapping_quality(df, exp_dir, aligner_tool='novoalign'):
 		#if '.fq' in str(row['FASTQFILENAME']):
 		#	sample = os.path.basename(str(row['FASTQFILENAME'])) + '_' + aligner_tool + '.log'
 		#else:
-		sample = os.path.basename(fileBaseName(str(row['FASTQFILENAME']))) + '_' + aligner_tool + '.log'
+		sample = os.path.basename(utils.fileBaseName(str(row['FASTQFILENAME']))) + '_' + aligner_tool + '.log'
 		filepath = os.path.join(exp_dir, sample)
 		## read alignment log
 		reader = open(filepath, 'r')
@@ -253,8 +253,7 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 					print('\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample)
 					continue
 				## calculate mean expression level of each gene
-				wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
-									axis=1), name='mean_fpkm')
+				wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], axis=1), name='mean_fpkm')
 				wt_expr = pd.concat([expr, wt_expr], axis=1)
 			## get mutant gene expression in mutatnt sample 
 			mut_gene2 = mut_gene.strip("_over")
@@ -327,16 +326,16 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 	for key in sorted(sample_dict.keys()):
 		sample_ids = [s for s in sample_dict[key].items()]
 		cov_meds_dict = {}
-		rep_combos = make_combinations(sample_dict[key].keys())
+		rep_combos = utils.makeCombinations(sample_dict[key].keys())
 		for rep_combo in rep_combos:
 			## sort as integers
-			#rep_combo = np.array(sorted(np.array(rep_combo,dtype=int)), dtype=str)
+			# rep_combo = np.array(sorted(np.array(rep_combo,dtype=int)), dtype=str)
 			rep_num = len(rep_combo)
 			sample_combo = [sample_dict[key][rep] for rep in rep_combo]
 			## calculate COV median
 			cov_median = calculate_cov_median(expr[sample_combo])
 			rep_combo_col = 'COV_MED_REP'+''.join(np.array(rep_combo, dtype=str))
-			fastq_file_names = [os.path.basename(fileBaseName(tup[1])[:-11]) +'.fastq.gz' for tup in sample_ids]
+			fastq_file_names = [os.path.basename(utils.fileBaseName(tup[1])[:-11]) +'.fastq.gz' for tup in sample_ids]
 			df.loc[df['FASTQFILENAME'].isin(fastq_file_names), rep_combo_col] = cov_median
 			## store COV median at the respective rep number
 			if rep_num not in cov_meds_dict.keys():
@@ -389,7 +388,7 @@ def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 
 	# TODO: work this in earlier in the process
 	for index,row in df.iterrows():
-	    df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: tools_utils.fileBaseName(row) + '_read_count.tsv')
+	    df['FASTQFILENAME'] = df['FASTQFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
 	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 	
 

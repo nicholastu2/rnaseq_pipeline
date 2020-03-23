@@ -3,10 +3,8 @@ import sys
 import argparse
 import os.path
 import numpy as np
-import re
 import glob
-import tools_utils
-from tools_utils import addForwardSlash
+from rnaseq_tools import utils
 
 
 def main(argv):
@@ -18,7 +16,7 @@ def main(argv):
 
     count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
 
-    exp_name = tools_utils.getDirName(args.experiment_directory)
+    exp_name = utils.dirName(args.experiment_directory)
 
     count_file_path = os.path.join(args.experiment_directory, exp_name + '_raw_count.csv')
 
@@ -39,7 +37,7 @@ def createCountMatrix(exp_dir, gene_list):
     # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
     # Returns: A count matrix of all genes (rows) by all samples (columns)
 
-    exp_dir = addForwardSlash(exp_dir)
+    exp_dir = utils.addForwardSlash(exp_dir)
     search_pattern = exp_dir + '*_read_count.tsv'
     sample_counts_list = glob.glob(search_pattern)
     # TODO: sanity check against num rows in query?

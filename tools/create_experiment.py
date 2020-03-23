@@ -8,15 +8,14 @@ import os
 import sys
 import pandas as pd
 import argparse
-from shutil import copy2 as cp
-from tools_utils import *
+from rnaseq_tools import utils
 
 COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/lts_align_expr'
 # this needs to be here b/c align_counts currently only removes f*q.gz (this was legacy code that I did not catch before running the old data, which has a variety of extensions other than variations of strictly f*q.gz)
-FASTQ_TYPES = [".fastq.gz",".fq.gz"]
+FASTQ_TYPES = [".fastq.gz", ".fq.gz"]
+
 
 def main(argv):
-
     # store suffixes of the files we wish to move
     count_suffix = '_read_count.tsv'
     novoalign_log_suffix = '_novoalign.log'
@@ -61,15 +60,20 @@ def parseArgs(argv):
                               get into the code to add a conditional for an unusual run number. This is more common with older runs.')
     return parser.parse_args(argv[1:])
 
+
 def createExperimentDir(output, exp_name):
-    # create experiment directory to store copied count files
-    # Args: output path (cmd line input) and name of experiment (cmd line input)
-    # Return: directory path
+    """
+    create experiment directory to store copied count files
+    :param output: output path (cmd line input)
+    :param exp_name: name of experiment (cmd line input)
+    :returns: directory path
+    """
 
     dir_name = os.path.join(output, exp_name)
-    os.system("mkdir -p {}".format(dir_name))
-
+    cmd = "mkdir -p {}".format(dir_name)
+    utils.executeSubProcess(cmd)
     return dir_name
+
 
 def filepathList(query, file_type, leading_zero_list):
     # create filepath from COUNT_LTS, runNumber and fastqFileName
@@ -83,7 +87,7 @@ def filepathList(query, file_type, leading_zero_list):
             for leading_zero_run_num in leading_zero_list:
                 if run_num[i] == int(leading_zero_run_num) or run_num[i] == str(leading_zero_run_num):
                     if not str(leading_zero_run_num).startswith('0'):
-                        run_num[i] = '0'+str(leading_zero_run_num)
+                        run_num[i] = '0' + str(leading_zero_run_num)
                     else:
                         run_num[i] = str(leading_zero_run_num)
 
@@ -108,6 +112,7 @@ def filepathList(query, file_type, leading_zero_list):
 
     return filepath_list
 
+
 def moveFiles(file_list, dest_dir, query_len):
     # extract run number and index, cp the files to the destination dir and log the move
     # Args: list of files to be moved, the destination, and the number of rows in the query
@@ -117,20 +122,24 @@ def moveFiles(file_list, dest_dir, query_len):
     for file in file_list:
         # throw error/exit if file isn't found in src_dir
         if not os.path.isfile(file):
-            print('{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(file, COUNT_LTS))
+            print(
+                '{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(
+                    file, COUNT_LTS))
             sys.exit(1)
 
         dest_full_path = os.path.join(dest_dir, os.path.basename(file))
         print('...copying {} to {}'.format(os.path.basename(file), dest_full_path))
-        os.system('rsync -aHv {} {}'.format(file, dest_full_path))
+        cmd = 'rsync -aHv {} {}'.format(file, dest_full_path)
+        utils.executeSubProcess(cmd)
         count = count + 1
 
-    if not count == 2*query_len:
+    if not count == 2 * query_len:
         print("\nThe number of files moved is {}. The number of rows in the query is {}.\n \
                If moving count and bam files (default), the number of files should be twice the number of rows.\n \
                If it is not, Check the query, and {}, and try again".format(count, query_len, COUNT_LTS))
     else:
         print("Your data has been copied to your output directory!")
+
 
 if __name__ == '__main__':
     main(sys.argv)

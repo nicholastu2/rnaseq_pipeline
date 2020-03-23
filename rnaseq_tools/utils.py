@@ -7,6 +7,22 @@ import sys
 import subprocess
 import configparser
 
+def getRunNumber(fastq_path):
+    """
+    extract run number from -f input. this *should be* to a file called sequence/run_####_samples
+    :param fastq_path
+    :returns: the run number as string (leading zero will be retained)
+    """
+    try:
+        regex = r"run_(\d*)"
+        run_num = re.search(regex, fastq_path).group(1)
+    except AttributeError:
+        print("\nrun_number not found in the fastq_filename input path."
+              " Please use the optional cmd line input to enter a run number")
+        sys.exit()
+    else:
+        return run_num
+
 def decomposeStatus2Bit(status):
     """
     Decompose a value in the column of the output of quality_assess_2 to bit.
