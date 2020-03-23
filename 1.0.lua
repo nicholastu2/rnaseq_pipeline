@@ -19,7 +19,6 @@ whatis("URL: https://gitlab.com/brentlab/rnaseq_pipe")
 -- load main tools (see system requirements on the gitlab wiki)
 depends_on("miniconda")
 depends_on("igv/2.4.7")
--- depends_on("xvfb-run")
 depends_on("samtools")
 
 -- message to print on module load
