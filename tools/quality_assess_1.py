@@ -5,6 +5,7 @@ import re
 import argparse
 from glob import glob
 import pandas as pd
+from rnaseq_tools.StandardData import StandardData
 from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
@@ -21,9 +22,9 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)
     # create StandardDataFormat object
-    sdf = utils.StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports),
-                                   output_dir=args.output, query_sheet_path=args.query_sheet_path,
-                                   log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
+    sdf = StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports),
+                       output_dir=args.output, query_sheet_path=args.query_sheet_path,
+                       log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
 
     # If -gc not passed, this will be empty. Otherwise, this will store True
     genotype_check = args.genotype_check
@@ -55,10 +56,10 @@ def main(argv):
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
     parser.add_argument("-r", "--reports", required=True,
-                        help="Directory for alignment log files. This currently only works for Novoalign output.")
+                        help="[REQUIRED] Directory for alignment log files. This currently only works for Novoalign output.")
     parser.add_argument("-o", "--output", required=True,
-                        help="Suggested Usage: in reports/run_####/pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
-                             " File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
+                        help="Suggested Usage: in reports/run_####/{organism}_pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
+                             "[REQUIRED] File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     parser.add_argument("-gc", "--genotype_check",
                         help="path to a text file with a list (see templates/genotype_check.txt for an example) of fastqFileNames to perform a genotype check on")
     parser.add_argument("-qs", "--query_sheet",
@@ -67,7 +68,7 @@ def parseArgs(argv):
                         help="log2 cpm of the raw counts (run raw_counts.py and then log2_cpm.R to produce these")
     parser.add_argument("-exp_cols", "--experiment_columns", nargs='+',
                         help="columns to use to create replicate groups. Eg for crypto -exp_cols genotype treatment timepoint"
-                             "note: no quotes or commas")
+                             " note: no quotes or commas")
     args = parser.parse_args(argv[1:])
     return args
 
