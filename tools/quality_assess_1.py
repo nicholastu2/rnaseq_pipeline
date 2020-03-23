@@ -13,7 +13,6 @@ ALIGN_VARS = ["READ_SEQUENCES", "UNIQUE_ALIGNMENT", "MULTI_MAPPED", "NO_MAPPING_
 COUNT_VARS = ["TOTAL_MAPPED_READS", "WITH_FEATURE", "NO_FEATURE", "AMBIGUOUS", "TOO_LOW_A_QUAL", "NOT_ALIGNED",
               "ALIGNMENT_NOT_UNIQUE"]
 
-
 def main(argv):
     """
     qual_assess_1 main method
@@ -22,12 +21,7 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)
     # create StandardDataFormat object
-    sdf = StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports),
-                       output_dir=args.output, query_sheet_path=args.query_sheet_path,
-                       log2_cpm_path=args.log2cpm, experiment_columns=args.exp_columns)
-
-    # If -gc not passed, this will be empty. Otherwise, this will store True
-    genotype_check = args.genotype_check
+    sdf = StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports), output_dir=args.output)
 
     # create path to new quality_assessment_sheet
     quality_assessment_filename = "run_{}_quality_summary.csv".format(sdf.run_number)
@@ -49,7 +43,10 @@ def main(argv):
     # take browser shot -- build this as class (certain attributes necessary to taking browser shot)
 
     # genotype check
-    if genotype_check:
+    if args.genotype_check:
+        sdf.query_sheet_path = args.query_sheet_path
+        sdf.log2_cpm_path = args.log2cpm
+        sdf.experiment_columns = args.exp_columns
         utils.genotypeCheck(sdf)
 
 
@@ -58,9 +55,9 @@ def parseArgs(argv):
     parser.add_argument("-r", "--reports", required=True,
                         help="[REQUIRED] Directory for alignment log files. This currently only works for Novoalign output.")
     parser.add_argument("-o", "--output", required=True,
-                        help="Suggested Usage: in reports/run_####/{organism}_pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
-                             "[REQUIRED] File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
-    parser.add_argument("-gc", "--genotype_check",
+                        help="[REQUIRED] Suggested Usage: in reports/run_####/{organism}_pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
+                             " File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
+    parser.add_argument("-gc", "--genotype_check", action='store_true',
                         help="path to a text file with a list (see templates/genotype_check.txt for an example) of fastqFileNames to perform a genotype check on")
     parser.add_argument("-qs", "--query_sheet",
                         help="path to query sheet with (only) the samples you wish to genotype check")
