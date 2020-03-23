@@ -27,6 +27,9 @@ main = function(){
   # read in query and raw counts
   parsed_query_df = suppressMessages(read_csv(path_to_query_sheet))
 
+  # drop wildtype rows # TODO currently hardcoded for crypto -- FIX THIS!!
+  parsed_query_df = dropWildtypeRows(parsed_query_df)
+
   # create list of columns to parse out of query_sheet
   columns_to_parse = c('COUNTFILENAME', 'REPLICATE', input_cols)
 
@@ -63,6 +66,16 @@ splitParsedQuery = function(parsed_query_df, columns_to_parse, input_cols){
   return(split_parsed_query_df)
 
 } # end splitParsedQuery
+
+dropWildtypeRows = function(df){
+
+  return(df[!(df$GENOTYPE == 'CNAG_00000' |
+              df$GENOTYPE == 'CNAG_00000_WTalpha' |
+              df$GENOTYPE == 'CNAG_00000_WTa' |
+              df$GENOTYPE == 'CNAG_00000_TDY1993' |
+              df$GENOTYPE == 'CNAG_00000_WTalpha'), ])
+
+}
 
 createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, output_dir){
 

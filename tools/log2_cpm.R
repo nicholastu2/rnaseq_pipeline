@@ -36,7 +36,7 @@ parseArguments = function() {
     make_option(c('-r', '--raw_counts'),
                 help='raw count matrix produced by raw_counts.py'),
     make_option(c('-o', '--output_FULL_path'),
-                help='path to directory in which to deposit graphs. No trailing /'))
+                help='path to file (full, from current directory through the filename and extension'))
   args = parse_args(OptionParser(option_list=option_list))
   return(args)
 } # end parseArguments()
