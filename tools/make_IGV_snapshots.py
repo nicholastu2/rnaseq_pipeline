@@ -3,16 +3,12 @@
 '''
 Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
 Modified by YK
-
 This script will load IGV in a virtual X window, load all supplied input files
 as tracks, and take snapshots at the coorindates listed in the BED formatted
 region file.
-
 If you don't have a copy of IGV, get it here:
 http://data.broadinstitute.org/igv/projects/downloads/IGV_2.3.81.zip
-
 example IGV batch script:
-
 new
 snapshotDirectory IGV_Snapshots
 load test_alignments.bam
