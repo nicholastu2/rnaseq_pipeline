@@ -1,4 +1,5 @@
 from rnaseq_tools import utils
+from rnaseq_tools import StandardData_tools
 import pandas as pd
 import os
 import sys
@@ -31,7 +32,7 @@ class StandardData:
         self._user = getpass.getuser()
         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
         kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
-        utils.setAttributes(self, self._attributes, kwargs)
+        StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
         # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
