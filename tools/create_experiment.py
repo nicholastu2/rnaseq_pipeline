@@ -11,7 +11,7 @@ import argparse
 from shutil import copy2 as cp
 from tools_utils import *
 
-COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/align_expr'
+COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/lts_align_expr'
 # this needs to be here b/c align_counts currently only removes f*q.gz (this was legacy code that I did not catch before running the old data, which has a variety of extensions other than variations of strictly f*q.gz)
 FASTQ_TYPES = [".fastq.gz",".fq.gz"]
 
