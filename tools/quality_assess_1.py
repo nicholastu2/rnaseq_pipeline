@@ -9,14 +9,11 @@ from rnaseq_tools.StandardData import StandardData
 from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
+# the formatting corresponds to the formatting in the log and read_count.tsv files
 ALIGN_VARS = ["Read Sequences", "Unique Alignment", "Multi Mapped", "No Mapping Found"]
 COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "too_low_aQual", "not_aligned", "alignment_not_unique"]
 
 def main(argv):
-    """
-    qual_assess_1 main method
-    :param argv: cmd line input -ac path to align_counts; -rn run number; -o output directory
-    """
     # parse cmd line arguments
     args = parseArgs(argv)
     # create StandardDataFormat object
@@ -70,6 +67,12 @@ def parseArgs(argv):
 
 
 def compileData(dir_path, suffix):
+    """
+    get a list of the filenames in the run_#### file that correspond to a given type
+    :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
+    :param suffix: the type of file either novoalign or _read_count
+    :returns: a dataframe containing the files according to their suffix
+    """
     df = pd.DataFrame()
     file_paths = glob("{}/*{}".format(dir_path, suffix))
     for file_path in file_paths:
@@ -84,6 +87,11 @@ def compileData(dir_path, suffix):
 
 
 def parseAlignmentLog(alignment_log_file_path):
+    """
+    parse the valuable informatino out of the alignment logs
+    :param alignment_log_file_path: the filepath to a novoalign alignment log
+    :returns: a dictionary of the parsed data of the input file
+    """
     with open(alignment_log_file_path, "r") as file:
         alignment_metadata_dict = {}
         for line in file:

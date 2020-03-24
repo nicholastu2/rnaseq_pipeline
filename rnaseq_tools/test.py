@@ -77,6 +77,8 @@ igv = IgvObject(query_sheet_path = query_path, sample_list = sample_list,wildtyp
 
 query_df = pd.read_csv('/home/chase/Documents/CNAG_05420_all_after_update.csv')
 
+sdf = StandardData(query_sheet_path = '/scratch/mblab/chasem/rnaseq_pipeline/query/old_crypto_no_159.csv', raw_count_path = '/scratch/mblab/chasem/rnaseq_pipeline/old_crypto_no_159/old_crypto_no_159_raw_count.csv', log2_cpm_path = '/scratch/mblab/chasem/rnaseq_pipeline/old_crypto_no_159/old_crypto_no_159_log2_counts.csv', output_dir = '/scratch/mblab/chasem/rnaseq_pipeline/hist_output', experiment_columns = ['genotype', 'timepoint', 'treatment'])
+
 
 print(makeIgvSnapshotDict(sample_list, query_df, wildtype))
 
