@@ -22,29 +22,29 @@ class StandardData:
                             'query_sheet_path', 'raw_count_path', 'log2_cpm_path', 'norm_counts_path', 'config_file',
                             'experiment_dir', 'email', 'fastq_path', 'strandness', 'run_number', 'output_dir', 'align_count_path']
 
-        self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
-                                        731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
-
-        # This is to extend _attributes if a class extends StandardData
-        if isinstance(expected_attributes, list):
-            self._attributes.extend(expected_attributes)
-        # get user name and set as _user
-        self._user = getpass.getuser()
-        # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+        # self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
+        #                                 731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
+        #
+        # # This is to extend _attributes if a class extends StandardData
+        # if isinstance(expected_attributes, list):
+        #     self._attributes.extend(expected_attributes)
+        # # get user name and set as _user
+        # self._user = getpass.getuser()
+        # # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
+        # kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
-        # load config file
-        utils.configure(self, self.config_file, self.self_type)
-        # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
-        self.standardDirectoryStructure()
-        # automatic actions to perform on certain attributes when instantiated
-        if hasattr(self, 'query_sheet_path'):
-            # set attribute 'query_df' to store the standardizedQuerySheet (and out to rnaseq_tmp)
-            setattr(self, 'query_df', self.standardizeQuery(self.query_sheet_path))
-            self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write?
-        if hasattr(self, 'raw_counts_path'):
-            # set attribute raw_counts_df to store raw_counts
-            setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
+        # # load config file
+        # utils.configure(self, self.config_file, self.self_type)
+        # # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
+        # self.standardDirectoryStructure()
+        # # automatic actions to perform on certain attributes when instantiated
+        # if hasattr(self, 'query_sheet_path'):
+        #     # set attribute 'query_df' to store the standardizedQuerySheet (and out to rnaseq_tmp)
+        #     setattr(self, 'query_df', self.standardizeQuery(self.query_sheet_path))
+        #     self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write?
+        # if hasattr(self, 'raw_counts_path'):
+        #     # set attribute raw_counts_df to store raw_counts
+        #     setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
 
     def standardDirectoryStructure(self):
         """

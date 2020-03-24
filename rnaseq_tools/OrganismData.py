@@ -1,6 +1,5 @@
 from rnaseq_tools import utils
 from rnaseq_tools.StandardData import StandardData
-import configparser
 import os
 
 class OrganismData(StandardData):

@@ -7,11 +7,11 @@ class CreateDesignMatrixColumns:
 
     def __init__(self, experimental_column_headers, contrast_column_header, quality_summary_df, control_value):
         # store cmd line input as class attributes
-        self.experimental_column_headers = experimental_column_headers
-        self.contrast_column_header = contrast_column_header
+        self.experimental_column_headers = experimental_column_headers # eg [GENOTYPE:GCN4 & TREATMENT:ESTRADIOL]TIMEPOINT:-1 & 10) GENOTYPE & TREATMENT are the experimental column headers (column names of the query sheet)
+        self.contrast_column_header = contrast_column_header # eg in the example above, TIMEPOINT is the contrast heading in the query sheet
         self.quality_summary_df = quality_summary_df
         self.design_df_seed = self.createDesignMatrixSeed()  # remove columns other than experimental + contrast columns from sample_summary_df
-        self.control_value = control_value
+        self.control_value = control_value # ie -1 for TIMEPOINT
         # create experimental controls and contrast groups
         self.experimental_conditions_dict = {}
         self.experimental_conditions_iterable = self.createExperimentalConditionTuples()  # tuples in form ('GCN4', 'Estradiol') in case of [GENOTYPE, TREATMENT]
@@ -97,7 +97,7 @@ class CreateDesignMatrixColumns:
         # fill the column where appropriate with 0s and 1
         self.fillDesignMatrixColumn(column_heading, control_column_identifiers, contrast_column_identifiers)
 
-    ### end createDesignMatrixColumnHeading()
+    ### end addDesignMatrixColumn()
 
     def fillDesignMatrixColumn(self, column_heading, control_column_identifiers, contrast_column_identifiers):
         """

@@ -9,9 +9,8 @@ from rnaseq_tools.StandardData import StandardData
 from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
-ALIGN_VARS = ["READ_SEQUENCES", "UNIQUE_ALIGNMENT", "MULTI_MAPPED", "NO_MAPPING_FOUND"]
-COUNT_VARS = ["TOTAL_MAPPED_READS", "WITH_FEATURE", "NO_FEATURE", "AMBIGUOUS", "TOO_LOW_A_QUAL", "NOT_ALIGNED",
-              "ALIGNMENT_NOT_UNIQUE"]
+ALIGN_VARS = ["Read Sequences", "Unique Alignment", "Multi Mapped", "No Mapping Found"]
+COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "too_low_aQual", "not_aligned", "alignment_not_unique"]
 
 def main(argv):
     """
@@ -98,17 +97,29 @@ def parseAlignmentLog(alignment_log_file_path):
 
 
 def parseGeneCount(file_path):
+    """
+    count the gene counts that mapped either to genes or to other features (see COUNT_VARS at top of script for other features)
+    :param file_path: a path toa  _read_count.tsv file (htseq output)
+    :returns: a dictionary with the features in COUNT_VARS quantified for the inputted file
+    """
     with open(file_path, "r") as file:
+        # COUNT_VARS[1] is WITH_FEATURE
         out = {COUNT_VARS[1]: 0}
+        # walk through the count file
         for line in file:
-            k, v = line.strip().split()
+            # split the two columns and store values as index and value
+            index, value = line.strip().split()
+            # if the line starts with __, it stores information such as __no_feature
             if line.startswith("__"):
-                out[k[2:]] = int(v)
+                out[index[2:]] = int(value)
             else:
-                out[COUNT_VARS[1]] += int(v)
-        out[COUNT_VARS[0]] = sum([out[k] for k in COUNT_VARS[1:]])
-        for k in COUNT_VARS[1:]:
-            out[k] /= float(out[COUNT_VARS[0]])
+                # otherwise the line will store individual gene counts. Add these counts to WITH_FEATURE
+                out[COUNT_VARS[1]] += int(value)
+        # COUNT_VARS[0] = TOTAL_MAPPED_READS and is the sum across the rows of the counts in the various categories
+        out[COUNT_VARS[0]] = sum([out[key] for key in COUNT_VARS[1:]])
+        # divide each category starting with WITH_FEATURE by the TOTAL_MAPPED_READS
+        for key in COUNT_VARS[1:]:
+            out[key] /= float(out[COUNT_VARS[0]])
     return out
 
 
