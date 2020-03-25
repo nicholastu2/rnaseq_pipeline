@@ -180,7 +180,7 @@ class StandardData:
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
 
-    def extractValueFromStandardRow(self, filter_column, filter_value, extract_column, check_leading_zero = False):
+    def extractValueFromStandardizedQuery(self, filter_column, filter_value, extract_column, check_leading_zero = False):
         """
         extract a value from a row (selected by filter_value) of self.query_df
         :param filter_column:
