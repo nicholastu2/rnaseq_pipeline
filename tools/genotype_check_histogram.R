@@ -147,7 +147,7 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
     colnames(perturbed_df) = toupper(colnames(perturbed_df))
 
     # get expression of drug markers
-    drug_markers = c("CNAG_G418", "CNAG_NAT")
+    drug_markers = c("CNAG_NAT", "CNAG_G418")
     drug_markers_df = log2_count_cpm[which (log2_count_cpm$gene_id %in% drug_markers),countfilename_list]
     drug_markers_df = stack(drug_markers_df)
     drug_markers_df$gene = drug_markers
@@ -168,7 +168,7 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
                       nudge_y = 200,
                       vjust = 0,
                       segment.size = .2) +
-      geom_point(data = drug_markers_df, aes(drug_markers_df$VALUES,y=100, color = drug_markers_df$GENOTYPE))
+    geom_point(data = drug_markers_df, aes(drug_markers_df$VALUES,y=100, color = drug_markers_df$GENOTYPE))
     print(overall_dist)
     output_path = file.path(output_dir, paste(group_desc, '.png', sep=''))
     ggsave(output_path, plot=overall_dist)
