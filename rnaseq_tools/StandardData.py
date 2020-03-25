@@ -199,6 +199,3 @@ class StandardData:
                 return str(self._run_numbers_with_zeros[int(extracted_value)])
 
         return extracted_value
-
-
-sdf = StandardData()
