@@ -5,7 +5,7 @@ import os
 class OrganismData(StandardData):
     def __init__(self, expected_attributes = None, **kwargs):
         # add expected attributes to super._attributes
-        self._add_expected_attributes = ['organism']
+        self._add_expected_attributes = ['organism', 'output_dir', 'wildtype', 'experiment_dir']
         # TODO: This is a messy and repetitive way of adding expected attributes from children of OrganismData to add to StandardData
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)

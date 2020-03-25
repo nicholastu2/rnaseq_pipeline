@@ -28,7 +28,9 @@ main = function(){
   parsed_query_df = suppressMessages(read_csv(path_to_query_sheet))
 
   # drop wildtype rows # TODO currently hardcoded for crypto -- FIX THIS!!
-  parsed_query_df = dropWildtypeRows(parsed_query_df)
+  parsed_query_df = dropWildtypeRows_query(parsed_query_df)
+  # drop wildtype columns from log2_cpm
+  no_wildtype_log2_cpm = dropWildtypeRows_counts(log2_cpm, as.character(parsed_query_df$COUNTFILENAME))
 
   # create list of columns to parse out of query_sheet
   columns_to_parse = c('COUNTFILENAME', 'REPLICATE', input_cols)
@@ -36,8 +38,10 @@ main = function(){
   # split the query_df into separate sheets based on cols_of_interest
   split_parsed_query_df = suppressMessages(splitParsedQuery(parsed_query_df, columns_to_parse, input_cols))
 
-  createHistograms(split_parsed_query_df, input_cols, log2_cpm, output_dir)
+  index = 1
+  createHistograms(split_parsed_query_df, input_cols, log2_cpm, output_dir, index)
 
+  print(warnings())
 }  # end main()
 
 parseArguments = function() {
@@ -62,20 +66,34 @@ splitParsedQuery = function(parsed_query_df, columns_to_parse, input_cols){
                           # The ugly code below 'unquoting' the character vector in order to pass
                           # the arguments as column variables see https://adv-r.hadley.nz/quasiquotation.html
                           group_split(!!! rlang::syms(input_cols))
+  
+  # drop tables with less than 2 replicates
+  table_indicies_to_drop = c()
+  for (index in 1:length(split_parsed_query_df)){
+    if (nrow(split_parsed_query_df[[index]]) < 2){
+      table_indicies_to_drop = c(table_indicies_to_drop, index)
+    }
+  }
 
-  return(split_parsed_query_df)
+  return(split_parsed_query_df[-table_indicies_to_drop])
 
 } # end splitParsedQuery
 
-dropWildtypeRows = function(df){
+dropWildtypeRows_query = function(standard_query_df){
   # drop rows with the crypto wildtype in them
-  return(df[!(df$GENOTYPE == 'CNAG_00000'), ])
-}
+  return(standard_query_df[!(standard_query_df$GENOTYPE == 'CNAG_00000'), ])
+} # end dropWildtypeRows_query
 
-createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, output_dir){
+dropWildtypeRows_counts = function(log2_cpm_df, query_sheet_countfiles){
+  # drop the columns that are not in the standardized_query_sheet after dropping the wildtypes
+  return(log2_cpm_df[, query_sheet_countfiles])
+} # end dropWildtypeRows_counts()
+
+createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, output_dir, index){
 
   for(group in split_parsed_query_df){
-
+    print(index)
+    index = index + 1
     group_desc = paste(as.character(unique(group[,input_cols])), collapse = "_")
     x_label = "median of log2(cpm) of replicates"
     y_label = "count"
@@ -99,7 +117,7 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
       labs(title=group_desc, y=y_label, x=x_label)+
       coord_cartesian(xlim = c(-2,15))+
       ylim(0,400)
-
+    print(warnings())
     # extract genotype of the group (there will be only one)
     genotype = unique(group[,'GENOTYPE'])[[1]]
     # remove "_over" if it is present
@@ -140,7 +158,7 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
     # shift drug markers and perturbed genes over 1 (see note on subset_log2_cpm)
     drug_markers_df$VALUES = drug_markers_df$VALUES + offset_to_zero
     perturbed_df$VALUES = perturbed_df$VALUES + offset_to_zero
-
+    print(warnings())
     # plot points representing expression of a genotype (or marker) in a given sample
     overall_dist = overall_dist +
       # uncomment this to display dots by sample (fastqFileName)
@@ -151,7 +169,6 @@ createHistograms = function(split_parsed_query_df, input_cols, log2_count_cpm, o
                       vjust = 0,
                       segment.size = .2) +
       geom_point(data = drug_markers_df, aes(drug_markers_df$VALUES,y=100, color = drug_markers_df$GENOTYPE))
-
     print(overall_dist)
     output_path = file.path(output_dir, paste(group_desc, '.png', sep=''))
     ggsave(output_path, plot=overall_dist)

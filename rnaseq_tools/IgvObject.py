@@ -43,8 +43,7 @@ class IgvObject(OrganismData):
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
         # TODO: possibly change inheretence to a subclass of OrganismData that sets up a class for ANY scheduler manipulation (ie align_counts, this) that take email as an optional argument
-        self._igv_attributes = ['sample_list', 'igv_genome', 'output_dir', 'wildtype', 'experiment_dir',
-                                'igv_output_dir', 'email']
+        self._igv_attributes = ['sample_list', 'igv_genome','igv_output_dir']
         # initialize Standard data with the extended _attributes
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
 

@@ -20,7 +20,8 @@ class StandardData:
                             'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline',
                             'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
                             'query_sheet_path', 'raw_count_path', 'log2_cpm_path', 'norm_counts_path', 'config_file',
-                            'experiment_dir', 'email', 'fastq_path', 'strandness', 'run_number', 'output_dir', 'align_count_path']
+                            'experiment_dir', 'email', 'fastq_path', 'strandness', 'run_number', 'output_dir',
+                            'align_count_path', 'experiment_columns']
 
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
@@ -29,9 +30,23 @@ class StandardData:
         if isinstance(expected_attributes, list):
             self._attributes.extend(expected_attributes)
         # get user name and set as _user
-        self._user = getpass.getuser()
+        #self._user = getpass.getuser()
+
+        ########## change me!!!!
+
+        self._user = 'chasem'
+
+        ########### look up!!!
+
         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+        #kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+
+        ##### change me!!!
+
+        kwargs['config_file'] = '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini'
+
+        #### look up!!
+
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
@@ -51,7 +66,8 @@ class StandardData:
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
         # first, create pipeline directory if dne
-        setattr(self, 'user_rnaseq_pipeline', '/scratch/mblab/{}/rnaseq_pipeline'.format(self._user))
+        setattr(self, 'user_scratch', os.path.join(self.mblab_scratch, self._user))
+        setattr(self, 'user_rnaseq_pipeline', '{}/rnaseq_pipeline'.format(self.user_scratch))
         if not os.path.exists(self.user_rnaseq_pipeline):
             utils.mkdirp(self.user_rnaseq_pipeline)
 
@@ -197,3 +213,6 @@ class StandardData:
                 return str(self._run_numbers_with_zeros[int(extracted_value)])
 
         return extracted_value
+
+
+sdf = StandardData()

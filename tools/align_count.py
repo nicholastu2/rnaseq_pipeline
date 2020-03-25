@@ -9,6 +9,7 @@ from rnaseq_tools import utils
 
 FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
 
+
 def main(argv):
     # parse command line input and store as more descriptive variables
     print('...parsing input')
@@ -43,8 +44,7 @@ def main(argv):
     else:
         os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sdf.email, sbatch_job_file))
 
-    print('...recording annotation and pipeline information in {}/run_{}/{}'.format(sdf.output_dir, sdf.run_number,
-                                                                                    'pipeline_info'))
+    print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(sdf.output_dir, sdf.run_number,'pipeline_info'))
     output_subdir_path = os.path.join(sdf.output_dir, "{}_pipeline_info".format(sdf.organism))
     utils.mkdirp(output_subdir_path)
     # write version info from the module .lua file (see the .lua whatis statements)
@@ -59,6 +59,7 @@ def main(argv):
     # include the head of the gff/gtf, also
     cmd_annotation_info = "head {} >> {}".format(sdf.annotation_file, pipeline_info_path)
     utils.executeSubProcess(cmd_annotation_info)
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
@@ -82,6 +83,7 @@ def parse_args(argv):
 
     args = parser.parse_args(argv[1:])
     return args
+
 
 def writeFastqList(dir_path, fastq_list_file):
     """
@@ -128,26 +130,35 @@ def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_in
         f.write("#SBATCH -o sbatch_log/mblab_rnaseq_%A_%a.out\n")
         f.write("#SBATCH -e sbatch_log/mblab_rnaseq_%A_%a.err\n")
         f.write("#SBATCH -J mblab_rnaseq\n\n")
+
         f.write("ml novoalign/3.07.00\n")
         f.write("ml samtools/1.6\n")
         f.write("ml htseq/0.9.1\n")
         f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
         f.write("mkdir -p {}\n".format(output_path))
-        f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam\n".format(
-                genome_index_file, output_path))
-        f.write(
-            "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> {0}/${{sample}}_novosort.log\n".format(
-                output_path))
-        if align_only is False:
-            if feature_type == 'gene':  # this is a bad way of saying "if gff, specify -i ID. Else (it is a gtf) do not specify ID. TODO: This needs to be cleaned up
-                f.write(
-                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
-                        output_path, strandness, feature_type, genome_annotation_file))
-            else:
-                f.write(
-                    "sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(
-                        output_path, strandness, feature_type, genome_annotation_file))
+
+        f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} "
+                "-f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > "
+                "{1}/${{sample}}_aligned_reads.bam\n".format(genome_index_file, output_path))
+
+        f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 "
+                "{0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> "
+                "{0}/${{sample}}_novosort.log\n".format(output_path))
+
+        if not align_only:
+            if feature_type == 'gene':  # this is a messy way of saying "if gff, specify -i ID. TODO: This needs to be cleaned up
+                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; "
+                        "htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam "
+                        "{3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path,
+                                                                                                     strandness,
+                                                                                                     feature_type,
+                                                                                                     genome_annotation_file))
+            else:  # else (it is a gtf) do not specify ID
+                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} "
+                        "-t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > "
+                        "{0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness,
+                                                                                               feature_type,
+                                                                                               genome_annotation_file))
 
 
 if __name__ == "__main__":
