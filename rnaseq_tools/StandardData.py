@@ -30,23 +30,9 @@ class StandardData:
         if isinstance(expected_attributes, list):
             self._attributes.extend(expected_attributes)
         # get user name and set as _user
-        #self._user = getpass.getuser()
-
-        ########## change me!!!!
-
-        self._user = 'chasem'
-
-        ########### look up!!!
-
+        self._user = getpass.getuser()
         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
-        #kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
-
-        ##### change me!!!
-
-        kwargs['config_file'] = '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini'
-
-        #### look up!!
-
+        kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
