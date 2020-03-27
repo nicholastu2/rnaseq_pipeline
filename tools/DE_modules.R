@@ -16,7 +16,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 	for (i in 1:nrow(qa)) {
 		if (!is.na(qa$MANUAL_AUDIT[i])) { 
 			if (qa$MANUAL_AUDIT[i] == 0) 
-				valid_samples <- c(valid_samples, as.character(qa$FASTQFILENAME[i]))
+				valid_samples <- c(valid_samples, as.character(qa$COUNTFILENAME[i]))
 		}
 	}
 	## group samples using constrast descriptor as key and valid samples as value
@@ -31,7 +31,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 		contrast_dict[[col]] <- list('0'=c(), '1'=c())
 		for (i in 1:nrow(design)) {
 			## for each sample if is assigned with a number and is valid 
-			sample_id <- as.character(design[i,'FASTQFILENAME'])
+			sample_id <- as.character(design[i,'COUNTFILENAME'])
 			if (is.na(design[i,col]))
 				next
 			if (design[i,col] == 0 & sample_id %in% valid_samples)
