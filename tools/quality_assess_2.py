@@ -16,8 +16,7 @@ def main(argv):
                       experiment_dir=parsed.experiment_dir, norm_count_path=parsed.norm_count_path,
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
-                      experiment_conditions=parsed.experimental_conditions.split(
-                          ' '))  # TODO -- deal with multiple inputs better than this. point of weakness
+                      experiment_conditions=parsed.experimental_conditions.split(' '))  # TODO -- deal with multiple inputs better than this. point of weakness
 
     # create output sheet name
     experiment_dir = utils.dirName(od.experiment_dir)
@@ -127,13 +126,13 @@ def parse_args(argv):
                         help='drug markers inserted to replace the deleted genes. List without delimiter if multiple exist '
                              'eg CNAG_G418 CNAG_NAT')
     parser.add_argument('--experimental_conditions', nargs='+', default='TREATMENT TIMEPOINT',
-                        help='Experimental conditions that describe the sample are used to identify subgroups within each '
+                        help='[Default TREATMENT TIMEPOINT] Experimental conditions that describe the sample are used to identify subgroups within each '
                              'genotype. No delimiter necessary if multiple conditions used.')
     parser.add_argument('--descriptors_specific_fow', action='store_true',
                         help='Set this flag to find the wildtype samples that match the condition descriptors of '
                              'the mutant sample when calculating the fold change over wildtype (FOW).')
     parser.add_argument('--qc_config',
-                        default='/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/templates/qc_config.yaml',
+                        default='/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/qc_config.yaml',
                         help='Configuration file for quality assessment.')
     parser.add_argument('--auto_audit_threshold', type=int, default=0,
                         help='Threshold for automatic sample audit.')
