@@ -12,8 +12,11 @@ def main(argv):
         sys.exit('ERROR: %s does not exist.' % parsed.sample_summary)
 
     ## get conditions
-    experimental_conditions = [c.strip() for c in parsed.experimental_conditions.split(' ')]
-    contrast_condition = [parsed.contrast_conditions]
+    if isinstance(parsed.experimental_conditions, str):
+        experimental_conditions = [c.strip() for c in parsed.experimental_conditions.split(' ')]
+    else:
+        experimental_conditions = parsed.experimental_conditions
+    contrast_condition = parsed.contrast_conditions
 
     ## load sample summary
     summary_df = pd.read_excel(parsed.sample_summary)
@@ -46,6 +49,7 @@ def buildDesignTable(summary_df, experimental_conditions, contrast_condition, co
     """
     Automatically build design table that has basic comparison groups.
     """
+    # see CreateDesignMatrixColumns class in ExperimentObject.py in rnaseq_tools
     experiment_design = CreateDesignMatrixColumns(experimental_conditions, contrast_condition, summary_df, control)
     return experiment_design.design_df
 

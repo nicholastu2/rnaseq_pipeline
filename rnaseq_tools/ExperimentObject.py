@@ -15,13 +15,19 @@ class CreateDesignMatrixColumns:
         self.contrast_column_header = contrast_column_header # eg in the example above, TIMEPOINT is the contrast heading in the query sheet
         self.quality_summary_df = quality_summary_df
         self.design_df_seed = self.createDesignMatrixSeed()  # remove columns other than experimental + contrast columns from sample_summary_df
-        self.control_value = control_value # ie -1 for TIMEPOINT
-        # create experimental controls and contrast groups
-        self.experimental_conditions_dict = {}
-        self.experimental_conditions_iterable = self.createExperimentalConditionTuples()  # tuples in form ('GCN4', 'Estradiol') in case of [GENOTYPE, TREATMENT]
-        self.contrast_conditions = self.createContrastConditions()  # this is without the control condition
-        # Using the attributes, create the design matrix
-        self.design_df = self.completeDesignMatrix()
+        try:
+            self.control_value = control_value # ie -1 for TIMEPOINT
+            # create experimental controls and contrast groups
+            self.experimental_conditions_dict = {}
+            self.experimental_conditions_iterable = self.createExperimentalConditionTuples()  # tuples in form ('GCN4', 'Estradiol') in case of [GENOTYPE, TREATMENT]
+            self.contrast_conditions = self.createContrastConditions()  # this is without the control condition
+            # Using the attributes, create the design matrix
+            self.design_df = self.completeDesignMatrix()
+        except Exception:
+            print('Cannot automatically create your design table. However, the beginning of the table will be depositd in your output.'
+                  ' Youll need to finish it by hand.')
+            self.design_df = self.design_df_seed
+
 
     ### end constructor
 
@@ -63,6 +69,7 @@ class CreateDesignMatrixColumns:
             Returns: List of unique values from the contrast condition column, minus the control_value
         """
         contrast_conditions = list(np.unique(self.design_df_seed[self.contrast_column_header].values))
+        contrast_conditions = [str(condition) for condition in contrast_conditions]
         contrast_conditions.remove(self.control_value)
 
         return contrast_conditions
