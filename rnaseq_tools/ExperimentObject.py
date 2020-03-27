@@ -1,3 +1,7 @@
+import pandas as pd
+import numpy as np
+from rnaseq_tools import utils
+
 class CreateDesignMatrixColumns:
     """
         The intention of this is to create a ExperimentDesign class that is easily extensible to the different varieties of experiments
@@ -35,8 +39,8 @@ class CreateDesignMatrixColumns:
             columns_of_interest.insert(0, 'GENOTYPE')
         if not 'REPLICATE' in columns_of_interest:
             columns_of_interest.insert(1, 'REPLICATE')
-        if not 'FASTQFILENAME' in columns_of_interest:
-            columns_of_interest.insert(2, 'FASTQFILENAME')
+        if not 'COUNTFILENAME' in columns_of_interest:
+            columns_of_interest.insert(2, 'COUNTFILENAME')
 
         return self.quality_summary_df[columns_of_interest]
 
@@ -50,7 +54,7 @@ class CreateDesignMatrixColumns:
             self.experimental_conditions_dict.setdefault(column_heading, []).extend(
                 list(pd.unique(self.design_df_seed[column_heading])))
 
-        return product(*self.experimental_conditions_dict.values())
+        return utils.product(*self.experimental_conditions_dict.values())
 
     ### end createExperimentalConditionsTuples()
 
@@ -79,8 +83,7 @@ class CreateDesignMatrixColumns:
         contrast_column_identifiers = {}
         for i in range(len(self.experimental_column_headers)):
             # build new column header for the design table
-            column_heading = column_heading + ' & ' + self.experimental_column_headers[i] + ':' + str(
-                experimental_condition_tuple[i])
+            column_heading = column_heading + ' & ' + self.experimental_column_headers[i] + ':' + str(experimental_condition_tuple[i])
             # column: value to dictionaries
             contrast_column_identifiers.setdefault(self.experimental_column_headers[i], []).append(
                 experimental_condition_tuple[i])
