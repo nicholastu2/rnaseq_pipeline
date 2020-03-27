@@ -31,8 +31,10 @@ class StandardData:
             self._attributes.extend(expected_attributes)
         # get user name and set as _user
         self._user = getpass.getuser()
+        # self._user = 'chasem'
         # set attributes entered by keyword on instantiation, warn user if keyword entered in instantiation not in _attributes
         kwargs['config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+        # kwargs['config_file'] = '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini'
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
@@ -96,7 +98,7 @@ class StandardData:
             # store the path (either it exists or it will after the if not block) to the directory in intended_dir_path)
             path = os.path.join(intended_dir_path, directory)
             # check if directory exists in the intended_dir_path
-            if not os.path.exists(os.path.join(intended_dir_path, directory)):
+            if not os.path.exists(path):
                 # if it does not, soft link ln -s origin_dir_path/directory to intended_dir_path/directory
                 cmd = 'ln -s {}/{} {}'.format(origin_dir_path, directory, path)
                 utils.executeSubProcess(cmd)
@@ -199,3 +201,4 @@ class StandardData:
                 return str(self._run_numbers_with_zeros[int(extracted_value)])
 
         return extracted_value
+

@@ -14,6 +14,8 @@ COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/lts_align_expr'
 # this needs to be here b/c align_counts currently only removes f*q.gz (this was legacy code that I did not catch before running the old data, which has a variety of extensions other than variations of strictly f*q.gz)
 FASTQ_TYPES = [".fastq.gz", ".fq.gz"]
 
+# TODO: UPDATE WITH STANDARDDATA OBJECT (this will greatly simplify pulling filenames, eg)
+# TODO: update logging with package logging
 
 def main(argv):
     # store suffixes of the files we wish to move
@@ -76,6 +78,13 @@ def createExperimentDir(output, exp_name):
 
 
 def filepathList(query, file_type, leading_zero_list):
+    """
+    create filepath from COUNT_LTS, runNumber and fastqFileName
+    :param query: a query sheet describing the experiment files
+    :param file_type: the suffix to attach to the fastqfile basename
+    :param leading_zero_list: list of runs with leading zeros
+    :returns: a list of filepaths of a given file_type according to the query
+    """
     # create filepath from COUNT_LTS, runNumber and fastqFileName
     # Args: queryDB output, the file_type of file to create (default is read_count.tsv and novoalign.log)
     # Return: list of count filepaths
@@ -114,17 +123,19 @@ def filepathList(query, file_type, leading_zero_list):
 
 
 def moveFiles(file_list, dest_dir, query_len):
-    # extract run number and index, cp the files to the destination dir and log the move
-    # Args: list of files to be moved, the destination, and the number of rows in the query
-    # Return: None
+    """
+    extract run number and index, cp the files to the destination dir and log the move
+    :param file_list: list of files to be moved
+    :param dest_dir: the destination of the move
+    :param query_len: the length of the query (used to check)
+    """
 
     count = 0
     for file in file_list:
         # throw error/exit if file isn't found in src_dir
         if not os.path.isfile(file):
-            print(
-                '{} cannot be found and therefore can not be moved. Please check {} for the directory with the run number in the filename'.format(
-                    file, COUNT_LTS))
+            print('%s cannot be found and therefore can not be moved. '
+                  'Please check %s for the directory with the run number in the filename' % (file, COUNT_LTS))
             sys.exit(1)
 
         dest_full_path = os.path.join(dest_dir, os.path.basename(file))

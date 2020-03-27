@@ -6,9 +6,11 @@ import numpy as np
 import glob
 from rnaseq_tools import utils
 
+# TODO: Update with OrganismData object (no more need to input gene list). Better commeting and explanation of each step
+#  in createCountMatrix. Try to abstract this for use when making any matrix (counts qual_assess_1 and 2, etc)
 
 def main(argv):
-    args = parse_args(argv)
+    args = parseArgs(argv)
     if not os.path.exists(args.experiment_directory):
         sys.exit('ERROR: %s does not exist.' % args.experiment_directory)
     if not os.path.exists(args.gene_list):
@@ -24,7 +26,7 @@ def main(argv):
 
     print(count_matrix[1:10])
 
-def parse_args(argv):
+def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment_directory', required=True,
                         help='The directory created by create_experiment. The raw_count csv will be output in this directory with the name <experiment_dir/experiment_dirname>_raw_count.csv')
