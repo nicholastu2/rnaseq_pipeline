@@ -109,7 +109,7 @@ class IgvObject(OrganismData):
        script will be place in rnaseq_pipeline/job_scripts
 
        """
-        self.igv_index_script = os.path.join(self.job_scripts, self.experiment_dir, '_igv_index.sbatch')
+        self.igv_index_script = os.path.join(self.job_scripts, self.experiment_dir + '_igv_index.sbatch')
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
