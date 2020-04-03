@@ -23,7 +23,7 @@ main = function(){
   output_dir = parsed$output
 
   # read in data
-  log2_cpm = suppressMessages(read_csv(path_to_log2_cpm))
+  log2_cpm = suppressMessages(read_csv(path_to_log2_cpm)) # must check this for X in front of countfile (columns) that start with a number. if problem, read.csv(raw_count_path, row.names = 'gene_id', check.names = FALSE). can drop row.names.
   # read in query and raw counts
   parsed_query_df = suppressMessages(read_csv(path_to_query_sheet))
 

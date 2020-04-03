@@ -12,6 +12,11 @@ igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...],
 and ensures that all alignment files (.bam) and their index companions (.bam.bai) are in the experiment directory, which
 is either supplied or created in rnaseq_tmp
 
+usage: igv = IgvObject(organism = <your organism>, query_sheet_path = <path to query>,
+                       sample_list = a python list of samples to take shot of,
+                       igv_output_dir = output directory for igv snapshots,
+                       experiment_dir = <path to experiment dir> # if this is not present, bed/bat files will be put in rnaseq_tmp/datetime_igv_files)
+
 """
 
 from rnaseq_tools import utils
@@ -43,21 +48,17 @@ class IgvObject(OrganismData):
     def __init__(self, **kwargs):
         # additional attributes to add to the _attributes in StandardData
         # TODO: possibly change inheretence to a subclass of OrganismData that sets up a class for ANY scheduler manipulation (ie align_counts, this) that take email as an optional argument
-        self._igv_attributes = ['sample_list', 'igv_genome','igv_output_dir']
+        self._igv_attributes = ['sample_list', 'igv_genome', 'igv_output_dir']
         # initialize Standard data with the extended _attributes
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
+        # initialize list to store bamfiles that need to be indexed (must be done by batch script)
+        self.bam_file_to_index_list = []
 
-    def makeIgvSnapshotDict(self):
-        """
-        from list of samples, create dictionary in format {'sample': {'gene': [gene_1, gene_2,...], 'bed': /path/to/bed, 'bam': /path/to/bam}
-        # ASSUMPTION: THE SAMPLE LIST IS EITHER A LIST OF .FASTQ.GZ OR *_read_count.tsv
-        """
-        # module load samtools
-        os.system('ml samtools')
-        # raise attribute error if sample list is not found
+    def checkAttributes(self):
         if not hasattr(self, 'sample_list'):
-            raise AttributeError('Your instance of IgvObject does not have a list of samlpes. '
-                                 'It must have a list of samples (list of fastq or count file names) to create the igv_dict.')
+            raise AttributeError('Your instance of IgvObject does not have a list of samples. '
+                                 'It must have a list of samples (list of fastq or count file names) to create the igv_dict. '
+                                 '\nThis may be just a list version of the COUNTFILENAME column of self.query_df')
         # raise attribute error if no (standardized) query_df. this should be created by passing query_sheet_path to the constructor. See StandardData
         if not hasattr(self, 'query_df'):
             raise AttributeError('No query_df (standardized query_df object in StandardData object). This is necessary '
@@ -73,16 +74,21 @@ class IgvObject(OrganismData):
             timestr = time.strftime("%Y%m%d_%H%M%S")
             setattr(self, 'experiment_dir', os.path.join(self.rnaseq_tmp, '{}_igv_files'.format(timestr)))
             utils.mkdirp(self.experiment_dir)
-        igv_snapshot_dict = {}
-        genotype_list = []
-        wildtype_sample_list = []
+
+    def moveAlignmentFiles(self): # TODO: THIS ALSO CHECKS FOR AND MAKES A LIST OF ALIGNMENT FILES TO INDEX WITH SAMTOOLS -- NOT CLEAR IN NAME
+        """ TODO: a general move files script needs to be written. input list of files to be moved, source, dest, move files if they are not in dest. put in rnaseq_tools.utils
+        ensure that all alignment files are in self.experiment_dir. If no self.experiment_dir set, then these will be deposited in
+        rnaseq_tmp/datetime_igv_files
+        This needs to be done b/c indexing can only take place via srun/sbatch (on compute node. samtools not available on login node as of 3/2020)
+        """
+
         for sample in self.sample_list:
             # strip .fastq.gz if it is there and add _read_count.tsv -- remember that self.query_df which has fastqFileName --> COUNTFILENAME and .fastq.gz converted to _read_count.tsv extensions. All column headings CAPITAL
             if sample.endswith('.fastq.gz'):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
-            genotype = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'GENOTYPE')
             # extract run_number just in case needed to find bam file in align_expr
-            run_number = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER', check_leading_zero=True)
+            run_number = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
+                                                                check_leading_zero=True)
             # create bamfile name
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             # if it is not in the exp dir, then add it
@@ -94,7 +100,44 @@ class IgvObject(OrganismData):
             # store full path to bam file in experiment dir
             bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
             if not os.path.exists(bamfile_fullpath + '.bai'):  # test if indexed bam exists
-                self.indexBam(bamfile_fullpath)
+                self.bam_file_to_index_list.append(bamfile_fullpath)
+
+    def writeIndexScript(self):
+        """
+       write sbatch script to index bam files
+       This needs to be done b/c indexing can only take place via srun/sbatch (on compute node. samtools not available on login node as of 3/2020)
+       script will be place in rnaseq_pipeline/job_scripts
+
+       """
+        job = '#!/bin/bash\n' \
+              '#SBATCH -N 1\n' \
+              '#SBATCH --mem=5G\n' \
+              '#SBATCH -o {0}/index_bams_%A.out\n' \
+              '#SBATCH -e {0}/index_bams_%A.err\n' \
+              '#SBATCH -J index_bams\n'.format(self.log)
+        if hasattr(self, 'email'):
+            job += '#SBATCH --mail-type=END,FAIL\n' \
+                   '#SBATCH --mail-user=%s\n' % self.email
+        job += '\nml samtools\n'
+
+        for alignment_file in self.bam_file_to_index_list:
+            job += '\nsamtools index -b %s -o %s\n' %(alignment_file, self.experiment_dir)
+
+    def makeIgvSnapshotDict(self):
+        """
+        from list of samples, create dictionary in format {'sample': {'gene': [gene_1, gene_2,...], 'bed': /path/to/bed, 'bam': /path/to/bam}
+        # ASSUMPTION: THE SAMPLE LIST IS EITHER A LIST OF .FASTQ.GZ OR *_read_count.tsv
+        """
+        igv_snapshot_dict = {}
+        genotype_list = []
+        wildtype_sample_list = []
+        for sample in self.sample_list:
+            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
+            if not os.path.exists(bamfile_fullpath):
+                print('bamfile does not exist in experiment_directory %s. Run moveAlignmentFiles first.')
+                break
+            genotype = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'GENOTYPE')
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
             # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
             genotype = genotype.split('.')
@@ -123,19 +166,19 @@ class IgvObject(OrganismData):
         # set attribute pointing toward igv_snapshot_dict
         setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
 
-    def indexBam(self, bamfile_fullpath):
-        """
-        Index the bam files. The .bai file (indexed bam) will be deposited in the same directory as the bam file itself.
-        for igv, as long as the .bai is in the same directory as the .bam file, it will work.
-        :param bamfile_fullpath: full path (absolute) to bamfile
-        """
-        print('\nindexing {}'.format(bamfile_fullpath))
-        # subprocess.call will wait until subprocess is complete
-        exit_status = subprocess.call('samtools index -b {}'.format(bamfile_fullpath), shell=True)
-        if exit_status == 0:
-            print('\nindexing complete. .bai is deposited in {}'.format(self.experiment_dir))
-        else:
-            sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
+    # def indexBam(self, bamfile_fullpath):
+    #     """
+    #     Index the bam files. The .bai file (indexed bam) will be deposited in the same directory as the bam file itself.
+    #     for igv, as long as the .bai is in the same directory as the .bam file, it will work.
+    #     :param bamfile_fullpath: full path (absolute) to bamfile
+    #     """
+    #     print('\nindexing {}'.format(bamfile_fullpath))
+    #     # subprocess.call will wait until subprocess is complete
+    #     exit_status = subprocess.call('samtools index -b {}'.format(bamfile_fullpath), shell=True)
+    #     if exit_status == 0:
+    #         print('\nindexing complete. .bai is deposited in {}'.format(self.experiment_dir))
+    #     else:
+    #         sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
 
     def createBedFile(self, flanking_region=500, file_format='png'):
         """
@@ -188,7 +231,7 @@ class IgvObject(OrganismData):
             bed_file = self.igv_snapshot_dict[sample]['bed']
             # this is a call to another script in the rnaseq_pipeline/tools
             job += '\nmake_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
-                   % (bam_file, bed_file, self.igv_genome_index, fig_format, self.igv_output_dir)
+                   % (bam_file, bed_file, self.genome_files, fig_format, self.igv_output_dir)
         # write job to script
         igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '.sbatch')
         setattr(self, 'igv_job_script', igv_job_script_path)
@@ -212,3 +255,6 @@ class IgvObject(OrganismData):
     #     print('Batchscript file will be:\n{}\n'.format(batchscript_file))
     #     print('Region file:\n{}\n'.format(region_file))
     #     print('Input files to snapshot:\n')
+
+
+x = IgvObject()
