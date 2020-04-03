@@ -109,7 +109,6 @@ class IgvObject(OrganismData):
        script will be place in rnaseq_pipeline/job_scripts
 
        """
-        self.igv_index_script = os.path.join(self.job_scripts, 'index_alignment_files.sbatch')
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
@@ -123,7 +122,7 @@ class IgvObject(OrganismData):
         job += '\nml samtools\n'
 
         for alignment_file in self.bam_file_to_index_list:
-            job += '\nsamtools index -b %s -o %s\n' %(alignment_file, self.experiment_dir)
+            job += '\nsamtools index -b %s\n' % alignment_file
 
         with open(self.igv_index_script, 'w') as file:
             file.write('%s' % job)
