@@ -13,7 +13,7 @@ and ensures that all alignment files (.bam) and their index companions (.bam.bai
 is either supplied or created in rnaseq_tmp
 
 usage: igv = IgvObject(organism = <your organism>, query_sheet_path = <path to query>,
-                       sample_list = a python list of samples to take shot of,
+                       sample_list = a python list of samples to take shot of -- basename only (plus extension, either .fastq.gz or _read_count.tsv),
                        igv_output_dir = output directory for igv snapshots,
                        experiment_dir = <path to experiment dir> # if this is not present, bed/bat files will be put in rnaseq_tmp/datetime_igv_files)
 
@@ -109,7 +109,8 @@ class IgvObject(OrganismData):
        script will be place in rnaseq_pipeline/job_scripts
 
        """
-        self.igv_index_script = os.path.join(self.job_scripts, self.experiment_dir + '_igv_index.sbatch')
+        if not hasattr(self, 'samtools_index_sbatch_script'):
+            self.samtools_index_sbatch_script = os.path.join(self.job_scripts, utils.dirName(self.experiment_dir) + '_igv_index.sbatch')
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
@@ -125,7 +126,7 @@ class IgvObject(OrganismData):
         for alignment_file in self.bam_file_to_index_list:
             job += '\nsamtools index -b %s\n' % alignment_file
 
-        with open(self.igv_index_script, 'w') as file:
+        with open(self.samtools_index_sbatch_script, 'w') as file:
             file.write('%s' % job)
 
 
@@ -141,7 +142,7 @@ class IgvObject(OrganismData):
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
             if not os.path.exists(bamfile_fullpath):
-                print('bamfile does not exist in experiment_directory %s. Run moveAlignmentFiles first.')
+                print('bamfile does not exist in experiment_directory %s. Run moveAlignmentFiles first.' % self.experiment_dir)
                 break
             genotype = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'GENOTYPE')
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
@@ -151,12 +152,16 @@ class IgvObject(OrganismData):
             for index in range(len(genotype)):
                 genotype[index] = genotype[index].replace('_over', '')
             # if the object has an attribute wildtype, and genotype is not wildtype, add to igv_snapshot_dict
-            if hasattr(self, 'wildtype') and genotype[0] == self.wildtype:
+            if hasattr(self, 'wildtype') and not genotype[0] == self.wildtype:
                 # add the genotypes to genotype_list (not as a list of list, but as a list of genotypes)
                 genotype_list.extend(genotype)
                 # add to igv_snapshot_dict
-                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(
-                    genotype)  # TODO: clean this up into a single line, make function to avoid repeated code below w/wildtype
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)  # TODO: clean this up into a single line, make function to avoid repeated code below w/wildtype
+                igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
+                igv_snapshot_dict[sample]['bed'] = None
+            # else if the object does not have an attribute wildtype, simply create a dictionary without a wildtype
+            elif not hasattr(self, 'wildtype'):
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)  # TODO: clean this up repeated code
                 igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
                 igv_snapshot_dict[sample]['bed'] = None
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
