@@ -109,6 +109,7 @@ class IgvObject(OrganismData):
        script will be place in rnaseq_pipeline/job_scripts
 
        """
+        self.igv_index_script = os.path.join(self.job_scripts, self.experiment_dir, '_igv_index.sbatch')
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
@@ -238,13 +239,13 @@ class IgvObject(OrganismData):
             job += '\nmake_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
                    % (bam_file, bed_file, self.genome_files, fig_format, self.igv_output_dir)
         # write job to script
-        igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '.sbatch')
+        igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '1.sbatch') # TAKE THIS 1 OUT!!!
         setattr(self, 'igv_job_script', igv_job_script_path)
         with open(self.igv_job_script, 'w') as file:
             file.write('%s' % job)
         # TODO add a log statement, think about redirecting these job scripts to the job_script directory
         print('the job scripts have been deposited in {}\n'
-              'this has been set as the igv_output_directory'.format(self.igv_output_dir))
+              'this has been set as the igv_output_directory'.format(self.igv_output_dir)) # check this
 
     # def takeSnapshot(self):
     #     # TODO: check that attr exist
@@ -260,6 +261,3 @@ class IgvObject(OrganismData):
     #     print('Batchscript file will be:\n{}\n'.format(batchscript_file))
     #     print('Region file:\n{}\n'.format(region_file))
     #     print('Input files to snapshot:\n')
-
-
-x = IgvObject()
