@@ -191,7 +191,7 @@ class IgvObject(OrganismData):
     #     else:
     #         sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
 
-    def createBedFile(self, flanking_region=500, file_format='png'):
+    def createBedFile(self, flanking_region=500, file_format='png'): #TODO currently file is _read_count.bed -- git rid of the _read_count
         """
         Create bed files to describe IGV region of interest
         :param flanking_region: how far up/down stream from the gene to capture in the snapshot
@@ -242,9 +242,9 @@ class IgvObject(OrganismData):
             bed_file = self.igv_snapshot_dict[sample]['bed']
             # this is a call to another script in the rnaseq_pipeline/tools
             job += '\nmake_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' \
-                   % (bam_file, bed_file, self.genome_files, fig_format, self.igv_output_dir)
+                   % (bam_file, bed_file, self.igv_genome, fig_format, self.igv_output_dir)
         # write job to script
-        igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '1.sbatch') # TAKE THIS 1 OUT!!!
+        igv_job_script_path = os.path.join(self.job_scripts, utils.pathBaseName(self.experiment_dir) + '%s.sbatch' %  time.strftime("%Y%m%d_%H%M%S"))
         setattr(self, 'igv_job_script', igv_job_script_path)
         with open(self.igv_job_script, 'w') as file:
             file.write('%s' % job)
