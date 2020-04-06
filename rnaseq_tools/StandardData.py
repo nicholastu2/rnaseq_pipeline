@@ -80,9 +80,10 @@ class StandardData:
         mblab_shared_dirs = ['scratch_sequence', 'database_files']
         self.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline)
 
-        # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
-        lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
-        self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
+        if not self.interactive:
+            # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
+            lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
+            self.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data, self.user_rnaseq_pipeline)
 
         # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline
         setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline, 'genome_files'))
