@@ -284,6 +284,7 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
     # calculate efficiency of gene deletion, ignoring overexpression(*_over)
     for i, row in qual_assess_df[qual_assess_df['GENOTYPE'] != wt].iterrows():
         sample = str(row['COUNTFILENAME'])
+        print('... calculating MUT_FOW in %s' % sample)
         ## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
         mut_fow_list = []
         for mut_gene in row['GENOTYPE'].split('.'):
@@ -327,6 +328,7 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
             mut_fow_list.append(str(mut_fow))
         row['MUT_FOW'] = ','.join(mut_fow_list)
         qual_assess_df.iloc[i] = row
+        print('complete. Moving onto next sample.')
     return qual_assess_df
 
 
@@ -349,6 +351,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
     for i, row in df.iterrows():
         genotype = row['GENOTYPE']
         sample = str(row['COUNTFILENAME'])
+        print('...assessing_drug_marker in %s' %(genotype))
         ## update FOM
         for rc in rc_med_dict.keys():
             row[rc + '_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(expr.loc[expr['gene'] == rc, sample]) / \
@@ -363,6 +366,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
             row['STATUS'] += QC_dict['MARKER_FOM']['status']
         if genotype != wt and len(genotype.split('.')) > 1 and sum(fom_check) > 1:
             row['STATUS'] += QC_dict['MARKER_FOM']['status']
+        print('complete. moving onto next sample.')
     return df
 
 
