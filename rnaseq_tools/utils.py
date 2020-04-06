@@ -6,6 +6,9 @@ import yaml
 import sys
 import subprocess
 import configparser
+import time
+import logging
+import logging.config
 
 def getRunNumber(fastq_path):
     """
@@ -209,3 +212,37 @@ def submitSbatch(sbatch_path, email = None):
         cmd = "sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(email, sbatch_path)
         executeSubProcess(cmd)
 
+def yearMonthDay():
+    """
+    :returns: the year-month-day as 20200403
+    """
+    return time.strftime("%Y%m%d")
+
+def hourMinuteSecond():
+    """
+    :returns: hour-minute-second as 135301
+    """
+    return time.strftime("%H%M%S")
+
+def createLogger(filename, logging_conf = None):
+    """
+    create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
+    :param filename: name of the file in which to log
+    :param logging_conf: path to logging configuration file
+    :returns: an instance of the configured logger
+    """
+    # a config file is passed, load it
+    if logging_conf:
+        logging.config.fileConfig(logging_conf) # should include at least what is below
+    # if it is not, configure as follows
+    else:
+        # create log for the year-month-day
+        logging.basicConfig(
+            filename='%s.log' % filename,
+            filemode='a',
+            format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
+            datefmt='%I:%M:%S %p', # set 'datefmt' to hour-minute-second AM/PM
+            level='DEBUG'
+        )
+    # return an instance of the configured logger
+    return logging.getLogger(__name__) # __name__ is recommended as a best practice in logger.config

@@ -5,10 +5,19 @@ import os
 import sys
 import re
 import time
-import getpass # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
+import getpass  # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
+
 
 class StandardData:
-    def __init__(self, expected_attributes = None, *args, **kwargs):
+    """
+    parent class of rnaseq_pipeline. Creates rnaseq_pipeline directory in $USER if it (or any part) do not exist
+    and stores all paths to resource directories and files.
+       Does not check contents of all required directories for completeness (especially critical for genome_files), #TODO fix this so it does
+       only that they exist.
+       loads rnaseq_pipeline package level configuration (both main config as well as logger config in $USER/rnaseq_pipeline/config
+           Recall that OrganismData, a child of StandardData, loads the .ini config files in each organism in $USER/rnaseq_pipeline/genome_files/
+    """
+    def __init__(self, expected_attributes=None, *args, **kwargs):
         """
         initialize StandardDataFormat with arbitrary number of keyword arguments.
         :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
@@ -17,15 +26,18 @@ class StandardData:
         self.self_type = 'StandardData'
         # list of expected/standard attribute names
         self._attributes = ['lts_rnaseq_data', 'lts_sequence', 'lts_align_expr', 'scratch_database_files',
-                            'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline',
-                            'genome_files', 'reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp',
+                            'scratch_sequence', 'opt_genome_files', 'user_rnaseq_pipeline', 'genome_files',
+                            'reports', 'query', 'sbatch_log', 'log_dir', 'log_file', 'job_scripts', 'rnaseq_tmp',
                             'query_sheet_path', 'raw_count_path', 'log2_cpm_path', 'norm_counts_path', 'config_file',
                             'experiment_dir', 'email', 'fastq_path', 'strandness', 'run_number', 'output_dir',
                             'align_count_path', 'experiment_columns']
 
-        self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674', 684: '0684',
+        self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674',
+                                        684: '0684',
                                         731: '0731', 748: '0478', 759: '0759', 769: '0769', 773: '0773', 779: '0779'}
 
+        # set year_month_day
+        self.year_month_day = utils.yearMonthDay()
         # This is to extend _attributes if a class extends StandardData
         if isinstance(expected_attributes, list):
             self._attributes.extend(expected_attributes)
@@ -36,16 +48,23 @@ class StandardData:
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
-        # create standard directory structure in /scratch/mblab/$USER (this will be stored as self.scratch_rnaseq_pipeline)
+        # create standard directory structure in /scratch/mblab/$USER (this path will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
+
         # automatic actions to perform on certain attributes when instantiated
         if hasattr(self, 'query_sheet_path'):
             # set attribute 'query_df' to store the standardizedQuerySheet (and out to rnaseq_tmp)
             setattr(self, 'query_df', self.standardizeQuery(self.query_sheet_path))
-            self.writeStandardizedQueryToTmp()  # TODO: re-do this with package subprocess and store rather than write?
-        if hasattr(self, 'raw_counts_path'):
+            self.writeStandardizedQueryToTmp()  # TODO: sometime necessary to pass file btwn python and R. May be able to re-do this with package subprocess and pass stored variable rather than write?
+        if hasattr(self, 'raw_counts_path'):    #               Alternatively, write to cluster tmp (give option to save)?
             # set attribute raw_counts_df to store raw_counts
-            setattr(self, 'raw_counts_df', pd.read_csv(self.raw_counts_path)) #TODO: decide if you actually need to do this
+            setattr(self, 'raw_counts_df',
+                    pd.read_csv(self.raw_counts_path))  # TODO: decide if you actually need to do this
+
+        # TODO: CREATE LOGGER
+        # create instance of logger. This will be parent of each StandardData child logger and will read config file in rnaseq_pipeline/config
+        # logger_configuration_file = ''
+        # self.logger = utils.createLogger(self.year_month_day, logger_configuration_file)
 
     def standardDirectoryStructure(self):
         """
@@ -73,14 +92,21 @@ class StandardData:
             utils.executeSubProcess(cmd)
 
         # next, make directories if dne
-        process_directories = ['reports', 'query', 'sbatch_log', 'log', 'job_scripts', 'rnaseq_tmp']
+        process_directories = ['reports', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
+                               'rnaseq_tmp']
         for directory in process_directories:
             # store path
             path = os.path.join(self.user_rnaseq_pipeline, directory)
             # this will only create the path if it dne
             utils.mkdirp(path)
-            # set the attribute
-            setattr(self, directory, path)
+            # set attr to directory (the names in process_directories) unless log, which is treated specially
+            if not directory == 'log/%s' % self.year_month_day:
+                setattr(self, directory, path)
+            else:
+                # distinguish the log directory ($USER/rnaseq_pipeline/log)
+                self.log_dir = utils.dirName(directory)
+                # from the daily log file ($USER/rnaseq_pipeline/log/<year-month-day>)
+                self.log_file = 'log/%s' % self.year_month_day
 
     @staticmethod
     def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
@@ -104,7 +130,8 @@ class StandardData:
             setattr(object_instance, directory, path)
 
     @staticmethod
-    def standardizeQuery(df_path, prefix='', suffix='_read_count.tsv', fastq_filename_rename = 'COUNTFILENAME', only_filename_col=False):
+    def standardizeQuery(df_path, prefix='', suffix='_read_count.tsv', fastq_filename_rename='COUNTFILENAME',
+                         only_filename_col=False):
         """
         convert a dataframe containing sample info to a 'standard form' -- capitalized column headings and FASTQFILENAME
         converted to COUNTFILENAME with appropriate prefix and suffix replacing sequence/run_####_samples/ and .fastq.gz
@@ -136,7 +163,7 @@ class StandardData:
                         'standardizeSampleDataFrame')
                 df.loc[index, 'FASTQFILENAME'] = prefix.format(run_number) + fastq_basename + suffix
             else:
-                if prefix: # if a prefix other than align_expr/run_{} is passed, test if forward slash is present
+                if prefix:  # if a prefix other than align_expr/run_{} is passed, test if forward slash is present
                     prefix = utils.addForwardSlash(prefix)
                 df.loc[index, 'FASTQFILENAME'] = prefix + fastq_basename + suffix
 
@@ -180,7 +207,7 @@ class StandardData:
         # to use this, user will need to object = userInputCorrectAttributeName(...)
         return object
 
-    def extractValueFromStandardizedQuery(self, filter_column, filter_value, extract_column, check_leading_zero = False):
+    def extractValueFromStandardizedQuery(self, filter_column, filter_value, extract_column, check_leading_zero=False):
         """
         extract a value from a row (selected by filter_value) of self.query_df
         :param filter_column:
@@ -194,9 +221,8 @@ class StandardData:
         extracted_value = row[extract_column].values[0]
 
         return_with_leading_zero = check_leading_zero
-        if return_with_leading_zero: # TODO: casting this to an int is a bit ugly -- may be a point of weakness
+        if return_with_leading_zero:  # TODO: casting this to an int is a bit ugly -- may be a point of weakness
             if int(extracted_value) in self._run_numbers_with_zeros:
                 return str(self._run_numbers_with_zeros[int(extracted_value)])
 
         return extracted_value
-

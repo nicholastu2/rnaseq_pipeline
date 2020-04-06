@@ -99,7 +99,7 @@ def main(argv):
     print('... Assessing insertion of resistance cassette')
     qual_assess_df = assess_resistance_cassettes(qual_assess_df, norm_count_df, drug_markers, od.wildtype)
     print('... Assessing concordance among replicates')
-    qual_assess_df = assess_replicate_concordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
+    #qual_assess_df = assess_replicate_concordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
     print('... Auto auditing')
     qual_assess_df = update_auto_audit(qual_assess_df, parsed.auto_audit_threshold)
     save_dataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
