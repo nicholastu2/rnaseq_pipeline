@@ -31,14 +31,14 @@ def main(argv):
         if user_response == 'n':
             sys.exit('goodbye')
     if not os.path.exists(od.norm_count_path):
-        sys.exit('ERROR: %s (the normalized count matrix) does not exist.' % parsed.count_matrix)
+        sys.exit('ERROR: %s (the normalized count matrix) does not exist.' % od.norm_count_path)
     if not os.path.exists(os.path.dirname(output_name)):
         sys.exit('ERROR: %s (the output directory) does not exist.' % os.path.dirname(output_name))
 
     # load QC config data
     # TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
     global QC_dict  # TODO: change this to load directly to od object
-    QC_dict = utils.loadConfig(parsed.qc_config)
+    QC_dict = utils.loadConfig(od.qc_config)
 
     # # get conditions #
     # conditions = None if parsed.condition_descriptors is None else \  # this should be taken care of by nargs = '+' -- check
@@ -58,9 +58,9 @@ def main(argv):
                  + ['TOTAL', 'ALIGN_PCT', 'MUT_FOW'] \
                  + drug_marker_columns \
                  + ['COV_MED_REP' + ''.join(np.array(combo, dtype=str)) for combo
-                    in utils.makeCombinations(range(1, parsed.max_replicates + 1))]
+                    in utils.makeCombinations(range(1, od.max_replicates + 1))]
     qual_assess_df, rep_max = initializeQualAssesDf(od.query_df, df_columns, od.experiment_conditions)
-    if rep_max != parsed.max_replicates:
+    if rep_max != od.max_replicates:
         print(
             'The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
                 rep_max, rep_max))
@@ -71,18 +71,18 @@ def main(argv):
         if user_response == 'n':
             sys.exit()
         else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
-            expr, sample_dict = loadExpressionData(qual_assess_df, parsed.count_matrix, parsed.gene_list,
-                                                   od.experiment_conditions)
+            expr, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
+                                                    od.experiment_conditions)
             print('... Assessing reads mapping')
-            df = assess_mapping_quality(qual_assess_df, parsed.experiment_directory)
+            df = assess_mapping_quality(qual_assess_df, od.experiment_dir)
             print('... Assessing efficiency of gene mutation')
             if parsed.descriptors_specific_fow:
-                df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype,
+                df = assess_efficient_mutation(df, expr, sample_dict, od.wildtype,
                                                od.experiment_conditions)  # TODO: clean up the df's in here -- probably should be qual_assess_df
             else:
-                df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
+                df = assess_efficient_mutation(df, expr, sample_dict, od.wildtype)
             print('... Assessing insertion of resistance cassette')
-            df = assess_resistance_cassettes(df, expr, drug_markers, parsed.wildtype)
+            df = assess_resistance_cassettes(df, expr, drug_markers, od.wildtype)
             df = update_auto_audit(df, parsed.auto_audit_threshold)
             save_dataframe(output_name, df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
             sys.exit()
