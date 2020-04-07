@@ -242,7 +242,7 @@ def createLogger(filename, logger_name, logging_conf = None):
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
             datefmt='%I:%M:%S %p', # set 'datefmt' to hour-minute-second AM/PM
-            level='DEBUG'
+            level='WARNING'
         )
     # return an instance of the configured logger
     return logging.getLogger(logger_name) # __name__ is recommended as a best practice in logger.config
