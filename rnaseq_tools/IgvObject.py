@@ -53,6 +53,8 @@ class IgvObject(OrganismData):
         super(IgvObject, self).__init__(self._igv_attributes, **kwargs)
         # initialize list to store bamfiles that need to be indexed (must be done by batch script)
         self.bam_file_to_index_list = []
+        # create logger for IgvObject
+        self.logger = utils.createLogger(self.log_file, __name__)
 
     def checkAttributes(self):
         if not hasattr(self, 'sample_list'):
@@ -89,6 +91,7 @@ class IgvObject(OrganismData):
             # extract run_number just in case needed to find bam file in align_expr
             run_number = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
                                                                 check_leading_zero=True)
+            self.logger.debug('the run_number extracted is: %s' % run_number)
             # create bamfile name
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             # if it is not in the exp dir, then add it
@@ -96,6 +99,7 @@ class IgvObject(OrganismData):
                 prefix = utils.addForwardSlash(self.lts_align_expr)
                 bamfile_align_expr_path = '{}run_{}/{}'.format(prefix, run_number, bamfile)
                 cmd = 'rsync -aHv {} {}'.format(bamfile_align_expr_path, utils.addForwardSlash(self.experiment_dir))
+                self.logger.debug(' the cmd for moveAlignmentFiles is: %s' % cmd)
                 utils.executeSubProcess(cmd)
             # store full path to bam file in experiment dir
             bamfile_fullpath = os.path.join(self.experiment_dir, bamfile)
