@@ -110,6 +110,7 @@ class StandardData:
             else:
                 # distinguish the log directory ($USER/rnaseq_pipeline/log)
                 self.log_dir = 'log/%s' % self.year_month_day
+                utils.mkdirp(self.log_dir)
                 # from the daily log file ($USER/rnaseq_pipeline/log/<year-month-day>)
                 self.log_file = os.path.join(self.log_dir, '%s.log' % self.year_month_day)
 
