@@ -224,7 +224,10 @@ class StandardData:
         row = self.query_df[self.query_df[filter_column] == filter_value]
 
         extracted_value = row[extract_column].values[0]
-        self.logger.debug('the extracted value, prior to running return_with_leading_zero is: %s' % extracted_value)
+        if extracted_value == '0478':
+            self.logger.debug('the extracted value, prior to running return_with_leading_zero is: %s' % extracted_value)
+            self.logger.debug('the row is: %s' % row)
+            self.logger.debug('the filter_value is: %s' % filter_value)
         return_with_leading_zero = check_leading_zero
         if return_with_leading_zero:  # TODO: casting this to an int is a bit ugly -- may be a point of weakness
             if int(extracted_value) in self._run_numbers_with_zeros:
