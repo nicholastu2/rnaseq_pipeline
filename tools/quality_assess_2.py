@@ -333,7 +333,7 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
     return qual_assess_df
 
 
-def assess_resistance_cassettes(df, expr, resi_cass, wt):
+def assess_resistance_cassettes(df, norm_count_df, resi_cass, wt):
     """
     Assess drug resistance marker gene expression, making sure the proper
     marker gene is swapped in place of the perturbed gene.
@@ -342,20 +342,20 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
         return df
     ## get the median of resistance cassettes
     rc_med_dict = {}
-    mut_samples = [s for s in expr.columns.values if (not s.startswith(wt)) and (s != 'gene')]
+    mut_samples = [s for s in norm_count_df.columns.values if (not s.startswith(wt)) and (s != 'gene')]
     for rc in resi_cass:
         ## exclude wildtypes and markers expressed < 150 normalized counts
-        rc_fpkm = expr.loc[expr['gene'] == rc, mut_samples]
+        rc_fpkm = norm_count_df.loc[norm_count_df['gene'] == rc, mut_samples] # recall that the index column for norm_count_df was renamed in loadExpressionData to 'gene'
         rc_fpkm = rc_fpkm.loc[:, (np.sum(rc_fpkm, axis=0) > 150)]
         rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
     ## calcualte FOM (fold change over mutant) of the resistance cassette
     for i, row in df.iterrows():
         genotype = row['GENOTYPE']
         sample = str(row['COUNTFILENAME'])
-        print('...assessing_drug_marker in %s' %(genotype))
+        print('...assessing_drug_marker in %s' % genotype)
         ## update FOM
         for rc in rc_med_dict.keys():
-            row[rc + '_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(expr.loc[expr['gene'] == rc, sample]) / \
+            row[rc + '_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(norm_count_df.loc[norm_count_df['gene'] == rc, sample]) / \
                                                                         rc_med_dict[rc]
         ## flag those two problems:
         ## 1. the resistance cassette is exprssed in WT

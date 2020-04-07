@@ -48,6 +48,9 @@ class StandardData:
         StandardData_tools.setAttributes(self, self._attributes, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
+        # set interactive to false if not already set
+        if not hasattr(self, 'interactive'):
+            self.interactive = False           # TODO: NEED TO CHECK THIS -- CHILDREN MAY NOT OVERWITE!
         # create standard directory structure in /scratch/mblab/$USER (this path will be stored as self.scratch_rnaseq_pipeline)
         self.standardDirectoryStructure()
 
@@ -63,8 +66,8 @@ class StandardData:
 
         # TODO: CREATE LOGGER
         # create instance of logger. This will be parent of each StandardData child logger and will read config file in rnaseq_pipeline/config
-        # logger_configuration_file = ''
-        # self.logger = utils.createLogger(self.year_month_day, logger_configuration_file)
+        #logger_configuration_file = ''  when logger config file is passed, enter here
+        self.logger = utils.createLogger(self.year_month_day)  # this will create a logger with default settings without a config file -- see utils
 
     def standardDirectoryStructure(self):
         """
@@ -107,7 +110,7 @@ class StandardData:
                 # distinguish the log directory ($USER/rnaseq_pipeline/log)
                 self.log_dir = utils.dirName(directory)
                 # from the daily log file ($USER/rnaseq_pipeline/log/<year-month-day>)
-                self.log_file = 'log/%s' % self.year_month_day
+                self.log_file = 'log/%s' % self.year_month_day + '.log'
 
     @staticmethod
     def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
