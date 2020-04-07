@@ -227,7 +227,8 @@ def hourMinuteSecond():
 def createLogger(filename, logger_name, logging_conf = None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
-    :param filename: name of the file in which to log
+    :param filename: name of the file in which to log. __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
+                     (__name__ is a special variable in python)
     :param logging_conf: path to logging configuration file
     :returns: an instance of the configured logger
     """
@@ -245,4 +246,4 @@ def createLogger(filename, logger_name, logging_conf = None):
             level='WARNING'
         )
     # return an instance of the configured logger
-    return logging.getLogger(logger_name) # __name__ is recommended as a best practice in logger.config
+    return logging.getLogger(logger_name)
