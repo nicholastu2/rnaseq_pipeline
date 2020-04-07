@@ -109,7 +109,7 @@ class StandardData:
                 setattr(self, directory, path)
             else:
                 # distinguish the log directory ($USER/rnaseq_pipeline/log)
-                self.log_dir = utils.dirName(directory)
+                self.log_dir = directory
                 # from the daily log file ($USER/rnaseq_pipeline/log/<year-month-day>)
                 self.log_file = 'log/%s' % self.year_month_day + '.log'
 

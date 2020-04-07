@@ -238,7 +238,7 @@ def createLogger(filename, logger_name, logging_conf = None):
     else:
         # create log for the year-month-day
         logging.basicConfig(
-            filename='%s.log' % filename,
+            filename='%s' % filename,
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
             datefmt='%I:%M:%S %p', # set 'datefmt' to hour-minute-second AM/PM
