@@ -67,7 +67,7 @@ class StandardData:
         # TODO: CREATE LOGGER
         # create instance of logger. This will be parent of each StandardData child logger and will read config file in rnaseq_pipeline/config
         #logger_configuration_file = ''  when logger config file is passed, enter here
-        self.logger = utils.createLogger(self.year_month_day)  # this will create a logger with default settings without a config file -- see utils
+        self.logger = utils.createLogger(os.path.join(self.log_dir, self.log_file), __name__)  # this will create a logger with default settings without a config file -- see utils
         self.logger.debug("the year month day is %s" % self.year_month_day)
 
     def standardDirectoryStructure(self):
