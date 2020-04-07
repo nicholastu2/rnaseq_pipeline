@@ -121,7 +121,7 @@ class IgvObject(OrganismData):
               '#SBATCH --mem=5G\n' \
               '#SBATCH -o {0}/index_bams_%A.out\n' \
               '#SBATCH -e {0}/index_bams_%A.err\n' \
-              '#SBATCH -J index_bams\n'.format(self.log)
+              '#SBATCH -J index_bams\n'.format(self.sbatch_log)
         if hasattr(self, 'email'):
             job += '#SBATCH --mail-type=END,FAIL\n' \
                    '#SBATCH --mail-user=%s\n' % self.email

@@ -97,7 +97,7 @@ class StandardData:
             utils.executeSubProcess(cmd)
 
         # next, make directories if dne
-        process_directories = ['reports', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
+        process_directories = ['reports', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',   # TODO: MAKE SBATCH_LOG LIKE LOG WITH YEAR_MONTH_DAY SUBDIR
                                'rnaseq_tmp']
         for directory in process_directories:
             # store path
