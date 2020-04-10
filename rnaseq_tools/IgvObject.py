@@ -253,8 +253,8 @@ class IgvObject(OrganismData):
         with open(self.igv_job_script, 'w') as file:
             file.write('%s' % job)
         # TODO add a log statement, think about redirecting these job scripts to the job_script directory
-        print('the job scripts have been deposited in {}\n'
-              'this has been set as the igv_output_directory'.format(self.igv_output_dir)) # check this
+        print('the job scripts is at %s\n'
+              '%s has been set as the igv_output_directory' % self.igv_job_script, self.igv_output_dir) # check this
 
     # def takeSnapshot(self):
     #     # TODO: check that attr exist
