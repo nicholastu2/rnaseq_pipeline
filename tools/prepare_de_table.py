@@ -11,18 +11,18 @@ def main(argv):
     if not os.path.exists(parsed.sample_summary):
         sys.exit('ERROR: %s does not exist.' % parsed.sample_summary)
 
-    ## get conditions
+    # get conditions
     if isinstance(parsed.experimental_conditions, str):
         experimental_conditions = [c.strip() for c in parsed.experimental_conditions.split(' ')]
     else:
         experimental_conditions = parsed.experimental_conditions
     contrast_condition = parsed.contrast_conditions
 
-    ## load sample summary
+    # load sample summary
     summary_df = pd.read_excel(parsed.sample_summary)
-    ## sift data based on group and quality
+    # sift data based on group and quality
     summary_df = summary_df[(summary_df['MANUAL_AUDIT']==0)]
-    ## prepare design table
+    # prepare design table
     design_df = buildDesignTable(summary_df, experimental_conditions, contrast_condition, parsed.control_value)
 
     experiment_name = utils.fileBaseName(os.path.basename(parsed.sample_summary))

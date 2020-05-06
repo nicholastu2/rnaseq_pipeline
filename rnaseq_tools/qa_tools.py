@@ -1,23 +1,3 @@
-import sys
-import os
-from rnaseq_tools import utils
-
-def setAttributes(sd_object, expected_attributes, input_dict):
-    """
-    a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
-    (a check for entering 'query' instead of 'query_sheet_path'
-    :param sd_object: a instance of a StandardData object in which you wish to set attributes
-    :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
-    :param input_dict: kwargs entered upon instantiation
-    """
-    for key, value in input_dict.items():
-        if key not in expected_attributes:
-            print("{} not in expected attributes.\n"
-                  "This is not a problem\n"
-                  "unless you expect the data corresponding to the values in {}\n"
-                  "to be automatically standardized or manipulated\n".format(key, key))
-        setattr(sd_object, key, value)
-
 def genotypeCheck(standard_data):
     """
     function to perform genotype check

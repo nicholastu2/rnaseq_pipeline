@@ -181,20 +181,6 @@ class IgvObject(OrganismData):
         # set attribute pointing toward igv_snapshot_dict
         setattr(self, 'igv_snapshot_dict', igv_snapshot_dict)
 
-    # def indexBam(self, bamfile_fullpath):
-    #     """
-    #     Index the bam files. The .bai file (indexed bam) will be deposited in the same directory as the bam file itself.
-    #     for igv, as long as the .bai is in the same directory as the .bam file, it will work.
-    #     :param bamfile_fullpath: full path (absolute) to bamfile
-    #     """
-    #     print('\nindexing {}'.format(bamfile_fullpath))
-    #     # subprocess.call will wait until subprocess is complete
-    #     exit_status = subprocess.call('samtools index -b {}'.format(bamfile_fullpath), shell=True)
-    #     if exit_status == 0:
-    #         print('\nindexing complete. .bai is deposited in {}'.format(self.experiment_dir))
-    #     else:
-    #         sys.exit('failed to index {}. Cannot continue'.format(bamfile_fullpath))
-
     def createBedFile(self, flanking_region=500, file_format='png'): #TODO currently file is _read_count.bed -- git rid of the _read_count
         """
         Create bed files to describe IGV region of interest

@@ -58,26 +58,26 @@ def makeCombinations(lst):
     return combos
 
 
-def makeListProduct(lst):
-    """
-    Make all possible value combination, with each value coming from a each list. Support up to 10 lists.
-    :param lst: a list of items
-    :returns: all value combinations of the inputted list
-    """
-    if len(lst) == 0:
-        return None
-    elif len(lst) == 1:
-        return list(product(lst[0]))
-    elif len(lst) == 2:
-        return list(product(lst[0], lst[1]))
-    elif len(lst) == 3:
-        return list(product(lst[0], lst[1], lst[2]))
-    elif len(lst) == 4:
-        return list(product(lst[0], lst[1], lst[2], lst[3]))
-    elif len(lst) == 5:
-        return list(product(lst[0], lst[1], lst[2], lst[3], lst[4]))
-    else:
-        sys.exit('ERROR: The number of contrasts is greater than 10. This length beyond what I can handle')
+# def makeListProduct(lst):  #  TODO: IF COMMETING THIS OUT DOESN'T BERAK ANYTHING, REMOVE
+#     """
+#     Make all possible value combination, with each value coming from a each list. Support up to 10 lists.
+#     :param lst: a list of items
+#     :returns: all value combinations of the inputted list
+#     """
+#     if len(lst) == 0:
+#         return None
+#     elif len(lst) == 1:
+#         return list(product(lst[0]))
+#     elif len(lst) == 2:
+#         return list(product(lst[0], lst[1]))
+#     elif len(lst) == 3:
+#         return list(product(lst[0], lst[1], lst[2]))
+#     elif len(lst) == 4:
+#         return list(product(lst[0], lst[1], lst[2], lst[3]))
+#     elif len(lst) == 5:
+#         return list(product(lst[0], lst[1], lst[2], lst[3], lst[4]))
+#     else:
+#         sys.exit('ERROR: The number of contrasts is greater than 10. This length beyond what I can handle')
 
 
 def loadConfig(json_file):
@@ -100,7 +100,7 @@ def mkdirp(path_to_directory):
         try:
             os.makedirs(path_to_directory)
         except OSError:
-            print("Directory {} cannot be created. See mkdir_p function call "
+            print("Directory {} cannot be created. See utils.mkdirp function call "
                   "in the script from which this error occurred".format(path_to_directory))
 
 def addForwardSlash(path):
@@ -149,18 +149,19 @@ def pathBaseName(path):
     file_name = os.path.basename(path)
     return fileBaseName(file_name)
 
-def dirName(path):
+def dirName(path_to_file):
     """
     get the directory name of the directory one level up from the end of the path provided. eg /path/to/file.fastq.gz returns 'to'
-    :param path: a path to a directory or file
+    :param path_to_file: a path to a directory or file
     :returns: the name of the directory one level up from the final level of path. see description for example
     """
-    if os.path.split(path)[1] == "":
-        dirname = os.path.dirname(path)
-    else:
-        dirname = os.path.basename(path)
-
-    return dirname
+    directory_path_split = os.path.split(path_to_file)
+    # search second group for a period (this is not very specific -- a non file ending period would also return true)
+    if not re.search('\\.', directory_path_split[1]):
+        raise('%s, the path passed to utils.dirName, '
+              'does not a file extension and is not recognized as a path to a file.' %path_to_file)
+    # return the basename (the final portion after the last /) of the first split group
+    return os.path.basename(directory_path_split[0])
 
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
@@ -178,7 +179,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        sys.exit("{} failed to execute. check the code.".format(cmd))
+        raise("{} failed to execute. check the code.".format(cmd))
 
 
 def configure(object_instance, config_file, config_header, prefix = ''):
@@ -224,11 +225,70 @@ def hourMinuteSecond():
     """
     return time.strftime("%H%M%S")
 
+def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
+    """
+    creates soft links and stores the path as attributes of object_instance
+    :param object_instance: an instance of a given object (StandardData in this case)
+    :param list_of_dirs: a list of directories that exists in origin_dir_path
+    :param origin_dir_path: path to where the directories exist (actual data)
+    :param intended_dir_path: the place where you'd like the directories soft linked
+    """
+    # loop through directories in list_of_dirs
+    for directory in list_of_dirs:
+        # store the path (either it exists or it will after the if not block) to the directory in intended_dir_path)
+        path = os.path.join(intended_dir_path, directory)
+        # check if directory exists in the intended_dir_path
+        if not os.path.exists(path):
+            # if it does not, soft link ln -s origin_dir_path/directory to intended_dir_path/directory
+            cmd = 'ln -s {}/{} {}'.format(origin_dir_path, directory, path)
+            executeSubProcess(cmd)
+        # set attribute named directory (from for loop above) that points towards variable path which stores intended_dir_path/directory
+        setattr(object_instance, directory, path)
+
+def setAttributes(sd_object, expected_attributes, input_dict):
+    """
+    a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
+    (a check for entering 'query' instead of 'query_sheet_path'
+    :param sd_object: a instance of a StandardData object in which you wish to set attributes
+    :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
+    :param input_dict: kwargs entered upon instantiation
+    """
+    for key, value in input_dict.items():
+        if key not in expected_attributes:
+            print("%s not in expected attributes. Not a problem, but also not handled in the objects\n" %key)
+        setattr(sd_object, key, value)
+
+def userInputCorrectPath(message, object, attribute, *args):
+    # method to prompt user to correct path
+    print(message)
+    # args and the if block below are for testing purposes
+    if args:
+        new_attr_value = args[0][0]
+    else:
+        new_attr_value = input()
+    return setattr(object, attribute, new_attr_value)
+
+def userInputCorrectAttributeName(message, object, old_attribute_name, *args):
+    """
+    usage: object = userInputCorrectAttributeName(...)
+    """
+    print(message + " ")
+    # this if statement and the args parameter are for testing purposes
+    if args:
+        new_attribute_name = args[0][0]
+    else:
+        new_attribute_name = input()
+    setattr(object, new_attribute_name, getattr(object, old_attribute_name))
+    delattr(object, old_attribute_name)
+    # to use this, user will need to object = userInputCorrectAttributeName(...)
+    return object
+
 def createLogger(filename, logger_name, logging_conf = None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
-    :param filename: name of the file in which to log. __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
-                     (__name__ is a special variable in python)
+    :param filename: name of the file in which to log.
+    :param logger_name: __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
+                     (__name__ is a special variable in python)  
     :param logging_conf: path to logging configuration file
     :returns: an instance of the configured logger
     """
