@@ -41,6 +41,15 @@ class UtilsTester(unittest.TestCase):
         file_path = 'path/blah.csv'
         self.assertTrue(utils.checkCSV(file_path))
 
+    def test_checkTSV(self):  # TODO: WRITE THIS. check both return and exception
+        pass
+
+    def test_checkExcel(self):  # TODO: WRITE THIS. check both return and exception
+        pass
+
+    def test_readInDataframe(self):  # TODO: WRITE THIS. check both return and exception
+        pass
+
     def test_fileBaseName(self):
         file = 'sequence_path.fastq.gz'
         basename = 'sequence_path'
@@ -55,6 +64,9 @@ class UtilsTester(unittest.TestCase):
         path = '/path/to/dir/sequence_path.fastq.gz'
         dirname = 'dir'
         self.assertEqual(dirname, utils.dirName(path))
+
+    def test_extractTopmostFiles(self):  # TODO: Write
+        pass
 
     def test_softLinkAndSetAttr(self):
         empty_object = EmptyObject()

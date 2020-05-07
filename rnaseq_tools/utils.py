@@ -1,5 +1,7 @@
 import os
 import re
+import pandas as pd
+import glob
 import numpy as np
 from itertools import combinations, product
 import yaml
@@ -12,9 +14,9 @@ import logging.config
 
 def getRunNumber(fastq_path):
     """
-    extract run number from -f input. this *should be* to a file called sequence/run_####_samples
-    :param fastq_path
-    :returns: the run number as string (leading zero will be retained)
+        extract run number from -f input. this *should be* to a file called sequence/run_####_samples
+        :param fastq_path
+        :returns: the run number as string (leading zero will be retained)
     """
     try:
         regex = r"run_(\d*)"
@@ -28,10 +30,10 @@ def getRunNumber(fastq_path):
 
 def decomposeStatus2Bit(status):
     """
-    Decompose a value in the column of the output of quality_assess_2 to bit.
-    eg 18 = 2 + 16 or the powers of 2 [1.0,4.0]. See templates/qc_config.yaml
-    :param status: an int from the status column of the .csv output of quality_assess_2
-    :returns: a list of powers of 2 representing the bit
+        Decompose a value in the column of the output of quality_assess_2 to bit.
+        eg 18 = 2 + 16 or the powers of 2 [1.0,4.0]. See templates/qc_config.yaml
+        :param status: an int from the status column of the .csv output of quality_assess_2
+        :returns: a list of powers of 2 representing the bit
     """
     if status == 0:
         return None
@@ -45,9 +47,9 @@ def decomposeStatus2Bit(status):
 
 def makeCombinations(lst):
     """
-    Make all possible replicate combinations of the inputted list
-    :param lst: a list of items
-    :returns: a list of combinations of the inputted list
+        Make all possible replicate combinations of the inputted list
+        :param lst: a list of items
+        :returns: a list of combinations of the inputted list
     """
     if len(lst) < 2:
         return [list]
@@ -82,9 +84,9 @@ def makeCombinations(lst):
 
 def loadConfig(json_file):
     """
-    Load configuration file (JSON) for QC thresholding and scoring
-    :param json_file: the config for the rnaseq_pipeline, in particular, is found in templates/qc_config.yaml
-    :returns: the read-in json object
+        Load configuration file (JSON) for QC thresholding and scoring
+        :param json_file: the config for the rnaseq_pipeline, in particular, is found in templates/qc_config.yaml
+        :returns: the read-in json object
     """
     with open(json_file) as json_data:
         d = yaml.safe_load(json_data)
@@ -93,8 +95,9 @@ def loadConfig(json_file):
 
 def mkdirp(path_to_directory):
     """
-    Function to create a directory. Equivalent to mkdir -p in bash. Will create directory if the path does not already exist.
-    :param path_to_directory: path to a directory to be created if DNE already
+        Function to create a directory. Equivalent to mkdir -p in bash.
+        Will create directory if the path does not already exist.
+        :param path_to_directory: path to a directory to be created if DNE already
     """
     if not os.path.exists(path_to_directory):
         try:
@@ -105,31 +108,81 @@ def mkdirp(path_to_directory):
 
 def addForwardSlash(path):
     """
-    add forward slash to path
-    :param path: a path, typically to the lowest subdir prior to adding a file
-    :returns: the path with a trailing slash added
+        add forward slash to path
+        :param path: a path, typically to the lowest subdir prior to adding a file
+        :returns: the path with a trailing slash added
     """
     if not path.endswith('/'):
         path = path + '/'
     return path
 
-def checkCSV(file):
+def checkCSV(file_path):
     """
-    test whether a given file is a .csv or something else
-    :param file: a file that ends with .csv, .xlsx, .tsv, etc.
-    :returns: True if .csv, false otherwise
+        test whether a given file is a .csv or something else
+        :param file_path: a file that ends with .csv, .xlsx, .tsv, etc.
+        :returns: True if .csv, false otherwise
     """
-    # test whether a given file is a .csv or .xlsx
-    if re.search('\.csv', file):
-        return True
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError('path_to_columnar_data_dne')
     else:
-        return False
+        # test whether a given file is a .csv or .xlsx
+        if re.search('\.csv', file_path):
+            return True
+        else:
+            return False
+
+def checkTSV(file_path):
+    """
+        test whether a given file is a .tsv
+        :param file_path: a file path
+        :returns: True if .tsv, false otherwise
+        :raises: FileNotFoundError
+    """
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError('path_to_columnar_data_dne')
+    else:
+        if re.search('\.tsv', file_path):
+            return True
+        else:
+            return False
+
+def checkExcel(file_path):
+    """
+        test whether a given file is a .xlsx
+        :param file_path: a file path
+        :returns: True if .tsv, false otherwise
+    """
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError('path_to_columnar_data_dne')
+    else:
+        # test whether a given file is a .xlsx
+        if re.search('\.xlsx', file_path):
+            return True
+        else:
+            return False
+
+def readInDataframe(path_to_csv_tsv_or_excel):
+    """
+        read in .csv, .tsv or .xlsx
+        :param path_to_csv_tsv_or_excel: path to a .csv, .tsv .xlsx
+        :returns: a pandas dataframe
+    """
+    try:
+        if checkCSV(path_to_csv_tsv_or_excel):
+            return pd.read_csv(path_to_csv_tsv_or_excel)
+        elif checkTSV(path_to_csv_tsv_or_excel):
+            return pd.read_csv(path_to_csv_tsv_or_excel, sep='\t')
+        elif checkExcel(path_to_csv_tsv_or_excel):
+            return pd.read_excel(path_to_csv_tsv_or_excel)
+
+    except FileNotFoundError:
+        print('file %s does not exist' %path_to_csv_tsv_or_excel)
 
 def fileBaseName(file_name):
     """
-    strip everything after first . in path (may be too extreme -- make sure there are no 'necessary' . in filepaths. However, please try to avoid putting a . in a filepath other than the extension(s)
-    :param file_name: the base filename of a file (not a path!)
-    :returns: the filename stripped of all extensions
+        strip everything after first . in path (may be too extreme -- make sure there are no 'necessary' . in filepaths. However, please try to avoid putting a . in a filepath other than the extension(s)
+        :param file_name: the base filename of a file (not a path!)
+        :returns: the filename stripped of all extensions
     """
     # https://stackoverflow.com/a/46811091
     if '.' in file_name:
@@ -140,10 +193,11 @@ def fileBaseName(file_name):
         return file_name
 
 def pathBaseName(path):
-    """ This function will work for fileBaseName and also where you want the basename of a file from a path of any length
-    strips directory structure and extensions. eg /path/to/file.fastq.gz --> file
-    :param path: a filepath that includes a directory structure and file (see description)
-    :returns: the basename of the file stripped of the directory structure and extensions
+    """
+        This function will work for fileBaseName and also where you want the basename of a file from a path of any length
+        strips directory structure and extensions. eg /path/to/file.fastq.gz --> file
+        :param path: a filepath that includes a directory structure and file (see description)
+        :returns: the basename of the file stripped of the directory structure and extensions
     """
     # This gets the basename of a given path, and then strips all file extensions (even if multiple). see fileBaseName
     file_name = os.path.basename(path)
@@ -151,9 +205,10 @@ def pathBaseName(path):
 
 def dirName(path_to_file):
     """
-    get the directory name of the directory one level up from the end of the path provided. eg /path/to/file.fastq.gz returns 'to'
-    :param path_to_file: a path to a directory or file
-    :returns: the name of the directory one level up from the final level of path. see description for example
+        get the directory name of the directory one level up from the end of the path provided.
+        eg /path/to/file.fastq.gz returns 'to'
+        :param path_to_file: a path to a directory or file
+        :returns: the name of the directory one level up from the final level of path. see description for example
     """
     directory_path_split = os.path.split(path_to_file)
     # search second group for a period (this is not very specific -- a non file ending period would also return true)
@@ -163,19 +218,28 @@ def dirName(path_to_file):
     # return the basename (the final portion after the last /) of the first split group
     return os.path.basename(directory_path_split[0])
 
+def extractTopmostFiles(path_to_directory):
+    """
+        extract a list of all files in a given directory
+        :param path_to_directory: path to the directory
+        :returns: a list of files in topmost level of directory (not recursive)
+    """
+    return glob.glob(os.path.join(path_to_directory, '*'))
+
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
-    submit raw_count_path to log2_cpm.R (in tools/)
-    :param raw_count_path: path to output of raw_counts.py
-    :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R. eg <experiment_name>_log2_cpm.csv
+        submit raw_count_path to log2_cpm.R (in tools/)
+        :param raw_count_path: path to output of raw_counts.py
+        :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R.
+        eg <experiment_name>_log2_cpm.csv
     """
     cmd = 'log2_cpm.R -r {} -o {}'.format(raw_count_path, output_FULL_path)
     executeSubProcess(cmd)
 
 def executeSubProcess(cmd):
     """ TODO: re-do this with package subprocess and store rather than write. write to logger
-    executes command, sys.exit with message if the subprocess fails
-    :param cmd: the full command to be run
+        executes command, sys.exit with message if the subprocess fails
+        :param cmd: the full command to be run
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
@@ -184,12 +248,12 @@ def executeSubProcess(cmd):
 
 def configure(object_instance, config_file, config_header, prefix = ''):
     """
-    reads and sets the attributes in a config_file.ini in type output by configparser.
-    :param object_instance: an object to be configured
-    :param config_file: a .ini
-    :param config_header: the [header] in the .ini file to read (config format created by configparser).
-    :param prefix:
-    The function will loop through these key, value pairs and set attributes accordingly
+        reads and sets the attributes in a config_file.ini in type output by configparser.
+        :param object_instance: an object to be configured
+        :param config_file: a .ini
+        :param config_header: the [header] in the .ini file to read (config format created by configparser).
+        :param prefix:
+        The function will loop through these key, value pairs and set attributes accordingly
     """
     # read config file
     config = configparser.ConfigParser()
@@ -200,9 +264,9 @@ def configure(object_instance, config_file, config_header, prefix = ''):
 
 def submitSbatch(sbatch_path, email = None):
     """
-    submit an sbatch script (see sbatch script examples in templates)
-    :param sbatch_path: path to an sbatch file
-    :param  email: user email, default None
+        submit an sbatch script (see sbatch script examples in templates)
+        :param sbatch_path: path to an sbatch file
+        :param  email: user email, default None
     """
     print('...submitting sbatch job')
     # Submit sbatch job
@@ -215,23 +279,23 @@ def submitSbatch(sbatch_path, email = None):
 
 def yearMonthDay():
     """
-    :returns: the year-month-day as 20200403
+        :returns: the year-month-day as 20200403
     """
     return time.strftime("%Y%m%d")
 
 def hourMinuteSecond():
     """
-    :returns: hour-minute-second as 135301
+        :returns: hour-minute-second as 135301
     """
     return time.strftime("%H%M%S")
 
 def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
     """
-    creates soft links and stores the path as attributes of object_instance
-    :param object_instance: an instance of a given object (StandardData in this case)
-    :param list_of_dirs: a list of directories that exists in origin_dir_path
-    :param origin_dir_path: path to where the directories exist (actual data)
-    :param intended_dir_path: the place where you'd like the directories soft linked
+        creates soft links and stores the path as attributes of object_instance
+        :param object_instance: an instance of a given object (StandardData in this case)
+        :param list_of_dirs: a list of directories that exists in origin_dir_path
+        :param origin_dir_path: path to where the directories exist (actual data)
+        :param intended_dir_path: the place where you'd like the directories soft linked
     """
     # loop through directories in list_of_dirs
     for directory in list_of_dirs:
@@ -247,30 +311,47 @@ def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_
 
 def setAttributes(sd_object, expected_attributes, input_dict):
     """
-    a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
-    (a check for entering 'query' instead of 'query_sheet_path'
-    :param sd_object: a instance of a StandardData object in which you wish to set attributes
-    :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
-    :param input_dict: kwargs entered upon instantiation
+        a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
+        (a check for entering 'query' instead of 'query_sheet_path'
+        :param sd_object: a instance of a StandardData object in which you wish to set attributes
+        :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
+        :param input_dict: kwargs entered upon instantiation
     """
     for key, value in input_dict.items():
         if key not in expected_attributes:
             print("%s not in expected attributes. Not a problem, but also not handled in the objects\n" %key)
         setattr(sd_object, key, value)
 
-def userInputCorrectPath(message, object, attribute, *args):
+def userInputCorrectPath(message, my_object, attribute, **kwargs):
+    """
+        asks user to correct input path
+        usage: object = userInputCorrectPath(...)
+        :param message: message to print to user
+        :param my_object: object whose attribute you wish to correct
+        :param attribute: attribute to be corrected
+        :param kwargs: arbitrary list of keyword arguments. none currently handled. intended use is for logger
+        :returns: my_object with attribute set to new value
+    """
     # method to prompt user to correct path
     print(message)
+
     # args and the if block below are for testing purposes
     if args:
         new_attr_value = args[0][0]
     else:
         new_attr_value = input()
-    return setattr(object, attribute, new_attr_value)
 
-def userInputCorrectAttributeName(message, object, old_attribute_name, *args):
+    return setattr(my_object, attribute, new_attr_value)
+
+def userInputCorrectAttributeName(message, my_object, old_attribute_name, *args):
     """
-    usage: object = userInputCorrectAttributeName(...)
+        ask user to correct attribute name in object
+        usage: object = userInputCorrectAttributeName(...)
+        :param message: message to print to user
+        :param my_object: object whose attribute you wish to correct the name of
+        :param old_attribute_name: name of the attribute you wish to change
+        :param kwargs: arbitrary list of keyword arguments. none currently handled. intended use is for logger
+        :returns: object with renamed attribute
     """
     print(message + " ")
     # this if statement and the args parameter are for testing purposes
@@ -278,15 +359,16 @@ def userInputCorrectAttributeName(message, object, old_attribute_name, *args):
         new_attribute_name = args[0][0]
     else:
         new_attribute_name = input()
+
     setattr(object, new_attribute_name, getattr(object, old_attribute_name))
     delattr(object, old_attribute_name)
     # to use this, user will need to object = userInputCorrectAttributeName(...)
-    return object
+    return my_object
 
-def createLogger(filename, logger_name, logging_conf = None):
+def createLogger(file_path, logger_name, logging_conf = None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
-    :param filename: name of the file in which to log.
+    :param file_path: name of the file in which to log.
     :param logger_name: __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
                      (__name__ is a special variable in python)  
     :param logging_conf: path to logging configuration file
@@ -299,7 +381,7 @@ def createLogger(filename, logger_name, logging_conf = None):
     else:
         # create log for the year-month-day
         logging.basicConfig(
-            filename='%s' % filename,
+            filename='%s' % file_path,
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
             datefmt='%I:%M:%S %p', # set 'datefmt' to hour-minute-second AM/PM
@@ -307,3 +389,5 @@ def createLogger(filename, logger_name, logging_conf = None):
         )
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
+
+
