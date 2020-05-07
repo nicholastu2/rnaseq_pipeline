@@ -18,21 +18,22 @@ whatis("URL: https://gitlab.com/brentlab/rnaseq_pipe")
 
 -- load main tools (see system requirements on the gitlab wiki)
 depends_on("miniconda")
-depends_on("igv/2.4.7")
+-- depends_on("igv/2.4.7") This is no longer available on the login server
+-- depends_on("samtools") No longer available on login server?
 
 -- message to print on module load
 if(mode() == 'load') then
    LmodMessage("\nBrent lab rnaseq_pipeline is loaded!\n\tPlease see https://github.com/BrentLab/rnaseq_pipeline/wiki for usage instructions.\n")
 end
 
+-- set environmental variables
+setenv("METADATA", metadata_database)
+setenv("CODEBASE", base)
+setenv("PYTHONPATH", base)
+
 -- prepend the following to $PATH
 prepend_path("PATH", base)
 prepend_path("PATH", tools)
-
--- set environmental variables
-setenv("METADATA", metadata_database)
-setenv("PYTHONPATH", tools)
-
 
 -- see test_conda_env in the rnaseq_pipeline code repo. This simply tests whether the directory $HOME/.conda/envs exists. If it does not, the rnaseq_pipeline_env directory is cloned by conda
 -- into $HOME/.conda/envs.

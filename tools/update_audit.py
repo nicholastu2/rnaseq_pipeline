@@ -3,7 +3,8 @@ import sys
 import argparse
 import os.path
 import pandas as pd
-from utils import *
+import numpy as np
+from rnaseq_tools import utils
 
 
 def parse_args(argv):
@@ -31,7 +32,7 @@ def update_sample_summary(qa, samples, group):
 		sample_id = row['SAMPLE']
 		mask = samples['SAMPLE'] == sample_id
 		## decompose status and update QA metric status
-		decomp = decompose_status2bit(row['STATUS'])
+		decomp = utils.decomposeStatus2Bit(row['STATUS'])
 		if decomp is not None:
 			metrics = [QC_dict_rev[2**bit] for bit in decomp]
 			for m in metrics:
@@ -81,7 +82,7 @@ def main(argv):
 		sys.exit('ERROR: %s does not exist.' % parsed.sample_summary)
 
 	global QC_dict, QC_dict_rev
-	QC_dict = load_config(parsed.qc_configure)
+	QC_dict = utils.loadConfig(parsed.qc_configure)
 	QC_dict_rev = reverse_QC_dict(QC_dict)
 
 	print('... Updating sample summary')

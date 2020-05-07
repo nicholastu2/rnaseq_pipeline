@@ -1,0 +1,29 @@
+## pre-alignment QC
+BA:
+  threshold: 0
+TAPESTATION:
+  threshold: 0
+SPIKEIN_READS:
+  threshold: 0
+SAMPLE_READS:
+  threshold: 500000
+## post-alignment QC
+TOTAL_READS:
+  threshold: 2000000
+  status: 1
+ALIGN_PCT:
+  threshold: 0.8
+  status: 2
+MUT_FOW:
+  DELETION:
+    threshold: 0.1
+    status: 4
+  OVEREXPRESSION:
+    threshold: 1.5
+    status: 4
+MARKER_FOM:
+  threshold: 0.5
+  status: 8
+COV_MED:
+  threshold: 0.25
+  status: 16

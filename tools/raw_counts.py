@@ -3,14 +3,14 @@ import sys
 import argparse
 import os.path
 import numpy as np
-import re
 import glob
-import utils
-from utils import addForwardSlash
+from rnaseq_tools import utils
 
+# TODO: Update with OrganismData object (no more need to input gene list). Better commeting and explanation of each step
+#  in createCountMatrix. Try to abstract this for use when making any matrix (counts qual_assess_1 and 2, etc)
 
 def main(argv):
-    args = parse_args(argv)
+    args = parseArgs(argv)
     if not os.path.exists(args.experiment_directory):
         sys.exit('ERROR: %s does not exist.' % args.experiment_directory)
     if not os.path.exists(args.gene_list):
@@ -18,7 +18,7 @@ def main(argv):
 
     count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
 
-    exp_name = utils.getDirName(args.experiment_directory)
+    exp_name = utils.dirName(args.experiment_directory)
 
     count_file_path = os.path.join(args.experiment_directory, exp_name + '_raw_count.csv')
 
@@ -26,7 +26,7 @@ def main(argv):
 
     print(count_matrix[1:10])
 
-def parse_args(argv):
+def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment_directory', required=True,
                         help='The directory created by create_experiment. The raw_count csv will be output in this directory with the name <experiment_dir/experiment_dirname>_raw_count.csv')
@@ -39,7 +39,7 @@ def createCountMatrix(exp_dir, gene_list):
     # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
     # Returns: A count matrix of all genes (rows) by all samples (columns)
 
-    exp_dir = addForwardSlash(exp_dir)
+    exp_dir = utils.addForwardSlash(exp_dir)
     search_pattern = exp_dir + '*_read_count.tsv'
     sample_counts_list = glob.glob(search_pattern)
     # TODO: sanity check against num rows in query?
