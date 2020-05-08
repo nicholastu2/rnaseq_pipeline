@@ -24,7 +24,7 @@ main = function(args){
   colnames(log2_cpm)[1] = 'gene_id'
 
   # write to output path -- NOTE: in cmd line input, the -o is the FULL output path (including filename and extension)
-  print('writing log2_cpm matrix to: %s' %parsed%output_full_path)
+  print('writing log2_cpm matrix to: %s', parsed$output_full_path)
   write_csv(log2_cpm, parsed$output_FULL_path)
 
 } # end main()
