@@ -17,6 +17,7 @@ class OrganismData(StandardData):
         super(OrganismData, self).__init__(self._add_expected_attributes, **kwargs)
         # put in flag to only do this if in htcf
         self.standardDirectoryStructure()
+        self.createOrganismDataLogger()
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'OrganismData'
         # set organism data, if it is passed
