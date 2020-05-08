@@ -119,6 +119,16 @@ def addForwardSlash(path):
         path = path + '/'
     return path
 
+def removeForwardSlash(path):
+    """
+        removes forward slash from path
+        :param path: filepath
+        :returns: path without final forward slash
+    """
+    if path.endswith('/'):
+        path = path[:-1]
+    return path
+
 
 def checkCSV(file_path):
     """
@@ -220,6 +230,7 @@ def dirName(path):
         :param path: a path to a directory or file
         :returns: the name of the directory one level up from the final level of path. see description for example
     """
+    path = removeForwardSlash(path)
     if path == '.':
         raise Exception('Must pass a path, not \\., in order to extract directory name')
     directory_path_split = os.path.split(path)

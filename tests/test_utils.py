@@ -37,6 +37,12 @@ class UtilsTester(unittest.TestCase):
         function_path = utils.addForwardSlash(path)
         self.assertEqual(path_with_slash, function_path)
 
+    def test_removeForwardSlash(self):
+        path = '/path/to/file/'
+        no_end_slash = '/path/to/file'
+        func_path = utils.removeForwardSlash(path)
+        self.assertEqual(no_end_slash, func_path)
+
     def test_checkCSV(self):
         file_path = 'path/blah.csv'
         self.assertTrue(utils.checkCSV(file_path))
@@ -61,9 +67,13 @@ class UtilsTester(unittest.TestCase):
         self.assertEqual(basename, utils.pathBaseName(path))
 
     def test_dirName(self):
-        path = '/path/to/dir/sequence_path.fastq.gz'
-        dirname = 'dir'
-        self.assertEqual(dirname, utils.dirName(path))
+        path_with_file = '/path/to/dir/sequence_path.fastq.gz'
+        path_with_filedirname = 'dir'
+        self.assertEqual(path_with_filedirname, utils.dirName(path_with_file))
+        path_no_file = '/path/to/dir/'
+        dir_name = 'dir'
+        func_dirname = utils.dirName(path_no_file)
+        self.assertEqual(dir_name, func_dirname)
 
     def test_extractTopmostFiles(self):  # TODO: Write
         pass

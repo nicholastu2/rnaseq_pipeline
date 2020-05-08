@@ -27,7 +27,14 @@ def main(argv):
 #
 #    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
+<<<<<<< HEAD
 #    print(count_matrix[1:10])
+=======
+    print('count matrix deposited at: %s' %count_file_path)
+    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
+
+    print(count_matrix[1:10])
+>>>>>>> 5967a4a9f4e031d628923396b28df2bde267d68a
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
