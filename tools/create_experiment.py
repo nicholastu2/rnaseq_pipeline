@@ -29,7 +29,7 @@ def main(argv):
     database_df = pd.read_csv(args.query_sheet)
 
     # create a directory for the experiment
-    destination_directory = os.path.join(args.output_directory, args.exp_name)
+    destination_directory = os.path.join(args.output_directory, args.experiment_name)
     cmd = "mkdir -p {}".format(destination_directory)
     utils.executeSubProcess(cmd)
 
