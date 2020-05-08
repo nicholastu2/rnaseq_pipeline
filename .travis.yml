@@ -3,9 +3,6 @@ python:
   - 3.7.1
 dist: xenial
 
-before-script:
-  - load dependencies
-
 install: "pip install -r tests/testing_requirements.txt"
 
 script:
