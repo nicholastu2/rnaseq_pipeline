@@ -43,4 +43,11 @@ class OrganismData(StandardData):
         # remove '' after taking basename (see todo regarding basename)
         self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. this is an issue with using utils.configure, it seems
 
-
+    def createOrganismDataLogger(self):
+        """
+            create logger for OrganismData
+        """
+        try:
+            return utils.createLogger(self.logger_file, __name__)
+        except AttributeError:
+            print('set standardDirectoryStructure first (this is a child of StandardData, so call self.standardDirectoryChild() prior to trying to create the logger')

@@ -17,7 +17,9 @@ def main(argv):
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
                       experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True)  # TODO -- deal with multiple inputs better than this. point of weakness
-
+    # TODO: put in flag to check if not on HTCF
+    od.standardDirectoryStructure()
+    od.createOrganismDataLogger()
     # create output sheet name
     experiment_dir = utils.dirName(od.experiment_dir)
     filename = experiment_dir + '_quality_summary_2.xlsx'
