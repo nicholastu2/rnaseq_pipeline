@@ -22,6 +22,7 @@ def main(argv):
 
     count_file_path = os.path.join(args.experiment_directory, exp_name + '_raw_count.csv')
 
+    print('count matrix deposited at: %s' %count_file_path)
     np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
     print(count_matrix[1:10])
