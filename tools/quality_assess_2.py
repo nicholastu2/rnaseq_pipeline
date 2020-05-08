@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import numpy as np
 from rnaseq_tools.OrganismDataObject import OrganismData
+from rnaseq_tools.DatabaseObject import DatabaseObject
 from rnaseq_tools import utils
 import os
 
@@ -17,6 +18,10 @@ def main(argv):
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
                       experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True)  # TODO -- deal with multiple inputs better than this. point of weakness
+    # create standardized_database_df from query_sheet_path
+    query_df = utils.readInDataframe(od.query_sheet_path)
+    od.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
+
     # create output sheet name
     experiment_dir = utils.dirName(od.experiment_dir)
     filename = experiment_dir + '_quality_summary_2.xlsx'
@@ -58,7 +63,7 @@ def main(argv):
                  + drug_marker_columns \
                  + ['COV_MED_REP' + ''.join(np.array(combo, dtype=str)) for combo
                     in utils.makeCombinations(range(1, od.max_replicates + 1))]
-    qual_assess_df, rep_max = initializeQualAssesDf(od.query_df, df_columns, od.experiment_conditions)
+    qual_assess_df, rep_max = initializeQualAssesDf(od.standardized_database_df , df_columns, od.experiment_conditions)
     if rep_max != od.max_replicates:
         print(
             'The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
