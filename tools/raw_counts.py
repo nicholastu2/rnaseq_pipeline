@@ -11,30 +11,24 @@ from rnaseq_tools import utils
 
 def main(argv):
     args = parseArgs(argv)
-#    if not os.path.exists(args.experiment_directory):
-#        sys.exit('ERROR: %s does not exist.' % args.experiment_directory)
-#    if not os.path.exists(args.gene_list):
-#        sys.exit('ERROR: %s does not exist.' % args.gene_list)
-#
-#    count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
-#
+    if not os.path.exists(args.experiment_directory):
+        sys.exit('ERROR: %s does not exist.' % args.experiment_directory)
+    if not os.path.exists(args.gene_list):
+        sys.exit('ERROR: %s does not exist.' % args.gene_list)
+
+    count_matrix = createCountMatrix(args.experiment_directory, args.gene_list)
+
     exp_name = utils.dirName(args.experiment_directory)
 
     count_file_path = os.path.join(args.experiment_directory, exp_name + '_raw_count.csv')
-    print(utils.dirName(args.experiment_directory))
-    print(args.experiment_directory)
-    print(count_file_path)
-#
-#    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
-<<<<<<< HEAD
-#    print(count_matrix[1:10])
-=======
-    print('count matrix deposited at: %s' %count_file_path)
     np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
 
+    print('\ncount matrix deposited at: %s' %count_file_path)
+    np.savetxt(count_file_path, count_matrix, delimiter=',', fmt='%s')
+    print('\nhead of count matrix: \n')
     print(count_matrix[1:10])
->>>>>>> 5967a4a9f4e031d628923396b28df2bde267d68a
+
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
