@@ -5,7 +5,6 @@
                   optional: keyword arguments, ie database_subdirectories = ['list', 'of', 'subdirectories', 'you', 'wish', 'to', 'include']
 """
 import pandas as pd
-import glob
 import os
 import re
 import sys
@@ -45,6 +44,8 @@ class DatabaseObject:
         self.filter_json = None
         if 'filter_json_path' not in kwargs:
             self.filter_json_path = None
+        else:
+            self.filter_json_path = kwargs['filter_json_path']
         # data_dir_dict will store {database_subdirectory: [list, of, filepaths, in, each, subdir], ... }. See self.setDatabaseDict()
         self.database_dict = {}
         # see setter setDatabaseDict()
@@ -95,6 +96,9 @@ class DatabaseObject:
         """
             create joined data frame from the concatenated files in the subdirectories of the database_directory
         """
+        # if self.setDatabaseDict hasn't been called, call self.setDatabaseDict()
+        if len(self.database_dict) == 0:
+            self.setDatabaseDict()
         # if self.concat_database_dict is empty, call self.setConcatDatabaseDict()
         if len(self.concat_database_dict) == 0:
             self.setConcatDatabaseDict()
@@ -176,6 +180,8 @@ class DatabaseObject:
             and the pandas sql-like filtering commands
             see https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_sql.html
         """
+        if self.filter_json is None:
+            self.setFilterJson()
         # begin a string to store the query formula
         filter_str = '('
         # loop through columns in json query (i.e. 'timePoint' and 'treatment')
@@ -238,7 +244,7 @@ class DatabaseObject:
         """
             write dataframe to file. Default write to current working directory with name rnaseq_metadata_date_time.csv
             eg rnaseq_metadata_20200312_115103.csv
-            :param df: a dataframe -- expecting a database dataframe
+            :param rnaseq_metadata_df: a dataframe -- expecting a database dataframe
             :param kwargs: arbitrary number of keyword arguments. Currently set to handle
                                path_to_directory: directory in which to write a file
                                filename: filename to replace rnaseq_metadata above. date/time will still be added, as will .csv

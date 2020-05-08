@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from rnaseq_tools.OrganismData import OrganismData
+from rnaseq_tools.OrganismDataObject import OrganismData
 
 class MyTestCase(unittest.TestCase):
 

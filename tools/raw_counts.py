@@ -35,10 +35,12 @@ def parseArgs(argv):
     return parser.parse_args(argv[1:])
 
 def createCountMatrix(exp_dir, gene_list):
-    # create count matrix with list of genes as rows and samples as columns
-    # Args: sample_summary.csv (see queryDB in rnaseq_pipeline/tools)
-    # Returns: A count matrix of all genes (rows) by all samples (columns)
-
+    """
+        create count matrix with list of genes as rows and samples as columns
+        :param exp_dir: experiment directory created by create_experiment.py
+        :param gene_list: see the OrganismData_config.ini in genome_files/<organism>
+        :returns: A count matrix of all genes (rows) by all samples (columns)
+    """
     exp_dir = utils.addForwardSlash(exp_dir)
     search_pattern = exp_dir + '*_read_count.tsv'
     sample_counts_list = glob.glob(search_pattern)

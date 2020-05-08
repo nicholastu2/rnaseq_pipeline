@@ -4,7 +4,7 @@ import os
 import argparse
 from glob import glob
 import datetime
-from rnaseq_tools.OrganismData import OrganismData
+from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import utils
 
 FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
@@ -16,12 +16,16 @@ def main(argv):
     args = parse_args(argv)
     # create OrganismData object. This will simultaneously check to ensure that the user has the required file structure
     # in their scratch space in addition to containing the organism attributes (genome, etc)
-    sdf = OrganismData(organism=args.organism,
-                       fastq_path=args.fastq_path,
-                       strandness=args.strandness,
-                       email=args.user_email,
-                       run_number=utils.getRunNumber(args.fastq_path))
-    sdf.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sdf.run_number))
+    sd = OrganismData(organism=args.organism,
+                      fastq_path=args.fastq_path,
+                      strandness=args.strandness,
+                      email=args.user_email,
+                      run_number=utils.getRunNumber(args.fastq_path))
+    # ensure that standard directory structure is set
+    sd.standardDirectoryStructure()
+    # create StandardData logger
+    sd.setStandardDataLogger()
+    sd.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sd.run_number))
     # store align_only flag from cmd line
     align_only = args.align_only
     # get current datetime
@@ -29,23 +33,24 @@ def main(argv):
 
     print('...writing sbatch job script')
     # create filenames for job_scripts and sbatch_logs
-    fastq_list_file = "{}/run_{}_fastq_list.txt".format(sdf.job_scripts, sdf.run_number)
-    sbatch_job_file = "{}/run_{}_mblab_rnaseq.sbatch".format(sdf.job_scripts, sdf.run_number)
+    fastq_list_file = "{}/run_{}_fastq_list.txt".format(sd.job_scripts, sd.run_number)
+    sbatch_job_file = "{}/run_{}_mblab_rnaseq.sbatch".format(sd.job_scripts, sd.run_number)
     # write a list of fastqfiles in the fastq_path to ./job_scripts and store how many as num_fastqs
-    num_fastqs = writeFastqList(sdf.fastq_path, fastq_list_file)
+    num_fastqs = writeFastqList(sd.fastq_path, fastq_list_file)
     # create a slurm submission script and write to ./job_scripts
-    writeJobScript(sbatch_job_file, sdf.output_dir, fastq_list_file, num_fastqs, sdf.novoalign_index,
-                   sdf.annotation_file, sdf.feature_type, sdf.strandness, align_only)
+    writeJobScript(sbatch_job_file, sd.output_dir, fastq_list_file, num_fastqs, sd.novoalign_index,
+                   sd.annotation_file, sd.feature_type, sd.strandness, align_only)
 
     # execute slurm job
     print('...submitting job')
-    if sdf.email is None:
+    if sd.email is None:
         os.system("sbatch {}".format(sbatch_job_file))
     else:
-        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sdf.email, sbatch_job_file))
+        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sd.email, sbatch_job_file))
 
-    print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(sdf.output_dir, sdf.run_number,'pipeline_info'))
-    output_subdir_path = os.path.join(sdf.output_dir, "{}_pipeline_info".format(sdf.organism))
+    print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(sd.output_dir, sd.run_number,
+                                                                                  'pipeline_info'))
+    output_subdir_path = os.path.join(sd.output_dir, "{}_pipeline_info".format(sd.organism))
     utils.mkdirp(output_subdir_path)
     # write version info from the module .lua file (see the .lua whatis statements)
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
@@ -57,7 +62,7 @@ def main(argv):
         file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(current_datetime))
         file.write("\n")
     # include the head of the gff/gtf, also
-    cmd_annotation_info = "head {} >> {}".format(sdf.annotation_file, pipeline_info_path)
+    cmd_annotation_info = "head {} >> {}".format(sd.annotation_file, pipeline_info_path)
     utils.executeSubProcess(cmd_annotation_info)
 
 
@@ -102,7 +107,7 @@ def writeFastqList(dir_path, fastq_list_file):
             f.write("{}\n".format(file_path))
     return len(file_paths)
 
-
+# TODO: test and then incorporate SbatchWriterObject
 def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_index_file, genome_annotation_file,
                    feature_type,
                    strandness, align_only):

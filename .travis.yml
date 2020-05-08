@@ -1,0 +1,18 @@
+language: python
+python:
+  - 3.7.1
+dist: xenial
+
+before-script:
+  - load dependencies
+
+install: "pip install -r tests/testing_requirements.txt"
+
+script:
+  - python tests/test_DatabaseObject.py
+  - python tests/test_IgvObject.py
+  - python tests/test_OrganismData.py
+  - python tests/test_SbatchWriter.py
+  - python tests/test_StandardData.py
+  - python tests/test_utils.py
+  - python tests/test_DatabaseObject.py

@@ -5,32 +5,46 @@ import re
 import argparse
 from glob import glob
 import pandas as pd
-from rnaseq_tools.StandardData import StandardData
+from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
 from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
 # the formatting corresponds to the formatting in the log and read_count.tsv files
 ALIGN_VARS = ["Read Sequences", "Unique Alignment", "Multi Mapped", "No Mapping Found"]
-COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "too_low_aQual", "not_aligned", "alignment_not_unique"]
+COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "too_low_aQual", "not_aligned",
+              "alignment_not_unique"]
+
 
 def main(argv):
     # parse cmd line arguments
-    args = parseArgs(argv)
-    # create StandardDataFormat object
-    sdf = StandardData(align_count_path=args.reports, run_number=utils.getRunNumber(args.reports), output_dir=args.output)
-
-    # create path to new quality_assessment_sheet
-    quality_assessment_filename = "run_{}_quality_summary.csv".format(sdf.run_number)
-    output_csv = os.path.join(sdf.output_dir, quality_assessment_filename)
+    args = parseArgs(argv)  # TODO error check all input
+    if os.path.isdir(args.reports):
+        align_count_path = args.reports
+    else:
+        raise OSError('ReportsDirectoryDoesNotExist')
+    if os.path.isdir(args.output_dir):
+        output_directory = args.output_dir
+    else:
+        raise OSError('OutputDirectoryDoesNotExist')
+    # get run number
+    run_number = utils.getRunNumber(args.reports)
+    # create filename
+    quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
+    output_path = os.path.join(output_directory, quality_assessment_filename)
+    # create QualityAssessmentObject
+    qa = QualityAssessmentObject(align_count_path=align_count_path,
+                                 run_number=utils.getRunNumber(args.reports),
+                                 output_dir=args.output,
+                                 quality_assessment_filename=quality_assessment_filename)
 
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-    alignment_files_df = compileData(sdf.align_count_path, "_novoalign.log")
-    count_files_df = compileData(sdf.align_count_path, "_read_count.tsv")
+    alignment_files_df = compileData(qa.align_count_path, "_novoalign.log")
+    count_files_df = compileData(qa.align_count_path, "_read_count.tsv")
 
     # concat the alignment and count data
     combined_df = pd.concat([alignment_files_df, count_files_df], axis=1, sort=True, join="inner")
     # write to csv
-    combined_df.to_csv(output_csv, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
+    combined_df.to_csv(output_path, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 
     # TODO: make genotype check automatic
     # prompt user to enter gene_list if genotype check fails
@@ -40,17 +54,29 @@ def main(argv):
 
     # genotype check
     if args.genotype_check:
-        sdf.query_sheet_path = args.query_sheet_path
-        sdf.log2_cpm_path = args.log2cpm
-        sdf.experiment_columns = args.exp_columns
-        utils.genotypeCheck(sdf)
+        # check if all necessary components are present
+        if os.path.isfile(args.query_sheet_path):
+            qa.query_sheet_path = args.query_sheet_path
+        else:
+            raise FileNotFoundError('QuerySheetDoesNotExist')
+        if os.path.isfile(args.log2cpm):
+            qa.log2_cpm_path = args.log2cpm
+        else:
+            raise FileNotFoundError('Log2cpmDoesNotExist')
+        try:
+            if isinstance(args.exp_columns, list):
+                qa.experiment_columns = args.exp_columns
+        except NameError:
+            print('experiment_columns not entered -- no list found')
+        # check genotype
+        qa.cryptoPerturbationGenotypeCheck()
 
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
-    parser.add_argument("-r", "--reports", required=True,
+    parser.add_argument("-r", "--reports_dir", required=True,
                         help="[REQUIRED] Directory for alignment log files. This currently only works for Novoalign output.")
-    parser.add_argument("-o", "--output", required=True,
+    parser.add_argument("-o", "--output_dir", required=True,
                         help="[REQUIRED] Suggested Usage: in reports/run_####/{organism}_pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
                              " File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     parser.add_argument("-gc", "--genotype_check", action='store_true',

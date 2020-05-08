@@ -1,70 +1,93 @@
 #!/usr/bin/env python
+"""
+    A script to operate DatabaseObject in rnaseq_tools. If you need more flexibility, do the following in htcf
+        cd /scratch/mblab/<user>
+        ml rnaseq_pipeline
+        python
+        #>>> from rnaseq_tools.DatabaseObject import DatabaseObject
+        #>>> database_object = DatabaseObject() <-- see rnaseq_tools.DatabaseObject script for help on usage
+    written by: implemented in python by chase mateusiak(chase.mateusiak@gmail.com), based on sanji bhavsar code in R.
+                 See https://github.com/sanjibhavsar/rnaseq_database for original work
+    date included in rnaseq_pipe: 1/20/2020
+    revised: 5/7/2020
 
-# name: queryDB
-# purpose: parse rnaseq metadata
-# input: bio sample database main directory; filepath for script output; json with search terms; name of query
-# output: four .csv : expr.lookup.txt has paths to the count matricies;
-#                     fastq.lookup.txt has paths to the fastqs;
-#                     queriedDB.csv is the complete database joined from input directory;
-#                     sample_summary.csv is the filtered table for input into rnaseq_pipe
-# written by: implemented in python by chase mateusiak(chase.mateusiak@gmail.com), based on sanji bhavsar code in R.
-#             See https://github.com/sanjibhavsar/rnaseq_database for original work
-# date included in rnaseq_pipe: 1/20/2020
-# See the end of the script for a description of the environment used to write/test
+    from cluster (REMEMBER that this WILL create a directory rnaseq_pipeline in /scratch/mblab/<user>)
+    usage: queryDB.py -pf # this will print the full database from /scratch/mblab/<user>/database_files
+"""
 
 import os
 import sys
 import argparse
-import time
-
-# list of subdirectories of datadir to be used as keys of dictionary. When these files are searched, only .csv and .xlsx
-# are listed for concatenating. The search through these directories is not recursive.
-# this is not a user input b/c there may be subdirectories that we do not wish to search.
-# HOWEVER, the functions that require datadir_keys take it as input, which allows those functions to be used to search
-# different subdirs as needed
-datadir_keys = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
+from rnaseq_tools import utils
+from rnaseq_tools.DatabaseObject import DatabaseObject
+from rnaseq_tools.StandardDataObject import StandardData
 
 def main(argv):
     # read in cmd line args
     args = parseArgs(argv)
+    print('...parsing arguments')
+    # if not cluster is passed, create logger in PWD
+    if args.not_cluster:
+        logger_path = os.path.join(os.getcwd(), 'queryDB_log_%s.log' %utils.yearMonthDay())
+        logger = utils.createLogger(logger_path, 'queryDB.py')
+    # if -nc is not passed, assume on HTCF and call StandardData to check/load rnaseq_pipeline file structure and data
+    else:
+        sd = StandardData()
+        logger_path = sd.log_file
+        logger = utils.createLogger(logger_path, __name__)
+    print('queryDB log can be found at: %s' %logger_path)
+    logger.debug('cmd line arguments are: %s'% args)
 
-    # get filepaths of all sheets in the various subdirs of the datadir you passed in cmd line
-    datadir_dict = getFilePaths(args.database)
-    # combine on the common columns the files in the subdirs (the datadir_keys) passed in cmd line
-    combined_df = createDB(datadir_dict)
+    # read in and check cmd line arguments
+    database_path = args.database
+    if database_path is not None and not os.path.exists(database_path):
+        raise FileNotFoundError('DatabaseFileDoesNotExist')
+    elif database_path is None:
+        database_path = sd.scratch_database_files
+    filter_json_path = args.json
+    if filter_json_path is not None and not os.path.isfile(filter_json_path):
+        raise FileNotFoundError('QueryJsonDoesNotExist')
+    output_directory = args.output_directory
+    if output_directory is not None and not os.path.exists(output_directory):
+        raise FileNotFoundError('OutputDirectoryDoesNotExist')
+    print('...compiling database')
+    # create database object (see rnaseq_tools.DatabaseObject for description of all functions
+    database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path)
+    database_object.setDatabaseDataframe()
 
-    # if there is a query, parse and write query
-    if args.json:
-        # query the combined db based on json input from cmd line
-        query_df = queryDB(combined_df, args.json)
-        # write out
-        query_name = os.path.basename(args.json).split('.')[0]
-        query_output = os.path.join(args.output, query_name)
-        query_df.to_csv(query_output + '.csv', index=False)
+    # filter database and print to output_directory, if json is present
+    if database_object.filter_json_path is not None:
+        print('...filtering database')
+        database_object.filterDatabaseDataframe
+        output_filename = utils.pathBaseName(database_object.filter_json_path)
+        filtered_output_path = os.path.join(output_directory, output_filename)
+        print('printing filtered database to: %s' %filtered_output_path)
+        database_object.filtered_database_df.to_csv(filtered_output_path, index=False)
 
     # if user enters -pf, print full database
     if args.print_full:
-        time_stamp = (time.strftime("%Y_%m_%d", time.gmtime()))
-        combined_output = os.path.join(args.output, 'combined_df_{}.csv'.format(time_stamp))
-        combined_df.to_csv(combined_output, index=False)
+        year_month_day = utils.yearMonthDay()
+        full_database_output_path = os.path.join(output_directory, 'combined_df_{}.csv'.format(year_month_day))
+        print('printing full database to: %s' %full_database_output_path)
+        database_object.database_df.to_csv(full_database_output_path, index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--database', required = True,
-                        help = 'topmost directory of metadata database. On cluster, /scratch/mblab/database-files. \
-                                If using the rnaseq_pipeline module, you may use $METADATA. Do make sure that $METADATA \
-                                is up to date by running git pull in the directory')
-    parser.add_argument('-j', '--json',
-                        help = 'path to json file used to parse metadata. See ')
-    parser.add_argument('-o', '--output', required = True,
-                        help = 'filepath to directory to intended queryDB output')
-    parser.add_argument( '-pf', '--print_full', action='store_true',
-                         help = 'Use this in the absence of -j to print out the full metadata database. The name will be combined_df_[date].csv. \
+    parser.add_argument('-o', '--output_directory', required=True,
+                        help='[REQUIRED] Filepath to directory to intended queryDB output')
+    parser.add_argument('-nc', '--not_cluster', action='store_true',
+                        help='[OPTIONAL] Set flag (no input) to use off HTCF')
+    parser.add_argument('-d', '--database', default=None,
+                        help='[OPTIONAL] Default is database_files in /scratch/mblab/user/rnaseq_pipeline. '
+                             'If entered, use topmost directory of metadata database. On cluster, /scratch/mblab/database-files.')
+    parser.add_argument('-j', '--json', default=None,
+                        help='[OPTIONAL] Path to json file used to parse metadata. See ')
+    parser.add_argument('-pf', '--print_full', action='store_true',
+                        help='[OPTIONAL] Use this in the absence of -j to print out the full metadata database. The name will be combined_df_[date].csv. \
                          Use it in addition to -j to print out both the query and the full database. Note: simply add -pf. No value is necessary')
 
     return parser.parse_args(argv[1:])
 
 
-
 if __name__ == '__main__':
-	main(sys.argv)
+    main(sys.argv)

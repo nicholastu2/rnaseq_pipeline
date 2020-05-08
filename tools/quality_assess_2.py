@@ -4,7 +4,7 @@ import argparse
 import re
 import pandas as pd
 import numpy as np
-from rnaseq_tools.OrganismData import OrganismData
+from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import utils
 import os
 

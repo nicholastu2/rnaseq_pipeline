@@ -20,7 +20,7 @@ usage: igv = IgvObject(organism = <your organism>, query_sheet_path = <path to q
 """
 
 from rnaseq_tools import utils
-from rnaseq_tools.OrganismData import OrganismData
+from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import annotation_tools
 import sys
 import os

@@ -1,5 +1,5 @@
 from rnaseq_tools import utils
-from rnaseq_tools.StandardData import StandardData
+from rnaseq_tools.StandardDataObject import StandardData
 import os
 
 class OrganismData(StandardData):
@@ -34,13 +34,13 @@ class OrganismData(StandardData):
             utils.configure(self, self.config_file, self.self_type)
 
     def setOrganismData(self):
+        # first, run standard directory structure to check that file structure exists, attributes set, etc
+        self.standardDirectoryStructure()
         setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline, self.genome_files,
                                                            self.organism, 'OrganismData_config.ini'))
         utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
                                                                                       self.organism))
-        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. fix this!!
-
-
-
+        # remove '' after taking basename (see todo regarding basename)
+        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. this is an issue with using utils.configure, it seems
 
 

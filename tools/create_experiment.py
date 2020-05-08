@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Purpose: copy count files from /lts into /scratch/mblab/$USER for analysis
 Usage: create_experiment.py -qs <your_query>.csv -o . -n <exp_name>
@@ -14,9 +13,6 @@ COUNT_LTS = '/lts/mblab/Crypto/rnaseq_data/lts_align_expr'
 # this needs to be here b/c align_counts currently only removes f*q.gz (this was legacy code that I did not catch before running the old data, which has a variety of extensions other than variations of strictly f*q.gz)
 FASTQ_TYPES = [".fastq.gz", ".fq.gz"]
 
-# TODO: UPDATE WITH STANDARDDATA OBJECT (this will greatly simplify pulling filenames, eg)
-# TODO: update logging with package logging
-
 def main(argv):
     # store suffixes of the files we wish to move
     count_suffix = '_read_count.tsv'
@@ -29,28 +25,30 @@ def main(argv):
     else:
         leading_zero_list = ''
 
-    # read in query sheet (The path to the result of a query against the metadata base using queryDB)
-    query = pd.read_csv(args.query_sheet)
+    # read in database_df (The path to the result of a query against the metadata base using queryDB)
+    database_df = pd.read_csv(args.query_sheet)
 
     # create a directory for the experiment
-    dest_dir = createExperimentDir(args.output_location, args.experiment_name)
+    destination_directory = os.path.join(args.output_directory, args.exp_name)
+    cmd = "mkdir -p {}".format(destination_directory)
+    utils.executeSubProcess(cmd)
 
     # get list of count files
-    count_file_list = filepathList(query, count_suffix, leading_zero_list)
+    count_file_list = filepathList(database_df, count_suffix, leading_zero_list)
     # get list of novoalign logs
-    novoalign_log_list = filepathList(query, novoalign_log_suffix, leading_zero_list)
+    novoalign_log_list = filepathList(database_df, novoalign_log_suffix, leading_zero_list)
     # concat the lists together
     file_list = count_file_list + novoalign_log_list
 
     # move the files from /lts to the output directory (generally the user's scratch)
-    moveFiles(file_list, dest_dir, len(query))
+    moveFiles(file_list, destination_directory, len(database_df))
 
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-qs', '--query_sheet', required=True,
                         help='query the database using queryDB.py for the libraries you wish to analyze')
-    parser.add_argument('-o', '--output_location', required=True,
+    parser.add_argument('-o', '--output_directory', required=True,
                         help='Suggested usage: /scratch/$USER or /scratch/$USER/rnaseq  The location where you want \
                             to put the directory containing the counts for your analysis')
     parser.add_argument('-n', '--experiment_name', required=True,
@@ -63,32 +61,14 @@ def parseArgs(argv):
     return parser.parse_args(argv[1:])
 
 
-def createExperimentDir(output, exp_name):
-    """
-    create experiment directory to store copied count files
-    :param output: output path (cmd line input)
-    :param exp_name: name of experiment (cmd line input)
-    :returns: directory path
-    """
-
-    dir_name = os.path.join(output, exp_name)
-    cmd = "mkdir -p {}".format(dir_name)
-    utils.executeSubProcess(cmd)
-    return dir_name
-
-
 def filepathList(query, file_type, leading_zero_list):
     """
-    create filepath from COUNT_LTS, runNumber and fastqFileName
-    :param query: a query sheet describing the experiment files
-    :param file_type: the suffix to attach to the fastqfile basename
-    :param leading_zero_list: list of runs with leading zeros
-    :returns: a list of filepaths of a given file_type according to the query
+        create filepath from COUNT_LTS, runNumber and fastqFileName
+        :param query: a query sheet describing the experiment files
+        :param file_type: the suffix to attach to the fastqfile basename
+        :param leading_zero_list: list of runs with leading zeros
+        :returns: a list of filepaths of a given file_type according to the query
     """
-    # create filepath from COUNT_LTS, runNumber and fastqFileName
-    # Args: queryDB output, the file_type of file to create (default is read_count.tsv and novoalign.log)
-    # Return: list of count filepaths
-
     run_num = list(query['runNumber'])
     # the following is to address the various run number formats with leading 0s eg 0773. There is some inconsistency
     if leading_zero_list:
@@ -124,12 +104,11 @@ def filepathList(query, file_type, leading_zero_list):
 
 def moveFiles(file_list, dest_dir, query_len):
     """
-    extract run number and index, cp the files to the destination dir and log the move
-    :param file_list: list of files to be moved
-    :param dest_dir: the destination of the move
-    :param query_len: the length of the query (used to check)
+        extract run number and index, cp the files to the destination dir and log the move
+        :param file_list: list of files to be moved
+        :param dest_dir: the destination of the move
+        :param query_len: the length of the query (used to check)
     """
-
     count = 0
     for file in file_list:
         # throw error/exit if file isn't found in src_dir
