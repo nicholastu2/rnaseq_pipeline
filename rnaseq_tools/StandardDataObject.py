@@ -20,6 +20,7 @@ class StandardData:
         :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
         """
         self.self_type = 'StandardData'
+        self.default_config_path = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
         # list of StandardData object expected attributes. This is the file structure necessary for the rnaseq pipeline
         self._attributes = ['lts_rnaseq_data', 'pipeline_version', 'mblab_scratch', 'scratch_database_files',
                             'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
@@ -42,13 +43,13 @@ class StandardData:
         # get user name and set as _user
         self._user = getpass.getuser()
         # if no config_file is passed, then set to default in cluster
-        if not kwargs['config_file']:
-            if not os.path.exists(
-                    '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'):
+        try:
+            self.config_file = kwargs['config_file']
+        except KeyError:
+            if not os.path.exists(self.default_config_path):
                 raise FileNotFoundError(
                     'default config path not found. enter a config path in the StandardObject or StandardObject child call')
-            kwargs[
-                'config_file'] = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+            self.config_file = self.default_config_path
         utils.setAttributes(self, self._attributes, kwargs)
 
         # load config file
