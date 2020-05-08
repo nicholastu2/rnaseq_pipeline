@@ -15,6 +15,8 @@ class OrganismData(StandardData):
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(OrganismData, self).__init__(self._add_expected_attributes, **kwargs)
+        # put in flag to only do this if in htcf
+        self.standardDirectoryStructure()
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'OrganismData'
         # set organism data, if it is passed
