@@ -62,7 +62,7 @@ def main(argv):
         print('...filtering database')
         database_object.filterDatabaseDataframe()
         output_filename = utils.pathBaseName(database_object.filter_json_path)
-        filtered_output_path = os.path.join(output_directory, output_filename)
+        filtered_output_path = os.path.join(output_directory, output_filename + '.csv')
         print('printing filtered database to: %s' %filtered_output_path)
         database_object.filtered_database_df.to_csv(filtered_output_path, index=False)
 
