@@ -33,6 +33,8 @@ def main(argv):
     # if -nc is not passed, assume on HTCF and call StandardData to check/load rnaseq_pipeline file structure and data
     else:
         sd = StandardData()
+        sd.standardDirectoryStructure()
+        sd.setStandardDataLogger()
         logger_path = sd.log_file
         logger = utils.createLogger(logger_path, __name__)
     print('queryDB log can be found at: %s' %logger_path)
