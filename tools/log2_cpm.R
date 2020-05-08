@@ -11,6 +11,7 @@ main = function(args){
   # parse cmd line arguments
   parsed = args
   path_to_raw_counts = parsed$raw_counts
+  print('...Creating log2_cpm count matrix...')
   # read in raw counts data.frame
   raw_counts = read.csv(path_to_raw_counts, row.names = 'gene_id', check.names = FALSE) # without check.names = FALSE, R will insert X in front of colnames that start with a number https://stackoverflow.com/a/58951644/9708266
   # convert to edgeR DGEList object
@@ -23,6 +24,7 @@ main = function(args){
   colnames(log2_cpm)[1] = 'gene_id'
 
   # write to output path -- NOTE: in cmd line input, the -o is the FULL output path (including filename and extension)
+  print('writing log2_cpm matrix to: %s' %parsed%output_full_path)
   write_csv(log2_cpm, parsed$output_FULL_path)
 
 } # end main()
