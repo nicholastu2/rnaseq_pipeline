@@ -1,7 +1,8 @@
 """
    A class to interact with the brentlab rnaseq_database
 
-   usage: query = DatabaseObject('/path/to/topmost_database_directory')
+   usage: query = DatabaseObject('/path/to/topmost_database_directory', logger_path = '/path/to/log_file')
+                  note: logger_path is not required, but if not provided one will automatically be created in $PWD
                   optional: keyword arguments, ie database_subdirectories = ['list', 'of', 'subdirectories', 'you', 'wish', 'to', 'include']
 """
 import pandas as pd
@@ -10,12 +11,11 @@ import re
 import sys
 from rnaseq_tools import utils
 
-
+# TODO: more error handling in functions
 class DatabaseObject:
     def __init__(self, database_top, **kwargs):
         """
             constructor
-            TODO: error handling in functions -- check that attributes are what we expect them to be prior to running
             :param database_top: path to the topmost directory of the database you wish to examine. Must have subdirectories
             of individual sheets (ie fastqFilename, Library, S2cDNA, etc...) with individual sheets inside with key columns
             connecting them both forwards and backwards.
@@ -23,6 +23,7 @@ class DatabaseObject:
                                 logger_path = path to the directory in which to deposit the logger
 
             PLEASE NOTE: order of database_subdirectories is important. see comment in constructor
+
         """
         # create logger
         try:
@@ -35,26 +36,30 @@ class DatabaseObject:
         self.database_top = database_top
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
-        if 'database_subdirectories' in kwargs:
+        try:
             self.database_subdirectories = kwargs['database_subdirectories']
-        else:
+        except KeyError:
             self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
 
         # see setter setFilterJson()
         self.filter_json = None
-        if 'filter_json_path' not in kwargs:
-            self.filter_json_path = None
-        else:
+        try:
             self.filter_json_path = kwargs['filter_json_path']
+        except KeyError:
+            self.filter_json_path = None
+
+        # see setter setDatabaseDataframe()
+        try:
+            self.database_df = kwargs['database_df']
+        except KeyError:
+            self.database_df = None
+
         # data_dir_dict will store {database_subdirectory: [list, of, filepaths, in, each, subdir], ... }. See self.setDatabaseDict()
         self.database_dict = {}
         # see setter setDatabaseDict()
         self.concat_database_dict = {}
         # see setter setKeyColumns()
         self.database_key_columns = []
-        # see setter setDatabaseDataframe()
-        if 'database_df' not in kwargs:
-            self.database_df = None
         # see filterDatabaseDataframe()
         self.filtered_database_df = None
 

@@ -12,6 +12,7 @@ import time
 import logging
 import logging.config
 
+
 def getRunNumber(fastq_path):
     """
         extract run number from -f input. this *should be* to a file called sequence/run_####_samples
@@ -27,6 +28,7 @@ def getRunNumber(fastq_path):
         sys.exit()
     else:
         return run_num
+
 
 def decomposeStatus2Bit(status):
     """
@@ -106,6 +108,7 @@ def mkdirp(path_to_directory):
             print("Directory {} cannot be created. See utils.mkdirp function call "
                   "in the script from which this error occurred".format(path_to_directory))
 
+
 def addForwardSlash(path):
     """
         add forward slash to path
@@ -115,6 +118,7 @@ def addForwardSlash(path):
     if not path.endswith('/'):
         path = path + '/'
     return path
+
 
 def checkCSV(file_path):
     """
@@ -131,6 +135,7 @@ def checkCSV(file_path):
         else:
             return False
 
+
 def checkTSV(file_path):
     """
         test whether a given file is a .tsv
@@ -145,6 +150,7 @@ def checkTSV(file_path):
             return True
         else:
             return False
+
 
 def checkExcel(file_path):
     """
@@ -161,6 +167,7 @@ def checkExcel(file_path):
         else:
             return False
 
+
 def readInDataframe(path_to_csv_tsv_or_excel):
     """
         read in .csv, .tsv or .xlsx
@@ -176,7 +183,8 @@ def readInDataframe(path_to_csv_tsv_or_excel):
             return pd.read_excel(path_to_csv_tsv_or_excel)
 
     except FileNotFoundError:
-        print('file %s does not exist' %path_to_csv_tsv_or_excel)
+        print('file %s does not exist' % path_to_csv_tsv_or_excel)
+
 
 def fileBaseName(file_name):
     """
@@ -192,6 +200,7 @@ def fileBaseName(file_name):
     else:
         return file_name
 
+
 def pathBaseName(path):
     """
         This function will work for fileBaseName and also where you want the basename of a file from a path of any length
@@ -203,20 +212,24 @@ def pathBaseName(path):
     file_name = os.path.basename(path)
     return fileBaseName(file_name)
 
-def dirName(path_to_file):
+
+def dirName(path):
     """
         get the directory name of the directory one level up from the end of the path provided.
         eg /path/to/file.fastq.gz returns 'to'
-        :param path_to_file: a path to a directory or file
+        :param path: a path to a directory or file
         :returns: the name of the directory one level up from the final level of path. see description for example
     """
-    directory_path_split = os.path.split(path_to_file)
+    if path == '.':
+        raise Exception('Must pass a path, not \\., in order to extract directory name')
+    directory_path_split = os.path.split(path)
     # search second group for a period (this is not very specific -- a non file ending period would also return true)
-    if not re.search('\\.', directory_path_split[1]):
-        raise('%s, the path passed to utils.dirName, '
-              'does not a file extension and is not recognized as a path to a file.' %path_to_file)
-    # return the basename (the final portion after the last /) of the first split group
-    return os.path.basename(directory_path_split[0])
+    if re.search('\\.', directory_path_split[1]):
+        dir_name = os.path.basename(directory_path_split[0])
+    else:
+        dir_name = os.path.basename(path)
+    return dir_name
+
 
 def extractTopmostFiles(path_to_directory):
     """
@@ -225,6 +238,7 @@ def extractTopmostFiles(path_to_directory):
         :returns: a list of files in topmost level of directory (not recursive)
     """
     return glob.glob(os.path.join(path_to_directory, '*'))
+
 
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
@@ -236,6 +250,7 @@ def countsPerMillion(raw_count_path, output_FULL_path):
     cmd = 'log2_cpm.R -r {} -o {}'.format(raw_count_path, output_FULL_path)
     executeSubProcess(cmd)
 
+
 def executeSubProcess(cmd):
     """ TODO: re-do this with package subprocess and store rather than write. write to logger
         executes command, sys.exit with message if the subprocess fails
@@ -243,10 +258,10 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        raise("{} failed to execute. check the code.".format(cmd))
+        raise ("{} failed to execute. check the code.".format(cmd))
 
 
-def configure(object_instance, config_file, config_header, prefix = ''):
+def configure(object_instance, config_file, config_header, prefix=''):
     """
         reads and sets the attributes in a config_file.ini in type output by configparser.
         :param object_instance: an object to be configured
@@ -260,9 +275,11 @@ def configure(object_instance, config_file, config_header, prefix = ''):
     config.read(config_file)
     # set attributes for StandardData
     for key, value in config[config_header].items():
-        setattr(object_instance, key, os.path.join(prefix,value)) # by default, values are read in as strings. Currently, all filepaths, so this is good
+        setattr(object_instance, key, os.path.join(prefix,
+                                                   value))  # by default, values are read in as strings. Currently, all filepaths, so this is good
 
-def submitSbatch(sbatch_path, email = None):
+
+def submitSbatch(sbatch_path, email=None):
     """
         submit an sbatch script (see sbatch script examples in templates)
         :param sbatch_path: path to an sbatch file
@@ -277,17 +294,20 @@ def submitSbatch(sbatch_path, email = None):
         cmd = "sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(email, sbatch_path)
         executeSubProcess(cmd)
 
+
 def yearMonthDay():
     """
         :returns: the year-month-day as 20200403
     """
     return time.strftime("%Y%m%d")
 
+
 def hourMinuteSecond():
     """
         :returns: hour-minute-second as 135301
     """
     return time.strftime("%H%M%S")
+
 
 def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
     """
@@ -309,6 +329,7 @@ def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_
         # set attribute named directory (from for loop above) that points towards variable path which stores intended_dir_path/directory
         setattr(object_instance, directory, path)
 
+
 def setAttributes(sd_object, expected_attributes, input_dict):
     """
         a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
@@ -319,8 +340,9 @@ def setAttributes(sd_object, expected_attributes, input_dict):
     """
     for key, value in input_dict.items():
         if key not in expected_attributes:
-            print("%s not in expected attributes. Not a problem, but also not handled in the objects\n" %key)
+            print("%s not in expected attributes. Not a problem, but also not handled in the objects\n" % key)
         setattr(sd_object, key, value)
+
 
 def userInputCorrectPath(message, my_object, attribute, **kwargs):
     """
@@ -342,6 +364,7 @@ def userInputCorrectPath(message, my_object, attribute, **kwargs):
         new_attr_value = input()
 
     return setattr(my_object, attribute, new_attr_value)
+
 
 def userInputCorrectAttributeName(message, my_object, old_attribute_name, *args):
     """
@@ -365,7 +388,8 @@ def userInputCorrectAttributeName(message, my_object, old_attribute_name, *args)
     # to use this, user will need to object = userInputCorrectAttributeName(...)
     return my_object
 
-def createLogger(file_path, logger_name, logging_conf = None):
+
+def createLogger(file_path, logger_name, logging_conf=None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
     :param file_path: name of the file in which to log.
@@ -376,7 +400,7 @@ def createLogger(file_path, logger_name, logging_conf = None):
     """
     # a config file is passed, load it
     if logging_conf:
-        logging.config.fileConfig(logging_conf) # should include at least what is below
+        logging.config.fileConfig(logging_conf)  # should include at least what is below
     # if it is not, configure as follows
     else:
         # create log for the year-month-day
@@ -384,10 +408,8 @@ def createLogger(file_path, logger_name, logging_conf = None):
             filename='%s' % file_path,
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
-            datefmt='%I:%M:%S %p', # set 'datefmt' to hour-minute-second AM/PM
+            datefmt='%I:%M:%S %p',  # set 'datefmt' to hour-minute-second AM/PM
             level='WARNING'
         )
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
-
-
