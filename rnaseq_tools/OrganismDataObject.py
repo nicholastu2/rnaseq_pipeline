@@ -28,7 +28,7 @@ class OrganismData(StandardData):
                 print('\n{self.organism} is not configured. You will have to set the OrganismData attributes manually. '
                       'See the config/rnaseq_pipeline_config.ini. Alternatively, see one of the configured genome_files (in {self.genome_files}) '
                       'and create a subdir of genomes_files with an OrganismData_config.ini file, zip it into '
-                      '/lts/mblab/Crypto/rnaseq_data/genome_files.zip, remove your genome_files in your {self.user_rnaseq_pipeline} directory'
+                      '/lts/mblab/Crypto/rnaseq_data/genome_files.zip, remove your genome_files in your {self.user_rnaseq_pipeline_directory}'
                       'and either re-run this script or start an interactive python session, import and instantiate a StandardData object.\n')
                 setattr(self, 'organism', None)
                 utils.configure(self, self.config_file, self.self_type)
@@ -39,7 +39,7 @@ class OrganismData(StandardData):
     def setOrganismData(self):
         # first, run standard directory structure to check that file structure exists, attributes set, etc
         self.standardDirectoryStructure()
-        setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline, self.genome_files,
+        setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline_directory, self.genome_files,
                                                            self.organism, 'OrganismData_config.ini'))
         utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
                                                                                       self.organism))
