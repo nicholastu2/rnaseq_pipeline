@@ -60,7 +60,7 @@ def main(argv):
     # filter database and print to output_directory, if json is present
     if database_object.filter_json_path is not None:
         print('...filtering database')
-        database_object.filterDatabaseDataframe
+        database_object.filterDatabaseDataframe()
         output_filename = utils.pathBaseName(database_object.filter_json_path)
         filtered_output_path = os.path.join(output_directory, output_filename)
         print('printing filtered database to: %s' %filtered_output_path)
