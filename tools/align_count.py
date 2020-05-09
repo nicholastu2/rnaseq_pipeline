@@ -102,7 +102,7 @@ def main(argv):
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
         current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
-        file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(current_datetime))
+        file.write('Date processed: %s' %current_datetime)
         file.write("\n")
 
     # include the head of the gff/gtf, also
