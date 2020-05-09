@@ -363,7 +363,7 @@ def softLinkAndSetAttr(object_instance, list_of_target_directories, source_path,
         setattr(object_instance, target_directory_name, path)
 
 
-def setAttributes(sd_object, expected_attributes, input_dict):
+def setAttributes(sd_object, input_dict):
     """
         a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
         (a check for entering 'query' instead of 'query_sheet_path'
@@ -372,8 +372,6 @@ def setAttributes(sd_object, expected_attributes, input_dict):
         :param input_dict: kwargs entered upon instantiation
     """
     for key, value in input_dict.items():
-        if key not in expected_attributes:
-            print("%s not in expected attributes. Not a problem, but also not handled in the objects\n" % key)
         setattr(sd_object, key, value)
 
 

@@ -54,12 +54,13 @@ def main(argv):
     print('...extracting list of fastq files to process')
     fastq_list_file = "{}/run_{}_fastq_list.txt".format(od.job_scripts, od.run_number)
     logger.info('The fastq list file path is %s' %fastq_list_file)
+    print('The fastq list file path is %s' % fastq_list_file)
     # extract all files with the extensions in the list from od.fastq_path
     fastq_file_list = utils.getFileListFromDirectory(od.fastq_path, ["fastq.gz", "fastq", "fq.gz", "fq"])
     # store length of list
     num_fastqs = len(fastq_file_list)
     # write list to file
-    with open(fastq_list_file) as file:
+    with open(fastq_list_file, 'w') as file:
         for fastq_file_basename in fastq_file_list:
             file.write("{}\n".format(fastq_file_basename))
     if not os.path.isfile(fastq_list_file):
