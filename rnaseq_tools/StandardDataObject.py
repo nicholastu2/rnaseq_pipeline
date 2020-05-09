@@ -57,7 +57,7 @@ class StandardData:
             except FileNotFoundError:
                 print('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
         self.config_file = self.default_config_path
-        utils.setAttributes(self, self._attributes, kwargs)
+        utils.setAttributes(self, kwargs)
         # load config file
         utils.configure(self, self.config_file, self.self_type)
 

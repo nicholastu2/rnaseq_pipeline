@@ -365,10 +365,9 @@ def softLinkAndSetAttr(object_instance, list_of_target_directories, source_path,
 
 def setAttributes(sd_object, input_dict):
     """
-        a makeshift method to mimic a constructor. Check input against list _attributes and notify user if any are not expected
+        a makeshift method to mimic a constructor.
         (a check for entering 'query' instead of 'query_sheet_path'
         :param sd_object: a instance of a StandardData object in which you wish to set attributes
-        :param expected_attributes: a list of attributes that you expect to have in the class. see StandardData for an example
         :param input_dict: kwargs entered upon instantiation
     """
     for key, value in input_dict.items():
