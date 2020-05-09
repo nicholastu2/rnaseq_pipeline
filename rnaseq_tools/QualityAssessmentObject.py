@@ -61,7 +61,10 @@ class QualityAssessmentObject(StandardData):
                         self.ko_gene_list.append(genotype)
 
 
-    def cryptoPerturbationGenotypeCheck(self):
+    def cryptoPerturbationExpressionCheck(self):
+        """
+            check expression against wt expression as mean_log2_perturbed_treatment_timepoint / mean_wt_treatment_timepoint
+        """
         # check if necessary paths are entered as attributes
         if not hasattr(self, 'query_sheet_path'):
             raise AttributeError('NoQuerySheetPath')
@@ -81,17 +84,25 @@ class QualityAssessmentObject(StandardData):
 
         for gene in self.ko_gene_list:
             pass
-            # extract log2cpm expression and treatment_timepoint
-            # extract treatment_timepoint
-            # get quantile from wildtype dataframe for gene in given treatment_timepoint
-            # if gene expression is greater than 20% treatment_timempoint, flag, create diagnostic dataframe and browser shot
+            # extract mean perturbed log2cpm expression and treatment_timepoint
+            # if gene expression is greater than 20% of wt in treatment_timempoint, flag, create diagnostic dataframe and browser shot
 
         for gene in self.overexpress_gene_list:
             pass
-            # extract log2cpm expression and treatment_timepoint
-            # extract treatment_timepoint
-            # get quantile from wildtype dataframe for gene in given treatment_timepoint
-            # if gene expression is less than 99% wildtype, flag and create diagnostic dataframe and browser shot
+            # extract mean perturbed log2cpm expression and treatment_timepoint
+            # if gene expression is less than 99% of wt in same treatment_timempoint, flag, create diagnostic dataframe and browser shot
+
+    def cryptoPertubationCoverageCheck(self):
+        """
+            if cryptoPertubationExpressionCheck fails, check coverage of genebody
+        """
+        pass
+
+    def cryptoPertubationBrowserShot(self):
+        """
+            create IGV browser shot of perturbed gene
+        """
+
 
     def updateStatusColumn(self):
         pass

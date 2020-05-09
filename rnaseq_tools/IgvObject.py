@@ -54,7 +54,7 @@ class IgvObject(OrganismData):
         # initialize list to store bamfiles that need to be indexed (must be done by batch script)
         self.bam_file_to_index_list = []
         # create logger for IgvObject
-        self.logger = utils.createLogger(self.log_file, __name__)
+        self.logger = utils.createLogger(self.log_file_path, __name__)
 
     def checkAttributes(self):
         if not hasattr(self, 'sample_list'):

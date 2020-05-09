@@ -35,7 +35,7 @@ def main(argv):
         sd = StandardData()
         sd.standardDirectoryStructure()
         sd.setStandardDataLogger()
-        logger_path = sd.log_file
+        logger_path = sd.log_file_path
         logger = utils.createLogger(logger_path, __name__)
     print('queryDB log can be found at: %s' %logger_path)
     logger.debug('cmd line arguments are: %s'% args)

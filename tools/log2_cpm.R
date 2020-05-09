@@ -7,6 +7,10 @@
 # Created by: chasem@wustl.edu chase.mateusiak@gmail.com
 # Created on: 3/17/20
 
+suppressMessages(library(optparse))
+suppressMessages(library(edgeR))
+suppressMessages(library(tidyverse))
+
 main = function(args){
   # parse cmd line arguments
   parsed = args
@@ -28,10 +32,6 @@ main = function(args){
   write_csv(log2_cpm, parsed$output_FULL_path)
 
 } # end main()
-
-suppressMessages(library(optparse))
-suppressMessages(library(edgeR))
-suppressMessages(library(tidyverse))
 
 parseArguments = function() {
   option_list = list(

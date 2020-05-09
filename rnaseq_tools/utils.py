@@ -241,6 +241,21 @@ def dirName(path):
         dir_name = os.path.basename(path)
     return dir_name
 
+def dirPath(path):
+    """
+        return the path (first half of result of os.path.split() to the directory one up from file
+        :param path: a path to a directory or file
+        :returns: the name of the directory one level up from the final level of path. see description for example
+        :raises: NotADirectoryError
+    """
+    path_to_directory_one_up = os.path.split(path)[0]
+
+    if not os.path.isdir(path_to_directory_one_up):
+        raise NotADirectoryError
+
+    return path_to_directory_one_up
+
+
 
 def extractTopmostFiles(path_to_directory):
     """
@@ -320,25 +335,31 @@ def hourMinuteSecond():
     return time.strftime("%H%M%S")
 
 
-def softLinkAndSetAttr(object_instance, list_of_dirs, origin_dir_path, intended_dir_path):
+def softLinkAndSetAttr(object_instance, list_of_target_directories, source_path, intended_target_dir):
     """
         creates soft links and stores the path as attributes of object_instance
         :param object_instance: an instance of a given object (StandardData in this case)
-        :param list_of_dirs: a list of directories that exists in origin_dir_path
-        :param origin_dir_path: path to where the directories exist (actual data)
-        :param intended_dir_path: the place where you'd like the directories soft linked
+        :param list_of_target_directories: a list of directories that exists in origin_dir_path
+        :param source_path: path to where the directories exist (actual data)
+        :param intended_target_dir: the place where you'd like the directories soft linked
+        :raises: FileNotFoundError
     """
+    if not os.path.exists(source_path):
+        raise FileNotFoundError('SourceDoesNotExist')
+    if not os.path.exists(intended_target_dir):
+        raise FileNotFoundError('TargetDirectoryOfSoftLinkDoesNotExist')
+
     # loop through directories in list_of_dirs
-    for directory in list_of_dirs:
+    for target_directory_name in list_of_target_directories:
         # store the path (either it exists or it will after the if not block) to the directory in intended_dir_path)
-        path = os.path.join(intended_dir_path, directory)
+        path = os.path.join(intended_target_dir, target_directory_name)
         # check if directory exists in the intended_dir_path
         if not os.path.exists(path):
             # if it does not, soft link ln -s origin_dir_path/directory to intended_dir_path/directory
-            cmd = 'ln -s {}/{} {}'.format(origin_dir_path, directory, path)
+            cmd = 'ln -s {}/{} {}'.format(source_path, target_directory_name, path)
             executeSubProcess(cmd)
         # set attribute named directory (from for loop above) that points towards variable path which stores intended_dir_path/directory
-        setattr(object_instance, directory, path)
+        setattr(object_instance, target_directory_name, path)
 
 
 def setAttributes(sd_object, expected_attributes, input_dict):
@@ -369,8 +390,8 @@ def userInputCorrectPath(message, my_object, attribute, **kwargs):
     print(message)
 
     # args and the if block below are for testing purposes
-    if args:
-        new_attr_value = args[0][0]
+    if kwargs:
+        new_attr_value = kwargs[0][0]
     else:
         new_attr_value = input()
 
@@ -400,15 +421,19 @@ def userInputCorrectAttributeName(message, my_object, old_attribute_name, *args)
     return my_object
 
 
-def createLogger(file_path, logger_name, logging_conf=None):
+def createLogger(log_file_path, logger_name, logging_conf=None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
-    :param file_path: name of the file in which to log.
+    :param log_file_path: name of the file in which to log.
     :param logger_name: __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
                      (__name__ is a special variable in python)  
     :param logging_conf: path to logging configuration file
     :returns: an instance of the configured logger
     """
+    try:
+        log_directory_path = dirPath(log_file_path)
+    except NotADirectoryError:
+        print('log directory %s not found and therefore can\'t create log_file here.' % log_directory_path)
     # a config file is passed, load it
     if logging_conf:
         logging.config.fileConfig(logging_conf)  # should include at least what is below
@@ -416,7 +441,7 @@ def createLogger(file_path, logger_name, logging_conf=None):
     else:
         # create log for the year-month-day
         logging.basicConfig(
-            filename='%s' % file_path,
+            filename='%s' % log_file_path,
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
             datefmt='%I:%M:%S %p',  # set 'datefmt' to hour-minute-second AM/PM

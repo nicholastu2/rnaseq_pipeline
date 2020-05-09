@@ -21,6 +21,7 @@ def main(argv):
                       strandness=args.strandness,
                       email=args.user_email,
                       run_number=utils.getRunNumber(args.fastq_path))
+
     # ensure that standard directory structure is set
     sd.standardDirectoryStructure()
     # create StandardData logger
@@ -54,8 +55,8 @@ def main(argv):
     utils.mkdirp(output_subdir_path)
     # write version info from the module .lua file (see the .lua whatis statements)
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
-    cmd_pipline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path)
-    utils.executeSubProcess(cmd_pipline_info)
+    cmd_pipeline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path)
+    utils.executeSubProcess(cmd_pipeline_info)
     # include the date processed in output_subdir_path/pipeline_into.txt
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")

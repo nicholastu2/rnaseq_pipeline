@@ -2,8 +2,9 @@ from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 import os
 
+
 class OrganismData(StandardData):
-    def __init__(self, expected_attributes = None, **kwargs):
+    def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
         self._add_expected_attributes = ['organism', 'output_dir', 'wildtype', 'experiment_dir', 'norm_count_path',
                                          'max_replicates', 'drug_marker', 'qc_config', 'experiment_conditions']
@@ -15,12 +16,11 @@ class OrganismData(StandardData):
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(OrganismData, self).__init__(self._add_expected_attributes, **kwargs)
-        # put in flag to only do this if in htcf
-        self.standardDirectoryStructure()
-        self.createOrganismDataLogger()
+
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'OrganismData'
-        # set organism data, if it is passed
+
+        # set organism, if an organism is passed
         if hasattr(self, 'organism'):
             if self.organism in self._configured_organisms_list:
                 self.setOrganismData()
@@ -30,27 +30,40 @@ class OrganismData(StandardData):
                       'and create a subdir of genomes_files with an OrganismData_config.ini file, zip it into '
                       '/lts/mblab/Crypto/rnaseq_data/genome_files.zip, remove your genome_files in your {self.user_rnaseq_pipeline_directory}'
                       'and either re-run this script or start an interactive python session, import and instantiate a StandardData object.\n')
-                setattr(self, 'organism', None)
+                # see [OrganismData] in config/rnaseq_pipeline_config.ini
                 utils.configure(self, self.config_file, self.self_type)
-        else:  # TODO git rid of this copy pasted code -- reformat if statement
-            setattr(self, 'organism', None)
-            utils.configure(self, self.config_file, self.self_type)
 
+        # create OrganismData logger
+        try:
+            self.logger = None
+            self.createOrganismDataLogger()
+        except NotADirectoryError:
+            print('Cannot create OrganismData logger. Check code and config file.')
+            exit(1)
+        else:
+            if not os.path.isfile(self.logger_file_path):
+                raise FileNotFoundError('LoggerNotSuccessfullyCreated')
+
+    # noinspection PyAttributeOutsideInit
     def setOrganismData(self):
         # first, run standard directory structure to check that file structure exists, attributes set, etc
         self.standardDirectoryStructure()
+        # set OrganismData config found in rnaseq_pipeline/genome_files/<organism>/OrganismData_config.ini
         setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline_directory, self.genome_files,
                                                            self.organism, 'OrganismData_config.ini'))
+        # read configuration file at path stored in organism_config_file
         utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
                                                                                       self.organism))
         # remove '' after taking basename (see todo regarding basename)
-        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '') # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. this is an issue with using utils.configure, it seems
+        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '')  # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. this is an issue with using utils.configure, it seems
 
     def createOrganismDataLogger(self):
         """
             create logger for OrganismData
+            :raises: NotADirectoryError if logger_directory_path does not exist
         """
-        try:
-            return utils.createLogger(self.logger_file, __name__)
-        except AttributeError:
-            print('set standardDirectoryStructure first (this is a child of StandardData, so call self.standardDirectoryChild() prior to trying to create the logger')
+        logger_directory_path = utils.dirPath(self.logger_file_path)
+        if os.path.isdir(logger_directory_path):
+            utils.createLogger(self.logger_file_path, __name__)
+        else:
+            raise NotADirectoryError('LogDirectoryDoesNotExist')
