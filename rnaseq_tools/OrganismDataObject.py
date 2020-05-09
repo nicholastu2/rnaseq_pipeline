@@ -41,7 +41,7 @@ class OrganismData(StandardData):
             print('Cannot create OrganismData logger. Check code and config file.')
             exit(1)
         else:
-            if not os.path.isfile(self.logger_file_path):
+            if not os.path.isfile(self.log_file_path):
                 raise FileNotFoundError('LoggerNotSuccessfullyCreated')
 
     # noinspection PyAttributeOutsideInit
@@ -62,8 +62,8 @@ class OrganismData(StandardData):
             create logger for OrganismData
             :raises: NotADirectoryError if logger_directory_path does not exist
         """
-        logger_directory_path = utils.dirPath(self.logger_file_path)
+        logger_directory_path = utils.dirPath(self.log_file_path)
         if os.path.isdir(logger_directory_path):
-            utils.createLogger(self.logger_file_path, __name__)
+            utils.createLogger(self.log_file_path, __name__)
         else:
             raise NotADirectoryError('LogDirectoryDoesNotExist')
