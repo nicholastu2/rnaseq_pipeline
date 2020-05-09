@@ -80,8 +80,8 @@ class StandardData:
             setattr(self, 'user_scratch', user_scratch)
 
         # if it does not already exist, create user_rnaseq_pipeline in user_scratch and set attribute
-        utils.mkdirp(self.user_rnaseq_pipeline_directory)
         setattr(self, 'user_rnaseq_pipeline_directory', '{}/rnaseq_pipeline'.format(self.user_scratch))
+        utils.mkdirp(self.user_rnaseq_pipeline_directory)
 
         # create necessary subdirectories in rnaseq_pipeline
         process_directories = ['reports', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
