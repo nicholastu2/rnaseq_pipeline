@@ -25,7 +25,7 @@ def main(argv):
     # ensure that standard directory structure is set
     sd.standardDirectoryStructure()
     # create StandardData logger
-    sd.setStandardDataLogger()
+    sd.createStandardDataLogger()
     sd.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sd.run_number))
     # store align_only flag from cmd line
     align_only = args.align_only

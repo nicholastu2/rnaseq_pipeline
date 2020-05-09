@@ -34,7 +34,7 @@ def main(argv):
     else:
         sd = StandardData()
         sd.standardDirectoryStructure()
-        sd.setStandardDataLogger()
+        sd.createStandardDataLogger()
         logger_path = sd.log_file_path
         logger = utils.createLogger(logger_path, __name__)
     print('queryDB log can be found at: %s' %logger_path)

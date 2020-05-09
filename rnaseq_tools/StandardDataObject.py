@@ -98,6 +98,7 @@ class StandardData:
                 utils.mkdirp(self.log_dir)
                 # from the daily log file ($USER/rnaseq_pipeline/log/<year-month-day>)
                 self.log_file_path = os.path.join(self.log_dir, '%s.log' % self.year_month_day)
+                self.createStandardDataLogger()
             else:
                 setattr(self, directory, path)
 
@@ -125,7 +126,7 @@ class StandardData:
             cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
             utils.executeSubProcess(cmd)
 
-    def setStandardDataLogger(self):
+    def createStandardDataLogger(self):
         """
             function to create StandardData logger
         """
