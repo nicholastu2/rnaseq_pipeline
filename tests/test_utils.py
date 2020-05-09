@@ -115,6 +115,12 @@ class UtilsTester(unittest.TestCase):
         logger = utils.createLogger('/dev/null', 'loggertest')
         self.assertLogs(logger, 'WARNING')
 
+    def test_getFileListFromDirectory(self):
+        pass
+
+    def test_getStdOutLogger(self):
+        pass
+
     def tearDown(self):
         self.patcher.stop()
 

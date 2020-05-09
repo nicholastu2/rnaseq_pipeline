@@ -1,7 +1,7 @@
 import os
 import re
 import pandas as pd
-import glob
+from glob import glob
 import numpy as np
 from itertools import combinations, product
 import yaml
@@ -118,6 +118,7 @@ def addForwardSlash(path):
     if not path.endswith('/'):
         path = path + '/'
     return path
+
 
 def removeForwardSlash(path):
     """
@@ -241,6 +242,7 @@ def dirName(path):
         dir_name = os.path.basename(path)
     return dir_name
 
+
 def dirPath(path):
     """
         return the path (first half of result of os.path.split() to the directory one up from file
@@ -254,7 +256,6 @@ def dirPath(path):
         raise NotADirectoryError
 
     return path_to_directory_one_up
-
 
 
 def extractTopmostFiles(path_to_directory):
@@ -449,3 +450,45 @@ def createLogger(log_file_path, logger_name, logging_conf=None):
         )
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
+
+def createStdOutLogger(**kwargs):
+    """
+        create a logger that writes to stdout
+        :param kwargs: optional key word arguments, right now only set to handle name
+        :credit: https://stackoverflow.com/a/14058475/9708266
+    """
+    # create logger
+    try:
+        logger = logging.getLogger(kwargs['name'])
+    except KeyError:
+        logger = logging.getLogger()
+    # configure logger
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%I:%M:%S %p')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
+
+
+def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):
+    """
+    write fastq filepaths in a list stored as a .txt. Used in slurm job script
+    :param dir_path: path to a diretory with files you wish to extract
+    :param list_of_file_suffixes_to_extract: a list of suffixes
+    :returns: list of files from directory with a suffix matching one in list_of_file_suffixes_to_extract
+    """
+    try:
+        if not isinstance(list_of_file_suffixes_to_extract, list):
+            raise TypeError('NotAList')
+    except TypeError:
+        print('You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
+        exit(1)
+    else:
+        file_paths = []
+        for suffix in list_of_file_suffixes_to_extract:
+            file_paths += glob(dir_path + "/*." + suffix)
+        return file_paths

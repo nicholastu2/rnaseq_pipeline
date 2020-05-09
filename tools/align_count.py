@@ -1,58 +1,98 @@
 #!/usr/bin/env python
+"""
+    A script to run a standard align or align+count job. If you wish to use a non standard genome, feature, etc.
+    Then you may find it easier to do so using rnaseq_tools/OrganismDataObject + rnaseq_tools/SbatchWriterObject.
+    The functions in rnaseq_tools/utils may also be of use (especially getFileListFromDirectory)
+
+    for help:
+        align_count.py -h
+
+    usage: align_count.py -f /path/to/directory/in/scratch/run_####_samples -g <an organism in genome_files> -s yes/no/reverse -o output_dir --user_email youremail@mail.com
+
+    written by: yiming kang https://github.com/yiming-kang/rnaseq_pipeline
+    modified by: chase mateusiak chasem@wustl.edu chase.mateusiak@gmail.com
+    last update: 05/09/2020
+"""
+
 import sys
 import os
 import argparse
-from glob import glob
-import datetime
 from rnaseq_tools.OrganismDataObject import OrganismData
+from rnaseq_tools.SbatchWriterObject import SbatchWriter
 from rnaseq_tools import utils
 
-FASTQ_TYPES = ["fastq.gz", "fastq", "fq.gz", "fq"]
-
+# TODO: re-break up main script into functions for readability
 
 def main(argv):
     # parse command line input and store as more descriptive variables
     print('...parsing input')
     args = parse_args(argv)
-    # create OrganismData object. This will simultaneously check to ensure that the user has the required file structure
-    # in their scratch space in addition to containing the organism attributes (genome, etc)
-    sd = OrganismData(organism=args.organism,
+    try:
+        if not os.path.isdir(args.fastq_path):
+            raise NotADirectoryError('FastqDirectoryDoesNotExist')
+    except NotADirectoryError:
+        print('The path to %s for the raw fastq_files does not exist. Correct and re-submit. Remember this directory cannot be in long term storage')
+    print('...creating OrganismDataObject')
+    od = OrganismData(organism=args.organism,
                       fastq_path=args.fastq_path,
                       strandness=args.strandness,
                       email=args.user_email,
                       run_number=utils.getRunNumber(args.fastq_path))
+    # check directory structure and set organism data (see OrganismData.setOrganismData())
+    od.setOrganismData()
+    # create logger for this script if od logger is set
+    if os.path.isfile(od.log_file_path):
+        logger = utils.createLogger(od.log_file_path, 'align_count.py')
+    else:
+        logger = utils.createStdOutLogger(name='align_count_logger')
 
-    # ensure that standard directory structure is set
-    sd.standardDirectoryStructure()
-    # create StandardData logger
-    sd.createStandardDataLogger()
-    sd.output_dir = os.path.join(args.output_directory, 'run_{}'.format(sd.run_number))
+    # add attribute output_dir
+    od.output_dir = os.path.join(args.output_directory, 'run_{}'.format(od.run_number))
     # store align_only flag from cmd line
     align_only = args.align_only
-    # get current datetime
-    current_datetime = datetime.datetime.now()
 
-    print('...writing sbatch job script')
-    # create filenames for job_scripts and sbatch_logs
-    fastq_list_file = "{}/run_{}_fastq_list.txt".format(sd.job_scripts, sd.run_number)
-    sbatch_job_file = "{}/run_{}_mblab_rnaseq.sbatch".format(sd.job_scripts, sd.run_number)
-    # write a list of fastqfiles in the fastq_path to ./job_scripts and store how many as num_fastqs
-    num_fastqs = writeFastqList(sd.fastq_path, fastq_list_file)
-    # create a slurm submission script and write to ./job_scripts
-    writeJobScript(sbatch_job_file, sd.output_dir, fastq_list_file, num_fastqs, sd.novoalign_index,
-                   sd.annotation_file, sd.feature_type, sd.strandness, align_only)
-
-    # execute slurm job
-    print('...submitting job')
-    if sd.email is None:
-        os.system("sbatch {}".format(sbatch_job_file))
+    print('...extracting list of fastq files to process')
+    fastq_list_file = "{}/run_{}_fastq_list.txt".format(od.job_scripts, od.run_number)
+    logger.info('The fastq list file path is %s' %fastq_list_file)
+    # extract all files with the extensions in the list from od.fastq_path
+    fastq_file_list = utils.getFileListFromDirectory(od.fastq_path, ["fastq.gz", "fastq", "fq.gz", "fq"])
+    # store length of list
+    num_fastqs = len(fastq_file_list)
+    # write list to file
+    with open(fastq_list_file) as file:
+        for fastq_file_basename in fastq_file_list:
+            file.write("{}\n".format(fastq_file_basename))
+    if not os.path.isfile(fastq_list_file):
+        sys.exit("list of fastq files at %s does not exist" %fastq_list_file)
     else:
-        os.system("sbatch --mail-type=END,FAIL --mail-user={0} {1}".format(sd.email, sbatch_job_file))
+        print('list of fastq files may be found at %s' %fastq_list_file)
 
-    print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(sd.output_dir, sd.run_number,
+    print('...writing sbatch job_script')
+    # create path for sbatch job_script
+    sbatch_job_script_path = "{}/run_{}_mblab_rnaseq.sbatch".format(od.job_scripts, od.run_number)
+    logger.info('sbatch job script path is %s' %sbatch_job_script_path)
+    # create a slurm submission script and write to ./job_scripts
+    SbatchWriter.writeAlignCountJobScript(sbatch_job_script_path, od.output_dir, fastq_list_file, num_fastqs, od.novoalign_index,
+                                          od.annotation_file, od.feature_type, od.strandness, align_only)
+    if not os.path.isfile(sbatch_job_script_path):
+        sys.exit('sbatch job_script does not exist at path %s' %sbatch_job_script_path)
+    else:
+        print('sbatch script may be found at %s' %sbatch_job_script_path)
+
+    # submit sbatch job
+    print('...submitting sbatch job')
+    if od.email is None:
+        cmd = "sbatch %s" %sbatch_job_script_path
+        utils.executeSubProcess(cmd)
+    else:
+        cmd = "sbatch --mail-type=END,FAIL --mail-user=%s %s" %(od.email, sbatch_job_script_path)
+        utils.executeSubProcess(cmd)
+
+    print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(od.output_dir, od.run_number,
                                                                                   'pipeline_info'))
-    output_subdir_path = os.path.join(sd.output_dir, "{}_pipeline_info".format(sd.organism))
+    output_subdir_path = os.path.join(od.output_dir, "{}_pipeline_info".format(od.organism))
     utils.mkdirp(output_subdir_path)
+
     # write version info from the module .lua file (see the .lua whatis statements)
     pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
     cmd_pipeline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path)
@@ -60,111 +100,37 @@ def main(argv):
     # include the date processed in output_subdir_path/pipeline_into.txt
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
+        current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
         file.write('Date processed: {:%Y-%m-%d %H:%M:%S}'.format(current_datetime))
         file.write("\n")
+
     # include the head of the gff/gtf, also
-    cmd_annotation_info = "head {} >> {}".format(sd.annotation_file, pipeline_info_path)
+    cmd_annotation_info = "head {} >> {}".format(od.annotation_file, pipeline_info_path)
     utils.executeSubProcess(cmd_annotation_info)
 
 
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
+    parser = argparse.ArgumentParser(description="Generate and submit an sbatch script to align-only or align+count a directory of fastq_files")
     parser.add_argument("-f", "--fastq_path", required=True,
-                        help="[Required] Directory path of fastq files.\n"
+                        help="[REQUIRED] Directory path of fastq files.\n"
                              "Must be stored in a directory that begins with run_####_'n"
                              "All fastq files must have extension .fastq.gz")
     parser.add_argument("-g", "--organism", required=True,
                         help="[REQUIRED] The organism. This corresponds to the organisms in genome_files. Currently\n"
                              "The options are H99, KN99 and S288C_R64.")
     parser.add_argument("-s", "--strandness", required=True,
-                        help="[Required] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
+                        help="[REQUIRED] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
     parser.add_argument('-o', "--output_directory", required=True,
-                        help="[Required]  Suggested usage: reports.\n"
+                        help="[REQUIRED]  Suggested usage: reports.\n"
                              "The topmost directory in which to deposit a directory called \'run_####\'\n"
                              "which will store count, alignment and log files")
     parser.add_argument("--user_email", default=None,
-                        help="[Optional] Email for job status notification.")
+                        help="[OPTIONAL] Email for job status notification.")
     parser.add_argument("--align_only", action="store_true",
-                        help="[Optional] Set this flag to only align reads.")
+                        help="[OPTIONAL] Set this flag to only align reads.")
 
     args = parser.parse_args(argv[1:])
     return args
-
-
-def writeFastqList(dir_path, fastq_list_file):
-    """
-    write fastq filepaths in a list stored as a .txt. Used in slurm job script
-    :param dir_path:
-    :param fastq_list_file:
-    :returns: the number of fastqs to be aligned/
-    """
-
-    write_path = fastq_list_file
-    file_paths = []
-    for suffix in FASTQ_TYPES:
-        file_paths += glob(dir_path + "/*." + suffix)
-    with open(write_path, "w") as f:
-        for file_path in file_paths:
-            f.write("{}\n".format(file_path))
-    return len(file_paths)
-
-# TODO: test and then incorporate SbatchWriterObject
-def writeJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_index_file, genome_annotation_file,
-                   feature_type,
-                   strandness, align_only):
-    """
-    Write slurm job script to job_file (which is $PWD/job_scripts
-    :param job_file: path to $PWD/job_scripts (see main method)
-    :param output_path: path to output_dir (see main method)
-    :param fastq_list_file: path to job_scripts/<run_number>_fastq_list.txt
-    :param num_fastqs: number of lines in fastq_list_file
-    :param genome_index_file: path to index file created from genome of given organism by novoalign
-    :param genome_annotation_file: path to genome annotation file, either .gff or .gtf
-    :param feature_type: feature type extracted based on FEATURE_TYPE_DICT (see top of script)
-    :param strandness: cmd line input from user regarding whether library prep is stranded
-    :param align_only: boolean flag allowing cmd line input for alignment only, no htseq
-    :returns: None
-    """
-
-    with open(job_file, "w") as f:
-        f.write("#!/bin/bash\n")
-        f.write("#SBATCH -N 1\n")
-        f.write("#SBATCH --cpus-per-task=8\n")
-        f.write("#SBATCH --mem=12G\n")
-        f.write("#SBATCH --array=1-{0}%{1}\n".format(num_fastqs, min(num_fastqs, 50)))
-        f.write("#SBATCH -D ./\n")
-        f.write("#SBATCH -o sbatch_log/mblab_rnaseq_%A_%a.out\n")
-        f.write("#SBATCH -e sbatch_log/mblab_rnaseq_%A_%a.err\n")
-        f.write("#SBATCH -J mblab_rnaseq\n\n")
-
-        f.write("ml novoalign/3.07.00\n")
-        f.write("ml samtools/1.6\n")
-        f.write("ml htseq/0.9.1\n")
-        f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
-        f.write("mkdir -p {}\n".format(output_path))
-
-        f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} "
-                "-f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > "
-                "{1}/${{sample}}_aligned_reads.bam\n".format(genome_index_file, output_path))
-
-        f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 "
-                "{0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> "
-                "{0}/${{sample}}_novosort.log\n".format(output_path))
-
-        if not align_only:
-            if feature_type == 'gene':  # this is a messy way of saying "if gff, specify -i ID. TODO: This needs to be cleaned up
-                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; "
-                        "htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam "
-                        "{3} > {0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path,
-                                                                                                     strandness,
-                                                                                                     feature_type,
-                                                                                                     genome_annotation_file))
-            else:  # else (it is a gtf) do not specify ID
-                f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -s {1} "
-                        "-t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > "
-                        "{0}/${{sample}}_read_count.tsv 2> {0}/${{sample}}_htseq.log\n".format(output_path, strandness,
-                                                                                               feature_type,
-                                                                                               genome_annotation_file))
 
 
 if __name__ == "__main__":
