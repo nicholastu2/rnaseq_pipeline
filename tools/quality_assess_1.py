@@ -118,8 +118,7 @@ def compileData(dir_path, suffix): # make this into object by itself?
     """
     # instantiate dataframe
     df = pd.DataFrame()
-    file_paths = utils.getFileListFromDirectory(dir_path, suffix)
-    # file_paths = glob("{}/*{}".format(dir_path, suffix)) # use utils.getFilePaths
+    file_paths = glob("{}/*{}".format(dir_path, suffix)) # use utils.getFilePaths
     for file_path in file_paths:
         fastq_filename = re.findall(r'(.+?)%s' %suffix, os.path.basename(file_path))[0]
         if "novoalign" in suffix:
