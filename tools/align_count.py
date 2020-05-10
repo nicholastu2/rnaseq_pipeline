@@ -52,7 +52,7 @@ def main(argv):
     align_only = args.align_only
 
     print('...extracting list of fastq files to process')
-    fastq_list_file = "{}/run_{}_fastq_list.txt".format(od.job_scripts, od.run_number)
+    fastq_list_file = '%s/run_%s_fastq_list.txt' %(od.job_scripts, od.run_number)
     logger.info('The fastq list file path is %s' %fastq_list_file)
     print('The fastq list file path is %s' % fastq_list_file)
     # extract all files with the extensions in the list from od.fastq_path
@@ -61,8 +61,8 @@ def main(argv):
     num_fastqs = len(fastq_file_list)
     # write list to file
     with open(fastq_list_file, 'w') as file:
-        for fastq_file_basename in fastq_file_list:
-            file.write("{}\n".format(fastq_file_basename))
+        for fastq_basename in fastq_file_list:
+            file.write('%s\n' %fastq_basename)
     if not os.path.isfile(fastq_list_file):
         sys.exit("list of fastq files at %s does not exist" %fastq_list_file)
     else:
@@ -70,7 +70,7 @@ def main(argv):
 
     print('...writing sbatch job_script')
     # create path for sbatch job_script
-    sbatch_job_script_path = "{}/run_{}_mblab_rnaseq.sbatch".format(od.job_scripts, od.run_number)
+    sbatch_job_script_path = '%s/run_%s_mblab_rnaseq.sbatch' %(od.job_scripts, od.run_number)
     logger.info('sbatch job script path is %s' %sbatch_job_script_path)
     # create a slurm submission script and write to ./job_scripts
     SbatchWriter.writeAlignCountJobScript(sbatch_job_script_path, od.output_dir, fastq_list_file, num_fastqs, od.novoalign_index,
