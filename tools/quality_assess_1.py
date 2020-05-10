@@ -18,14 +18,31 @@ COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "
 def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)  # TODO error check all input
-    if os.path.isdir(args.reports):
+    try:
+        if not os.path.isdir(args.reports):
+            raise NotADirectoryError('OutputDirDoesNotExist')
+    except NotADirectoryError:
+        print('%s does not lead to a valid directory. Check the path and resubmit with working -r' % args.reports)
+    else:
         align_count_path = args.reports
+    try:
+        if not os.path.isdir(args.output_dir):
+            raise NotADirectoryError
+    except NotADirectoryError:
+        print('%s does not lead to a valid directory. check the path and resubmit with correct -o' %args.output_dir)
     else:
-        raise OSError('ReportsDirectoryDoesNotExist')
-    if os.path.isdir(args.output_dir):
         output_directory = args.output_dir
-    else:
-        raise OSError('OutputDirectoryDoesNotExist')
+    try:
+        if not os.path.isfile(args.query_sheet):
+            raise FileNotFoundError('QuerySheetDoesNotExist')
+    except FileNotFoundError:
+        print('%s does not lead to a valid file. Check and resubmit correct -qs' %args.query_sheet)
+    try:  # TODO: check also if genotype check is submitted and either query sheet or log2cpm is not, throw error. check isisntance args.exp_columns is list
+        if not os.path.isfile(args.log2_cpm):
+            raise FileNotFoundError('Log2cpmFileDoesNotExist')
+    except FileNotFoundError:
+        print('%s does not lead to a valid file. Check path and resubmit correct -log2cpm')
+
     # get run number
     run_number = utils.getRunNumber(args.reports)
     # create filename
@@ -92,17 +109,19 @@ def parseArgs(argv):
     return args
 
 
-def compileData(dir_path, suffix):
+def compileData(dir_path, suffix): # make this into object by itself?
     """
     get a list of the filenames in the run_#### file that correspond to a given type
     :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
     :param suffix: the type of file either novoalign or _read_count
     :returns: a dataframe containing the files according to their suffix
     """
+    # instantiate dataframe
     df = pd.DataFrame()
-    file_paths = glob("{}/*{}".format(dir_path, suffix))
+    file_paths = utils.getFileListFromDirectory(dir_path, suffix)
+    # file_paths = glob("{}/*{}".format(dir_path, suffix)) # use utils.getFilePaths
     for file_path in file_paths:
-        fastq_filename = re.findall(r'(.+?){0}'.format(suffix), os.path.basename(file_path))[0]
+        fastq_filename = re.findall(r'(.+?)%s' %suffix, os.path.basename(file_path))[0]
         if "novoalign" in suffix:
             data = parseAlignmentLog(file_path)
         elif "read_count" in suffix:

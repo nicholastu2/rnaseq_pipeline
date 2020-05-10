@@ -483,7 +483,6 @@ def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):
             raise TypeError('NotAList')
     except TypeError:
         print('You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
-        exit(1)
     else:
         file_paths = []
         for suffix in list_of_file_suffixes_to_extract:
