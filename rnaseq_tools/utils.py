@@ -264,7 +264,7 @@ def extractTopmostFiles(path_to_directory):
         :param path_to_directory: path to the directory
         :returns: a list of files in topmost level of directory (not recursive)
     """
-    return glob.glob(os.path.join(path_to_directory, '*'))
+    return glob(os.path.join(path_to_directory, '*'))
 
 
 def countsPerMillion(raw_count_path, output_FULL_path):
@@ -468,8 +468,6 @@ def createStdOutLogger(**kwargs):
     logger.addHandler(handler)
 
     return logger
-
-
 
 def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):
     """

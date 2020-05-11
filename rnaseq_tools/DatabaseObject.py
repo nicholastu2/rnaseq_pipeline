@@ -27,10 +27,14 @@ class DatabaseObject:
         """
         # create logger
         try:
-            self.logger_path = kwargs['logger_path']
+            if kwargs['stdout_logger']:
+                self.logger = utils.createStdOutLogger(name='DatabaseObject')
         except KeyError:
-            self.logger_path = os.path.join(os.getcwd(), 'DatabaseObject_logger_%s.log' %utils.yearMonthDay())
-        self.logger = utils.createLogger(self.logger_path, __name__)
+            try:
+                self.logger_path = kwargs['logger_path']
+            except KeyError:
+                self.logger_path = os.path.join(os.getcwd(), 'DatabaseObject_logger_%s.log' %utils.yearMonthDay())
+            self.logger = utils.createLogger(self.logger_path, __name__)
 
         # store path to topmost database directory
         self.database_top = database_top
@@ -102,16 +106,13 @@ class DatabaseObject:
         """
             create joined data frame from the concatenated files in the subdirectories of the database_directory
         """
-        # if self.setDatabaseDict hasn't been called, call self.setDatabaseDict()
+        # check that database_dict, concat_database_dict and database_key_columns exist
         if len(self.database_dict) == 0:
             self.setDatabaseDict()
-        # if self.concat_database_dict is empty, call self.setConcatDatabaseDict()
         if len(self.concat_database_dict) == 0:
             self.setConcatDatabaseDict()
-        # if self.database_key_columns is empty, call self.setKeyColumns()
         if len(self.database_key_columns) == 0:
             self.setKeyColumns()
-
         # merge the first two (fastqFiles and Library) sets of data
         left_sheet = self.concat_database_dict[self.database_subdirectories[0]]
         right_sheet = self.concat_database_dict[self.database_subdirectories[1]]
@@ -186,18 +187,25 @@ class DatabaseObject:
             and the pandas sql-like filtering commands
             see https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_sql.html
         """
-        if self.filter_json is None:
-            self.setFilterJson()
-        # begin a string to store the query formula
-        filter_str = '('
-        # loop through columns in json query (i.e. 'timePoint' and 'treatment')
-        for key, value in self.filter_json.items():
-            filter_str = filter_str + '{} == {}'.format(key, value) + ' & '
-        # once out of both loops, split the string on the final &, retain the substring before the split, and eliminate whitespace
-        filter_str = filter_str.rsplit('&', 1)[0].strip() + ')'
-        self.logger.debug('the filter created from the json_dict is %s' %filter_str)
-        # use the filter_str formula to filter the dataframe
-        self.filtered_database_df = self.database_df.query(filter_str)
+        try:
+            if self.database_df is None:
+                raise ValueError('DatabaseDataframeNotSet')
+        except ValueError:
+            self.setDatabaseDataframe()
+        finally:
+            if self.filter_json is None:
+                self.setFilterJson()
+                self.logger.debug(self.filter_json)
+            # begin a string to store the query formula
+            filter_str = '('
+            # loop through columns in json query (i.e. 'timePoint' and 'treatment')
+            for key, value in self.filter_json.items():
+                filter_str = filter_str + '{} == {}'.format(key, value) + ' & '
+            # once out of both loops, split the string on the final &, retain the substring before the split, and eliminate whitespace
+            filter_str = filter_str.rsplit('&', 1)[0].strip() + ')'
+            self.logger.debug('the filter created from the json_dict is %s' %filter_str)
+            # use the filter_str formula to filter the dataframe
+            self.filtered_database_df = self.database_df.query(filter_str)
 
     @staticmethod
     def standardizeDatabaseDataframe(rnaseq_metadata_df, prefix='', suffix='_read_count.tsv', fastq_filename_rename='COUNTFILENAME', **kwargs):

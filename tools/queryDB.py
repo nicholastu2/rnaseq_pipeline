@@ -22,14 +22,14 @@ from rnaseq_tools import utils
 from rnaseq_tools.DatabaseObject import DatabaseObject
 from rnaseq_tools.StandardDataObject import StandardData
 
+
 def main(argv):
     # read in cmd line args
     args = parseArgs(argv)
     print('...parsing arguments')
     # if not cluster is passed, create logger in PWD
-    if args.not_cluster:
-        logger_path = os.path.join(os.getcwd(), 'queryDB_log_%s.log' %utils.yearMonthDay())
-        logger = utils.createLogger(logger_path, 'queryDB.py')
+    if args.not_cluster:  # TODO: this won't be necessary if the config is set up to create a log directory in an rnaseq_pipeline directory on any machine
+        logger = utils.createStdOutLogger(name='queryDB.py')
     # if -nc is not passed, assume on HTCF and call StandardData to check/load rnaseq_pipeline file structure and data
     else:
         sd = StandardData()
@@ -37,8 +37,8 @@ def main(argv):
         sd.createStandardDataLogger()
         logger_path = sd.log_file_path
         logger = utils.createLogger(logger_path, __name__)
-    print('queryDB log can be found at: %s' %logger_path)
-    logger.debug('cmd line arguments are: %s'% args)
+        print('queryDB log can be found at: %s' % logger_path)
+    logger.debug('cmd line arguments are: %s' % args)
 
     # read in and check cmd line arguments
     database_path = args.database
@@ -53,9 +53,13 @@ def main(argv):
     if output_directory is not None and not os.path.exists(output_directory):
         raise FileNotFoundError('OutputDirectoryDoesNotExist')
     print('...compiling database')
-    # create database object (see rnaseq_tools.DatabaseObject for description of all functions
-    database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path)
-    database_object.setDatabaseDataframe()
+    # create database object
+    if args.not_cluster:  # see TODO at top regarding logger
+        database_object = DatabaseObject(database_path, filter_json_path=filter_json_path, stdout_logger=True)
+    else:
+        # create database object (see rnaseq_tools.DatabaseObject for description of all functions
+        database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path)
+        database_object.setDatabaseDataframe()
 
     # filter database and print to output_directory, if json is present
     if database_object.filter_json_path is not None:
@@ -63,15 +67,16 @@ def main(argv):
         database_object.filterDatabaseDataframe()
         output_filename = utils.pathBaseName(database_object.filter_json_path)
         filtered_output_path = os.path.join(output_directory, output_filename + '.csv')
-        print('printing filtered database to: %s' %filtered_output_path)
+        print('printing filtered database to: %s' % filtered_output_path)
         database_object.filtered_database_df.to_csv(filtered_output_path, index=False)
 
     # if user enters -pf, print full database
     if args.print_full:
         year_month_day = utils.yearMonthDay()
         full_database_output_path = os.path.join(output_directory, 'combined_df_{}.csv'.format(year_month_day))
-        print('printing full database to: %s' %full_database_output_path)
+        print('printing full database to: %s' % full_database_output_path)
         database_object.database_df.to_csv(full_database_output_path, index=False)
+
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()
