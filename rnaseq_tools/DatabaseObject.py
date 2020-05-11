@@ -89,9 +89,10 @@ class DatabaseObject:
             # test whether any of the key subdirectories of datadir are empty, throw error if so
             # TODO: make this error handling not so silly -- create error or handle more directly
             try:
-                1 / len(no_tmp_subdirectory_files)
-            except ZeroDivisionError:  # TODO: include this in tests
-                raise("No files found in %s. "
+                if len(no_tmp_subdirectory_files) == 0:
+                    raise ValueError('NoSubdirFiles')
+            except ValueError:  # TODO: include this in tests
+                print("No files found in %s. "
                       "These files are necessary to creating the sample_summary." % subdirectory_path)
             else:
                 # associate subdirectory (key) with subdirectory_files (value) in data_dir_dict
