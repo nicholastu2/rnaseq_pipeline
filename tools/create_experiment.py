@@ -20,6 +20,11 @@ def main(argv):
 
     # parse cmd line arguments
     args = parseArgs(argv)
+    try:
+        if not args.query_sheet.endswith('.csv'):
+            raise ValueError('NotCsv')
+    except ValueError:
+        sys.exit('%s does not end with a .csv. Are you sure it is a .csv? -qs takes the .csv output of queryDB.py. Check and resubmit.')
     if args.leading_zero_rn:
         leading_zero_list = args.leading_zero_rn
     else:
