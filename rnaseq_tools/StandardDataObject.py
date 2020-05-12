@@ -109,7 +109,7 @@ class StandardData:
                 setattr(self, directory, path)
 
         # TODO: priority (see other comment)
-        # check for the directories to be soft linked from /scratch/mblab/mblab.shared (self.mblab_shared). soft link if not, setattr in either case # TODO: decouple this from scratch space -- maybe pull from database-files repo and from path to genome_files rather than creating that from lts
+        # set attr scratch_sequence and database_files if not exist already. check config file for explicit path first, then search in htcf structure
         try:
             mblab_shared_dirs = ['scratch_sequence', 'database_files']
             utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)

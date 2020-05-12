@@ -353,14 +353,14 @@ def softLinkAndSetAttr(object_instance, list_of_target_directories, source_path,
     # loop through directories in list_of_dirs
     for target_directory_name in list_of_target_directories:
         # store the path (either it exists or it will after the if not block) to the directory in intended_dir_path)
-        path = os.path.join(intended_target_dir, target_directory_name)
+        target_path = os.path.join(intended_target_dir, target_directory_name)
         # check if directory exists in the intended_dir_path
-        if not os.path.exists(path):
+        if not os.path.exists(target_path):
             # if it does not, soft link ln -s origin_dir_path/directory to intended_dir_path/directory
-            cmd = 'ln -s {}/{} {}'.format(source_path, target_directory_name, path)
+            cmd = 'ln -s {}/{} {}'.format(source_path, target_directory_name, target_path)
             executeSubProcess(cmd)
         # set attribute named directory (from for loop above) that points towards variable path which stores intended_dir_path/directory
-        setattr(object_instance, target_directory_name, path)
+        setattr(object_instance, target_directory_name, target_path)
 
 
 def setAttributes(sd_object, input_dict):
