@@ -17,7 +17,8 @@ def main(argv):
                       experiment_dir=parsed.experiment_dir, norm_count_path=parsed.norm_count_path,
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
-                      experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True)  # TODO -- deal with multiple inputs better than this. point of weakness
+                      experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True,
+                      config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini')  # TODO -- deal with multiple inputs better than this. point of weakness
     # create standardized_database_df from query_sheet_path
     query_df = utils.readInDataframe(od.query_sheet_path)
     od.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
@@ -63,51 +64,36 @@ def main(argv):
                  + drug_marker_columns \
                  + ['COV_MED_REP' + ''.join(np.array(combo, dtype=str)) for combo
                     in utils.makeCombinations(range(1, od.max_replicates + 1))]
-    qual_assess_df, rep_max = initializeQualAssesDf(od.standardized_database_df , df_columns, od.experiment_conditions)
+    qual_assess_df, rep_max = initializeQualAssesDf(od.standardized_database_df, df_columns, od.experiment_conditions)
     if rep_max != od.max_replicates:
         print(
             'The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
                 rep_max, rep_max))
     if rep_max > 7:
         print(
-            'Calculating the power set of 7 replicates for the CoV is not currently possible as it exceeds the pandas maximum sheet size. A QA sample summary will be returned, but CoV will not be calculated. Do you wish to continue? Enter y or n')
+            'Replicate sets greater than 7 will take some time to calculate, and may not be possible. Do you wish to continue? Enter y or n')
         user_response = input()
         if user_response == 'n':
             sys.exit()
         else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
-            expr, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
-                                                    od.experiment_conditions)
+            norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
+                                                            od.experiment_conditions)
             print('... Assessing reads mapping')
-            df = assess_mapping_quality(qual_assess_df, od.experiment_dir)
+            qual_assess_df = assessMappingQuality(qual_assess_df, od.experiment_dir)
             print('... Assessing efficiency of gene mutation')
             if parsed.descriptors_specific_fow:
-                df = assess_efficient_mutation(df, expr, sample_dict, od.wildtype,
-                                               od.experiment_conditions)  # TODO: clean up the df's in here -- probably should be qual_assess_df
+                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
+                                                         od.experiment_conditions)
             else:
-                df = assess_efficient_mutation(df, expr, sample_dict, od.wildtype)
+                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
             print('... Assessing insertion of resistance cassette')
-            df = assess_resistance_cassettes(df, expr, drug_markers, od.wildtype)
-            df = update_auto_audit(df, parsed.auto_audit_threshold)
-            save_dataframe(output_name, df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
-            sys.exit()
-    norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
-                                                    od.experiment_conditions)
-    print('... Assessing reads mapping')
-    qual_assess_df = assess_mapping_quality(qual_assess_df, od.output_dir)
-    print('... Assessing efficiency of gene mutation')
-    if parsed.descriptors_specific_fow:
-        qual_assess_df = assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
-                                                   od.experiment_conditions)
-    else:
-        qual_assess_df = assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
-    print('... Assessing insertion of resistance cassette')
-    qual_assess_df = assess_resistance_cassettes(qual_assess_df, norm_count_df, drug_markers, od.wildtype)
-    print('... Assessing concordance among replicates')
-    #qual_assess_df = assess_replicate_concordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
-    print('... Auto auditing')
-    qual_assess_df = update_auto_audit(qual_assess_df, parsed.auto_audit_threshold)
-    print('...writing summary to %s' % output_name)
-    save_dataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
+            qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
+            print('... Assessing concordance among replicates')
+            qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
+            print('... Auto auditing')
+            qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
+            print('...writing summary to %s' % output_name)
+            saveDataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
 
 
 def parse_args(argv):
@@ -226,7 +212,7 @@ def loadExpressionData(qual_assess_df, norm_count_matrix, gene_list, experiment_
     return norm_count_df, sample_dict
 
 
-def assess_mapping_quality(qual_assess_df, experiment_directory, aligner_tool='novoalign'):
+def assessMappingQuality(qual_assess_df, experiment_directory, aligner_tool='novoalign'):
     """
     Assess percentage of uniquely mapped reads over all reads
     :param qual_assess_df: the work-in-progress quality_assessment_df
@@ -263,7 +249,7 @@ def assess_mapping_quality(qual_assess_df, experiment_directory, aligner_tool='n
     return qual_assess_df
 
 
-def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, conditions=None):
+def assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, wt, conditions=None):
     """
     Assess the completeness of gene deletion or efficiency of gene overexpression by caluclating the expression
     of the perturbed genein mutant sample over mean expression of the same gene in wildtype.
@@ -276,6 +262,7 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
     """
     if wt is None:
         return qual_assess_df
+    # flag to determine if conditions has a value (TODO change this to error handling)
     descr_match = True if conditions is not None else False
     # get wildtype samples if not matching descriptors
     if not descr_match:
@@ -290,10 +277,12 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
     for i, row in qual_assess_df[qual_assess_df['GENOTYPE'] != wt].iterrows():
         sample = str(row['COUNTFILENAME'])
         print('... calculating MUT_FOW in %s' % sample)
-        ## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
+        # extract list of mutated genes (there will be multiple if double KO)
+        perturbed_genotype_list = row['GENOTYPE'].split('.')
+        # check for each mutant gene (there could be multiple mutant genes, delimited by '.')
         mut_fow_list = []
-        for mut_gene in row['GENOTYPE'].split('.'):
-            # get wildtype samples if not matching descriptors
+        for perturbed_genotype in perturbed_genotype_list:
+            # get wildtype samples if conditions is passed
             if descr_match:
                 mut_descr = [row[c] for c in conditions]
                 wt_samples = []
@@ -302,31 +291,34 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
                     if key[0] == wt and descr_matched:
                         wt_samples += sample_dict[key].values()
                 if len(wt_samples) == 0:
-                    print(
-                        '\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample)
-                    continue
-                ## calculate mean expression level of each gene
+                    msg = '\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample
+                    print(msg)
+                    continue  # stop current iteration and move onto next in for loop above
+                # calculate mean expression level of each gene
                 wt_expr = pd.Series(pd.DataFrame.mean(norm_count_df[wt_samples], axis=1), name='mean_fpkm')
                 wt_expr = pd.concat([norm_count_df, wt_expr], axis=1)
-            ## get mutant gene expression in mutatnt sample
-            mut_gene2 = mut_gene.strip("_over")
-            if mut_gene2 not in norm_count_df['gene'].tolist():
-                print('\t%s not in gene list. Skipping this genotype' % mut_gene2)
+            # get mutant gene expression in mutant sample
+            perturbed_gene_id = perturbed_genotype.strip("_over")
+            if perturbed_gene_id not in norm_count_df['gene'].tolist():
+                msg = '\t%s not in gene list. Skipping this genotype' % perturbed_gene_id
+                print(msg)
                 continue
-            wt_mean = float(wt_expr[wt_expr['gene'] == mut_gene2]['mean_fpkm'])
+            wt_mean = float(wt_expr[wt_expr['gene'] == perturbed_gene_id]['mean_fpkm'])
+            # if wt_mean is zero, handle by assigning np.inf
             if wt_mean == 0:
-                print('\t%s has 0 mean expression in WT samples' % mut_gene2)
+                msg = '\t%s has 0 mean expression in WT samples' % perturbed_gene_id
+                print(msg)
                 mut_fow = np.inf
             else:
-                mut_fow = float(norm_count_df[norm_count_df['gene'] == mut_gene2][sample]) / wt_mean
+                mut_fow = float(norm_count_df[norm_count_df['gene'] == perturbed_gene_id][sample]) / wt_mean
 
-            if mut_gene.endswith('_over'):
-                ## check overexpression
+            if perturbed_genotype.endswith('_over'):
+                # check overexpression
                 if (mut_fow < QC_dict['MUT_FOW']['OVEREXPRESSION']['threshold']) and (
                         row['STATUS'] < QC_dict['MUT_FOW']['OVEREXPRESSION']['status']):
                     row['STATUS'] += QC_dict['MUT_FOW']['OVEREXPRESSION']['status']
             else:
-                ## check deletion
+                # check deletion
                 if (mut_fow > QC_dict['MUT_FOW']['DELETION']['threshold']) and (
                         row['STATUS'] < QC_dict['MUT_FOW']['DELETION']['status']):
                     row['STATUS'] += QC_dict['MUT_FOW']['DELETION']['status']
@@ -337,45 +329,46 @@ def assess_efficient_mutation(qual_assess_df, norm_count_df, sample_dict, wt, co
     return qual_assess_df
 
 
-def assess_resistance_cassettes(df, norm_count_df, resi_cass, wt):
+def assessResistanceCassettes(qual_assess_df, norm_count_df, drug_marker_list, wt):
     """
     Assess drug resistance marker gene expression, making sure the proper
     marker gene is swapped in place of the perturbed gene.
     """
-    if resi_cass is None:
-        return df
-    ## get the median of resistance cassettes
-    rc_med_dict = {}
-    mut_samples = [s for s in norm_count_df.columns.values if (not s.startswith(wt)) and (s != 'gene')]
-    for rc in resi_cass:
-        ## exclude wildtypes and markers expressed < 150 normalized counts
-        rc_fpkm = norm_count_df.loc[norm_count_df['gene'] == rc, mut_samples] # recall that the index column for norm_count_df was renamed in loadExpressionData to 'gene'
-        rc_fpkm = rc_fpkm.loc[:, (np.sum(rc_fpkm, axis=0) > 150)]
-        rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
-    ## calcualte FOM (fold change over mutant) of the resistance cassette
-    for i, row in df.iterrows():
+    if drug_marker_list is None:
+        return qual_assess_df
+    drug_marker_median_expression_dict = {}
+    # list of perturbed samples (not wildtype)
+    perturbed_samples = list(qual_assess_df[qual_assess_df.GENOTYPE != wt].COUNTFILENAME)
+    # get the median of resistance cassettes
+    for drug_marker in drug_marker_list:
+        # exclude wildtypes and markers expressed < 150 normalized counts
+        drug_marker_fpkm = norm_count_df.loc[norm_count_df['gene'] == drug_marker, perturbed_samples]  # recall that the index column for norm_count_df was renamed in loadExpressionData to 'gene'
+        drug_marker_fpkm = drug_marker_fpkm.loc[:, (np.sum(drug_marker_fpkm, axis=0) > 150)]
+        drug_marker_median_expression_dict[drug_marker] = np.nan if drug_marker_fpkm.empty else np.median(drug_marker_fpkm)
+    # calculate FOM (fold change over mutant) of the resistance cassette
+    for index, row in qual_assess_df.iterrows():
         genotype = row['GENOTYPE']
         sample = str(row['COUNTFILENAME'])
         print('...assessing_drug_marker in %s' % genotype)
-        ## update FOM
-        for rc in rc_med_dict.keys():
-            row[rc + '_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(norm_count_df.loc[norm_count_df['gene'] == rc, sample]) / \
-                                                                        rc_med_dict[rc]
-        ## flag those two problems:
-        ## 1. the resistance cassette is exprssed in WT
-        ## 2. more than one resistance cassette is expressed in single mutant
-        ## TODO: add criteria for multi-mutants
-        fom_check = [row[rc + '_FOM'] > QC_dict['MARKER_FOM']['threshold'] * rc_med_dict[rc] for rc in
-                     rc_med_dict.keys()]
+        # update FOM
+        for valid_drug_marker in drug_marker_median_expression_dict.keys():
+            qual_assess_df.loc[index, valid_drug_marker + '_FOM'] = np.nan if np.isnan(drug_marker_median_expression_dict[valid_drug_marker]) else \
+                float(norm_count_df.loc[norm_count_df['gene'] == valid_drug_marker, sample]) / drug_marker_median_expression_dict[valid_drug_marker]
+        # flag those two problems:
+        # TODO: add criteria for multi-mutants
+        fom_check = [row[drug_marker + '_FOM'] > QC_dict['MARKER_FOM']['threshold'] * drug_marker_median_expression_dict[drug_marker] for drug_marker in
+                     drug_marker_median_expression_dict.keys()]
+        # the resistance cassette is expressed in WT
         if genotype == wt and sum(fom_check) > 0:
             row['STATUS'] += QC_dict['MARKER_FOM']['status']
+        # more than one resistance cassette is expressed in a single mutant
         if genotype != wt and len(genotype.split('.')) > 1 and sum(fom_check) > 1:
             row['STATUS'] += QC_dict['MARKER_FOM']['status']
         print('complete. moving onto next sample.')
-    return df
+    return qual_assess_df
 
 
-def assess_replicate_concordance(qual_assess_df, expr, sample_dict, conditions):
+def assessReplicateConcordance(qual_assess_df, expr, sample_dict, conditions):
     """
     Assess the concordance among the replicates of each genotype by calculating
     the COV of each combination of replicates. Then find the maximal number of
@@ -386,7 +379,7 @@ def assess_replicate_concordance(qual_assess_df, expr, sample_dict, conditions):
     for key in sorted(sample_dict.keys()):
         sample_ids = [s for s in sample_dict[key].items()]
         if len(sample_ids) == 1:
-            continue # only one replicate, cannot calculate cov
+            continue  # only one replicate, cannot calculate cov
         cov_meds_dict = {}
         rep_combos = utils.makeCombinations(sample_dict[key].keys())
 
@@ -440,7 +433,7 @@ def calculate_cov_median(x):
     return np.nanmedian(covs)
 
 
-def update_auto_audit(df, threshold):
+def updateAutoAudit(df, threshold):
     """
     Automatically flag sample with status over threshold
     """
@@ -448,18 +441,11 @@ def update_auto_audit(df, threshold):
     return df
 
 
-def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
+def saveDataframe(filepath, df, df_cols, conditions, fp_ext=0):
     """
     Save dataframe of quality assessment
     """
     df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
-    # if not filepath.endswith('.xlsx'):
-    #	filepath += '.xlsx'
-
-    # TODO: work this in earlier in the process
-    for index, row in df.iterrows():
-        # df['COUNTFILENAME'] = df['COUNTFILENAME'].apply(lambda row: utils.fileBaseName(row) + '_read_count.tsv')
-        pass
     df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1, 3 + fp_ext))
 
 

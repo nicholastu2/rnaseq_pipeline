@@ -56,10 +56,12 @@ class StandardData:
                     raise FileNotFoundError('DefaultConfigPathNotValid')
             except FileNotFoundError:
                 print('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
-        self.config_file = self.default_config_path
-        utils.setAttributes(self, kwargs)
-        # load config file
-        utils.configure(self, self.config_file, self.self_type)
+            else:
+                self.config_file = self.default_config_path
+        finally:
+            utils.setAttributes(self, kwargs)
+            # load config file
+            utils.configure(self, self.config_file, self.self_type)
 
         # set interactive (flag for interactive session on htcf) to false if not already set. If True, StandardDataObject and child will not try to softlink to lts (long term storage)
         if not hasattr(self, 'interactive'):
@@ -69,8 +71,12 @@ class StandardData:
         """
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
-        # set attribute user_scratch (this is where rnaseq_pipeline and all subordinate folders/files will be
-        user_scratch = os.path.join(self.mblab_scratch, self._user)
+        # offer method to set user_scratch in config file
+        try:
+            user_scratch = self.user_scratch
+        except AttributeError:
+            # set attribute user_scratch (this is where rnaseq_pipeline and all subordinate folders/files will be
+            user_scratch = os.path.join(self.mblab_scratch, self._user)
         try:
             if not os.path.isdir(user_scratch):
                 raise NotADirectoryError
