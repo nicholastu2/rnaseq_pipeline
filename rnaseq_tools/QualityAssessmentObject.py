@@ -106,7 +106,7 @@ class QualityAssessmentObject(StandardData):
         try:
             if not hasattr(self, 'query_path'):
                 raise AttributeError('NoQueryPath')
-            if not hasattr(self, 'query_df')
+            if not hasattr(self, 'query_df'):
                 query_df = utils.readInDataframe(self.query_path)
             if not hasattr(self, 'standardized_database_df'):
                 self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
