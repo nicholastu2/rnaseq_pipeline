@@ -1,3 +1,6 @@
+import sys
+import os
+from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
 
@@ -98,32 +101,45 @@ class QualityAssessmentObject(StandardData):
         """
             check coverage of genebody
         """
-        pass
-        # try:
-        #     if not hasattr(self, 'query_sheet_path'):
-        #         raise AttributeError('NoQuerySheetPath')
-        # except AttributeError:
-        #     print('No query sheet path')
-        # else:
-        #     if not hasattr(self, 'standardized_database_df'):
-        #         self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path)
-        # finally:
-        #     df_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
-        #     perturbed_genotype_sorted_alignment_files = list(self.standardized_database_df[df_filter]['COUNTFILENAME'])
-        #     with open(sbatch_script_path, 'w') as sbatch_file:
-        #         sbatch_file.write("#!/bin/bash\n")
-        #         sbatch_file.write("#SBATCH --mem=5G\n")
-        #         sbatch_file.write("#SBATCH -D ./\n")
-        #         sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
-        #         sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
-        #         sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
-        #
-        #         sbatch_file.write("ml bedtools\n")
-        #         for sample in perturbed_genotype_sorted_alignment_files:
-        #             sample_no_suffix = sample.replace('_read_count.tsv', '')
-        #             'bedtools genomecov - ibam %s -bga > %s_per_base_coverage.tsv'
-        #
-        #     # bedtools genomecov -ibam <sorted_bam_file> -bga > bedtools_coverage_out.tsv
+        print('...extracting perturbed samples from query sheet for coverage check sbatch script')
+        # check if all necessary components are present
+        try:
+            if not hasattr(self, 'query_path'):
+                raise AttributeError('NoQueryPath')
+            if not hasattr(self, 'query_df')
+                query_df = utils.readInDataframe(self.query_path)
+            if not hasattr(self, 'standardized_database_df'):
+                self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
+        except AttributeError:
+            sys.exit('no standardized query df provided')
+
+        # extract perturbed samples' COUNTFILENAME
+        self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(qa.query_df)
+        # create filter (boolean column, used in following line)
+        df_wt_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
+        perturbed_sample_list = list(self.standardized_database_df[df_wt_filter]['COUNTFILENAME'])
+        # create path to new sbatch script
+        sbatch_job_script_path = os.path.join(self.job_scripts, 'coverage_%s_%s.sbatch' %(self.year_month_day, utils.hourMinuteSecond()))
+        # write sbatch script
+        print('...writing coverage check sbatch script')
+        with open(sbatch_job_script_path, 'w') as sbatch_file:
+            sbatch_file.write("#!/bin/bash\n")
+            sbatch_file.write("#SBATCH --mem=5G\n")
+            sbatch_file.write("#SBATCH -D %s\n" %self.user_rnaseq_pipeline_directory)
+            sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
+            sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
+            sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
+            sbatch_file.write("ml bedtools\n\n")
+            for sample in perturbed_sample_list:
+                sorted_alignment_file = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+                sorted_alignment_path = os.path.join(self.align_count_path, sorted_alignment_file)
+                coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
+                coverage_output_path = os.path.join(self.align_count_path, coverage_filename)
+                sbatch_file.write('bedtools genomecov -ibam %s -bga > %s\n' %(sorted_alignment_path, coverage_output_path))
+        print('sbatch script to quantify per base coverage in perturbed samples at %s' %sbatch_job_script_path)
+        print('submitting sbatch job. Once this completes, use script quantify_perturbed_coverage.py')
+        cmd = 'sbatch %s'%sbatch_job_script_path
+        utils.executeSubProcess(cmd)
 
     def cryptoPertubationBrowserShot(self):
         """

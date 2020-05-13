@@ -131,7 +131,7 @@ def moveFiles(file_list, dest_dir, query_len):
         utils.executeSubProcess(cmd)
         count = count + 1
 
-    if not count == 2 * query_len:
+    if not count == 3 * query_len:
         print("\nThe number of files moved is {}. The number of rows in the query is {}.\n \
                If moving count and bam files (default), the number of files should be twice the number of rows.\n \
                If it is not, Check the query, and {}, and try again".format(count, query_len, COUNT_LTS))
