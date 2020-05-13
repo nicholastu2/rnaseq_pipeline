@@ -17,6 +17,7 @@ def main(argv):
     # store suffixes of the files we wish to move
     count_suffix = '_read_count.tsv'
     novoalign_log_suffix = '_novoalign.log'
+    sorted_alignment_suffix = '_sorted_aligned_reads.bam'
 
     # parse cmd line arguments
     args = parseArgs(argv)
@@ -42,8 +43,10 @@ def main(argv):
     count_file_list = filepathList(database_df, count_suffix, leading_zero_list)
     # get list of novoalign logs
     novoalign_log_list = filepathList(database_df, novoalign_log_suffix, leading_zero_list)
+    # get list of sorted alignment files
+    sorted_alignment_list = filepathList(database_df, sorted_alignment_suffix, leading_zero_list)
     # concat the lists together
-    file_list = count_file_list + novoalign_log_list
+    file_list = count_file_list + novoalign_log_list + sorted_alignment_list
 
     # move the files from /lts to the output directory (generally the user's scratch)
     moveFiles(file_list, destination_directory, len(database_df))

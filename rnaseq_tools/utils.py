@@ -285,7 +285,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        raise ("{} failed to execute. check the code.".format(cmd))
+        raise IOError("{} failed to execute. check the code.".format(cmd))
 
 
 def configure(object_instance, config_file, config_header, prefix=''):

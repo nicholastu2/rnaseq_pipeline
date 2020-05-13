@@ -25,6 +25,7 @@ def main(argv):
         if not os.path.isfile(args.quality_assess_1_path):
             raise FileNotFoundError('QualityAssessSheetPathNotValid')
         quality_assessment_path = args.quality_assess_1_path
+        quality_assessment_df = utils.readInDataframe(quality_assessment_path)
     except FileNotFoundError:
         sys.exit('path to quality_assess_1 not valid')
     try:
@@ -46,7 +47,6 @@ def main(argv):
     od = OrganismData(organism=args.organism,
                       config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini')
 
-    print('...creating bedfiles for perturbed genotype')
     df_wt_filter = standardized_query_df['GENOTYPE'] != 'CNAG_00000'
     perturbed_genotype_list = standardized_query_df[df_wt_filter]['GENOTYPE'].unique()
     # store bedfiles as dictionary
@@ -55,33 +55,71 @@ def main(argv):
         # put bedfiles into parent dir of quality_assess --> this is intended to be <OrganismData>_pipeline_info generally
         parent_dir_qual_assess = utils.dirPath(quality_assessment_path)
         bedfile_path = os.path.join(parent_dir_qual_assess, '%s.bed' % perturbed_genotype)
+        print('checking for, and creating if DNE, %s bedfile in %s' %(perturbed_genotype, parent_dir_qual_assess))
         if not os.path.isfile(bedfile_path):
-            parsed_gtf = '%s_parsed.gtf' % perturbed_genotype
-            cmd = 'cat %s | grep %s > %s' % (od.annotation_file, perturbed_genotype, parsed_gtf)
+            print('...creating bed file for %s' %perturbed_genotype)
+            cmd = '/home/chase/code/brentlab/rnaseq_pipeline/tools/make_bed.py -a %s -g %s -b %s' % (od.annotation_file, perturbed_genotype, bedfile_path)
             utils.executeSubProcess(cmd)
-
-
         # set key: value in dictionary
         bedfile_path_dict.setdefault(perturbed_genotype, bedfile_path)
 
     # create dictionary to store {perturbed_genotype: [list of coverage.tsv files]
     perturbed_coverage_dict = {}
-    genotype_countfilename_df = standardized_query_df[df_wt_filter][
-        ['GENOTYPE', 'COUNTFILENAME']]  # take only these two columns
-    perturbed_coverage_list = glob(
-        reports_directory + '/*' + '_coverage.tsv')  # extract coverage files in reports_directory to match against those extracted from query_df
+    genotype_countfilename_df = standardized_query_df[df_wt_filter][['GENOTYPE', 'COUNTFILENAME']]  # take only these two columns
+    # extract coverage files in reports_directory to match against those extracted from query_df
+    perturbed_coverage_list = glob(reports_directory + '/*' + '_coverage.tsv')
+    perturbed_coverage_list = [os.path.basename(coverage_file) for coverage_file in perturbed_coverage_list]
+
+    # create dictionary to store percent coverage
+    percent_coverage_dict = {}
     for index, row in genotype_countfilename_df.iterrows():
         coverage_filename = str(row['COUNTFILENAME']).replace('_read_count.tsv', '_coverage.tsv')
         if coverage_filename not in perturbed_coverage_list:
             sys.exit('coverage file extracted from query not found in the reports_directory supplied. '
                      'Please make sure that the _coverage.tsv are there, and that the query .csv is accurate to the contents of the report_directory')
-        perturbed_coverage_dict.setdefault(row['GENOTYPE'], []).extend(coverage_filename)
+        perturbed_coverage_dict.setdefault(row['GENOTYPE'], []).append(coverage_filename)
 
-    for coverage_path in perturbed_coverage_list:
-        per_base_coverage_df = pd.read_csv(coverage_path, sep='\t',
-                                           names=['chr', 'start', 'stop', 'count'],
-                                           dtype={'start': int, 'stop': int, 'count': int})
+    for perturbed_genotype, coverage_path_list in perturbed_coverage_dict.items():
+        for coverage_filename in coverage_path_list:
+            coverage_path = os.path.join(reports_directory, coverage_filename)
+            # create df from coverage file associated with sample
+            per_base_coverage_df = pd.read_csv(coverage_path, sep='\t',
+                                               names=['chr', 'start', 'stop', 'count'],
+                                               dtype={'start': int, 'stop': int, 'count': int})
+            # add column covered region (if a read spans a region in the alignment, it is counted over the region, not per base). coverage is equal to 1 * length of region covered (depth is not considered)
+            per_base_coverage_df['covered_region'] = per_base_coverage_df[['count']].sum(axis=1) > 0
+            per_base_coverage_df['covered_region'] = (per_base_coverage_df['stop'] - per_base_coverage_df['start']) * per_base_coverage_df['covered_region']
+            # read in bed as a dataframe
+            region_bed_df = pd.read_csv(bedfile_path_dict[perturbed_genotype], sep='\t', names = ['chr', 'region_start', 'region_stop', 'feature_type'])
+            region_bed_df['length'] = region_bed_df.region_stop - region_bed_df.region_start
+            # calculate coverage over CDS
+            cds_region_df = region_bed_df[region_bed_df.feature_type == 'CDS']
+            cds_region_df.reset_index(inplace=True)
 
+            for index, row in cds_region_df.iterrows():
+                cds_start = row['region_start']
+                cds_stop = row['region_stop']
+                chromosome = row['chr']
+
+                cds_filter = (per_base_coverage_df['start'] >= cds_start) & (per_base_coverage_df['stop'] <= cds_stop) & (per_base_coverage_df['chr'] == chromosome)
+                cds_sum = sum(per_base_coverage_df[cds_filter]['covered_region'])
+                coverage = cds_sum / float(cds_region_df.loc[index, 'length'])
+                cds_region_df.loc[index, 'coverage'] = coverage
+            countfilename = os.path.basename(coverage_path.replace('_coverage.tsv', '_read_count.tsv'))
+            percent_coverage_dict.setdefault(countfilename, sum(cds_region_df['length'] * cds_region_df['coverage']) / sum(cds_region_df['length']))
+
+    # this is a quick way of determining if the quality assessment is quality_assess_1 or 2
+    if 'Samples' in list(quality_assessment_df.columns.values()):
+        coverage_df = pd.DataFrame.from_dict(percent_coverage_dict, orient='index', columns=['percent_coverage']).reset_index()
+        coverage_df.rename(columns={'index': 'Sample'}, inplace=True)
+        coverage_df['Sample'] = coverage_df.Sample.str.replace('_read_count.tsv', '')
+        qual_assess_with_percent_coverage = pd.merge(quality_assessment_df, coverage_df, on='Sample', how='left')
+    else:
+        coverage_df = pd.DataFrame.from_dict(percent_coverage_dict, orient='index', columns=['percent_coverage']).reset_index()
+        coverage_df.rename(columns={'index': 'COUNTFILENAME'}, inplace=True)
+        qual_assess_with_percent_coverage = pd.merge(quality_assessment_df, coverage_df, on='COUNTFILENAME', how='left')
+
+    qual_assess_with_percent_coverage.to_csv(quality_assessment_path, index=False)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
