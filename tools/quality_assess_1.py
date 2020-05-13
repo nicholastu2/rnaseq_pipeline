@@ -22,26 +22,26 @@ def main(argv):
     try:
         if not os.path.isdir(args.reports_dir):
             raise NotADirectoryError('OutputDirDoesNotExist')
-    except NotADirectoryError:
+    except NotADirectoryError or AttributeError:
         print('%s does not lead to a valid directory. Check the path and resubmit with working -r' % args.reports)
     else:
         align_count_path = args.reports_dir
     try:
         if not os.path.isdir(args.output_dir):
             raise NotADirectoryError
-    except NotADirectoryError:
+    except NotADirectoryError or AttributeError:
         print('%s does not lead to a valid directory. check the path and resubmit with correct -o' %args.output_dir)
     else:
         output_directory = args.output_dir
     try:
         if not os.path.isfile(args.query_sheet):
             raise FileNotFoundError('QuerySheetDoesNotExist')
-    except FileNotFoundError:
+    except FileNotFoundError or AttributeError:
         print('%s does not lead to a valid file. Check and resubmit correct -qs' %args.query_sheet)
     try:  # TODO: check also if genotype check is submitted and either query sheet or log2cpm is not, throw error. check isisntance args.exp_columns is list
         if not os.path.isfile(args.log2_cpm):
             raise FileNotFoundError('Log2cpmFileDoesNotExist')
-    except FileNotFoundError:
+    except FileNotFoundError or AttributeError:
         print('%s does not lead to a valid file. Check path and resubmit correct -log2cpm')
 
     # get run number
