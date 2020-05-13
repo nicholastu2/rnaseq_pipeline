@@ -33,11 +33,11 @@ class QualityAssessmentObject(StandardData):
         try:
             self.ko_gene_list = kwargs['ko_gene_list']
         except KeyError:
-            self.ko_gene_list = [] # eg ['CNAG_01020' , ['CNAG_39392','CNAG_48382'], 'CNAG_23421'] where the center item is a double ko
+            self.ko_gene_list = []  # eg ['CNAG_01020' , ['CNAG_39392','CNAG_48382'], 'CNAG_23421'] where the center item is a double ko
         try:
             self.overexpress_gene_list = kwargs['overexpress_gene_list']
         except KeyError:
-            self.overexpress_gene_list = [] # expecting no nested lists in this
+            self.overexpress_gene_list = []  # expecting no nested lists in this
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
@@ -65,7 +65,6 @@ class QualityAssessmentObject(StandardData):
                     else:
                         self.ko_gene_list.append(genotype)
 
-
     def cryptoPerturbationExpressionCheck(self):
         """
             check expression against wt expression as mean_log2_perturbed_treatment_timepoint / mean_wt_treatment_timepoint
@@ -82,7 +81,7 @@ class QualityAssessmentObject(StandardData):
         # if align_count_path is present, this is for quality_assess_1 and the prefix should be set as such in column COUNTFILENAME
         if hasattr(self, 'align_count_path') and not hasattr(self, 'standardized_database_df'):
             self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path,
-                                                                                     self.align_count_path)
+                                                                                        self.align_count_path)
         # else, no prefix in COUNTFILENAME (see DatabaseObject.StandardizeDatabaseDataframe)
         elif not hasattr(self, 'standardized_database_df'):
             self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path)
@@ -113,19 +112,18 @@ class QualityAssessmentObject(StandardData):
         except AttributeError:
             sys.exit('no standardized query df provided')
 
-        # extract perturbed samples' COUNTFILENAME
-        self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(qa.query_df)
         # create filter (boolean column, used in following line)
         df_wt_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
         perturbed_sample_list = list(self.standardized_database_df[df_wt_filter]['COUNTFILENAME'])
         # create path to new sbatch script
-        sbatch_job_script_path = os.path.join(self.job_scripts, 'coverage_%s_%s.sbatch' %(self.year_month_day, utils.hourMinuteSecond()))
+        sbatch_job_script_path = os.path.join(self.job_scripts,
+                                              'coverage_%s_%s.sbatch' % (self.year_month_day, utils.hourMinuteSecond()))
         # write sbatch script
         print('...writing coverage check sbatch script')
         with open(sbatch_job_script_path, 'w') as sbatch_file:
             sbatch_file.write("#!/bin/bash\n")
             sbatch_file.write("#SBATCH --mem=5G\n")
-            sbatch_file.write("#SBATCH -D %s\n" %self.user_rnaseq_pipeline_directory)
+            sbatch_file.write("#SBATCH -D %s\n" % self.user_rnaseq_pipeline_directory)
             sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
             sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
             sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
@@ -135,18 +133,17 @@ class QualityAssessmentObject(StandardData):
                 sorted_alignment_path = os.path.join(self.align_count_path, sorted_alignment_file)
                 coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
                 coverage_output_path = os.path.join(self.align_count_path, coverage_filename)
-                sbatch_file.write('bedtools genomecov -ibam %s -bga > %s\n' %(sorted_alignment_path, coverage_output_path))
-        print('sbatch script to quantify per base coverage in perturbed samples at %s' %sbatch_job_script_path)
+                sbatch_file.write(
+                    'bedtools genomecov -ibam %s -bga > %s\n' % (sorted_alignment_path, coverage_output_path))
+        print('sbatch script to quantify per base coverage in perturbed samples at %s' % sbatch_job_script_path)
         print('submitting sbatch job. Once this completes, use script quantify_perturbed_coverage.py')
-        cmd = 'sbatch %s'%sbatch_job_script_path
+        cmd = 'sbatch %s' % sbatch_job_script_path
         utils.executeSubProcess(cmd)
 
     def cryptoPertubationBrowserShot(self):
         """
             create IGV browser shot of perturbed gene
         """
-
-
 
     def updateStatusColumn(self):
         pass
