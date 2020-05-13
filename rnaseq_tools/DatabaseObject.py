@@ -220,9 +220,11 @@ class DatabaseObject:
             :param kwargs: arbitrary keyword arguments. provided to pass logger
             :returns: the dataframe with column variables cast to uppercase and fastqFileName converted to SAMPLE
         """
-
-        # convert column headings to upper case
-        rnaseq_metadata_df.columns = rnaseq_metadata_df.columns.str.upper()
+        try:
+            # convert column headings to upper case
+            rnaseq_metadata_df.columns = rnaseq_metadata_df.columns.str.upper()
+        except AttributeError:
+            sys.exit('standardizeDatabaseDataframe takes a dataframe, not a filepath, as an argument')
 
         # regex to extract run_number, if needed
         regex = r"(?<=sequence\/run_)\d*"

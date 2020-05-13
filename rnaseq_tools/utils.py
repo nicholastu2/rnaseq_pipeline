@@ -469,7 +469,7 @@ def createStdOutLogger(**kwargs):
 
     return logger
 
-def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):
+def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
     """
     write fastq filepaths in a list stored as a .txt. Used in slurm job script
     :param dir_path: path to a diretory with files you wish to extract
