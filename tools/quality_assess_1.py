@@ -20,12 +20,12 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)  # TODO error check all input
     try:
-        if not os.path.isdir(args.reports):
+        if not os.path.isdir(args.reports_dir):
             raise NotADirectoryError('OutputDirDoesNotExist')
     except NotADirectoryError:
         print('%s does not lead to a valid directory. Check the path and resubmit with working -r' % args.reports)
     else:
-        align_count_path = args.reports
+        align_count_path = args.reports_dir
     try:
         if not os.path.isdir(args.output_dir):
             raise NotADirectoryError
