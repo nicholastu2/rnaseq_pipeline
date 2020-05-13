@@ -40,7 +40,7 @@ def main(argv):
         print('%s does not lead to a valid file. Check and resubmit correct -qs' %args.query_sheet)
 
     # get run number
-    run_number = utils.getRunNumber(args.reports)
+    run_number = utils.getRunNumber(args.reports_dir)
     # create filename
     quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
     output_path = os.path.join(output_directory, quality_assessment_filename)
