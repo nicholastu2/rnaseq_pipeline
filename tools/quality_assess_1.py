@@ -6,6 +6,7 @@ import argparse
 from glob import glob
 import pandas as pd
 from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
+from rnaseq_tools.DatabaseObject import DatabaseObject
 from rnaseq_tools import utils
 
 # current order is required -- order is hard coded into parseAlignment and parseGeneCount
@@ -52,7 +53,7 @@ def main(argv):
     qa = QualityAssessmentObject(align_count_path=align_count_path,
                                  run_number=utils.getRunNumber(args.reports),
                                  output_dir=args.output,
-                                 quality_assessment_filename=quality_assessment_filename)
+                                 quality_assessment_filename=quality_assessment_filename, config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini')
 
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
     alignment_files_df = compileData(qa.align_count_path, "_novoalign.log")
@@ -69,25 +70,34 @@ def main(argv):
     # make labels both genotype and fastqfilename in R script
     # take browser shot -- build this as class (certain attributes necessary to taking browser shot)
 
-    # genotype check
-    if args.genotype_check:
+    # perturbed genotype check
+    if args.coverage_check:
         # check if all necessary components are present
         if os.path.isfile(args.query_sheet_path):
             qa.query_sheet_path = args.query_sheet_path
         else:
             raise FileNotFoundError('QuerySheetDoesNotExist')
-        if os.path.isfile(args.log2cpm):
-            qa.log2_cpm_path = args.log2cpm
-        else:
-            raise FileNotFoundError('Log2cpmDoesNotExist')
-        try:
-            if isinstance(args.exp_columns, list):
-                qa.experiment_columns = args.exp_columns
-        except NameError:
-            print('experiment_columns not entered -- no list found')
-        # check genotype
-        qa.cryptoPerturbationGenotypeCheck()
-
+        # extract perturbed samples' COUNTFILENAME
+        qa.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(qa.query_sheet_path)
+        # create filter (boolean column, used in following line)
+        df_filter = qa.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
+        # filter out CNAG_00000 (wt) from standardized_data_df (only perturbed genotypes remain)
+        perturbed_sample_list = qa.standardized_database_df[df_filter]
+        # create path to new sbatch script
+        sbatch_job_script_path = os.path.join(qa.job_scripts, 'coverage_%s_%s.sbatch' %(qa.year_month_day, utils.hourMinuteSecond()))
+        # write sbatch script
+        with open(sbatch_job_script_path, 'w') as sbatch_file:
+            sbatch_file.write("#!/bin/bash\n")
+            sbatch_file.write("#SBATCH --mem=5G\n")
+            sbatch_file.write("#SBATCH -D ./\n")
+            sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
+            sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
+            sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
+            sbatch_file.write("ml bedtools\n")
+            for sample in perturbed_sample_list:
+                sorted_alignment_file = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+                coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
+                sbatch_file.write('bedtools genomecov -ibam %s -bga > %s\n' %(sorted_alignment_file, coverage_filename))
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
@@ -96,15 +106,10 @@ def parseArgs(argv):
     parser.add_argument("-o", "--output_dir", required=True,
                         help="[REQUIRED] Suggested Usage: in reports/run_####/{organism}_pipeline_info. Remember that runs with multiple organisms will have different pipeline_info dirs per organism."
                              " File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
-    parser.add_argument("-gc", "--genotype_check", action='store_true',
-                        help="path to a text file with a list (see templates/genotype_check.txt for an example) of fastqFileNames to perform a genotype check on")
+    parser.add_argument("-cc", "--coverage_check", action='store_true',
+                        help="[OPTIONAL] For Crypto experiments. Set this flag to add a column to the output dataframe with percent gene coverage")
     parser.add_argument("-qs", "--query_sheet",
-                        help="path to query sheet with (only) the samples you wish to genotype check")
-    parser.add_argument("-log2cpm", "--log2_cpm",
-                        help="log2 cpm of the raw counts (run raw_counts.py and then log2_cpm.R to produce these")
-    parser.add_argument("-exp_cols", "--experiment_columns", nargs='+',
-                        help="columns to use to create replicate groups. Eg for crypto -exp_cols genotype treatment timepoint"
-                             " note: no quotes or commas")
+                        help="[OPTIONAL] But required with -cc is set. Path to query sheet containing AT LEAST the samples you wish to genotype check. There may be more entries.")
     args = parser.parse_args(argv[1:])
     return args
 

@@ -92,16 +92,42 @@ class QualityAssessmentObject(StandardData):
             # extract mean perturbed log2cpm expression and treatment_timepoint
             # if gene expression is less than 99% of wt in same treatment_timempoint, flag, create diagnostic dataframe and browser shot
 
-    def cryptoPertubationCoverageCheck(self):
+    def coverageCheck(self):
         """
-            if cryptoPertubationExpressionCheck fails, check coverage of genebody
+            check coverage of genebody
         """
         pass
+        # try:
+        #     if not hasattr(self, 'query_sheet_path'):
+        #         raise AttributeError('NoQuerySheetPath')
+        # except AttributeError:
+        #     print('No query sheet path')
+        # else:
+        #     if not hasattr(self, 'standardized_database_df'):
+        #         self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path)
+        # finally:
+        #     df_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
+        #     perturbed_genotype_sorted_alignment_files = list(self.standardized_database_df[df_filter]['COUNTFILENAME'])
+        #     with open(sbatch_script_path, 'w') as sbatch_file:
+        #         sbatch_file.write("#!/bin/bash\n")
+        #         sbatch_file.write("#SBATCH --mem=5G\n")
+        #         sbatch_file.write("#SBATCH -D ./\n")
+        #         sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
+        #         sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
+        #         sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
+        #
+        #         sbatch_file.write("ml bedtools\n")
+        #         for sample in perturbed_genotype_sorted_alignment_files:
+        #             sample_no_suffix = sample.replace('_read_count.tsv', '')
+        #             'bedtools genomecov - ibam %s -bga > %s_per_base_coverage.tsv'
+        #
+        #     # bedtools genomecov -ibam <sorted_bam_file> -bga > bedtools_coverage_out.tsv
 
     def cryptoPertubationBrowserShot(self):
         """
             create IGV browser shot of perturbed gene
         """
+
 
 
     def updateStatusColumn(self):

@@ -1,20 +1,36 @@
+import os
 
 class SbatchWriter:
-    def __init__(self, script_path, sbatch_dict, module_list, sample_list, sample_file_extension, command_list):
-        self.script_path = script_path
-        if sbatch_dict == {}:
-            self.sbatch_dict = self.createSbatchDict()
-        self.module_list = module_list
-        self.sample_list_command = sample_list
-        self.sample_file_extension = sample_file_extension
-        self.command_list = command_list
+    def __init__(self, **kwargs):
+        try:
+            self.script_path = kwargs['script_path']
+        except KeyError:
+            pass
+        try:
+            self.sbatch_dict = kwargs['sbatch_dict']
+        except KeyError:
+            pass
+        try:
+            self.module_list = kwargs['module_list']
+        except KeyError:
+            pass
+        try:
+            self.sample_list = kwargs['sample_list']
+        except KeyError:
+            pass
+        try:
+            self.sample_file_path = kwargs['sample_file_path']
+        except KeyError:
+            pass
+        try:
+            self.command_list = kwargs['command_list']
+        except KeyError:
+            pass
 
     # TODO: test and then incorporate SbatchWriterObject
     @staticmethod
     def writeAlignCountJobScript(job_file, output_path, fastq_list_file, num_fastqs, genome_index_file,
-                                 genome_annotation_file,
-                                 feature_type,
-                                 strandness, align_only):
+                                 genome_annotation_file, feature_type, strandness, align_only):
         """
         Write slurm job script to job_file (which is $PWD/job_scripts
         :param job_file: path to $PWD/job_scripts (see main method)
@@ -71,6 +87,25 @@ class SbatchWriter:
                                                                                                    genome_annotation_file))
 
     @staticmethod
+    def writeCoverageSbatchScript(job_file, output_dir_path, run_num_directory, perturbed_sorted_alignment_list):
+        """
+
+        """
+        with open(job_file, 'w') as sbatch_file:
+            sbatch_file.write("#!/bin/bash\n")
+            sbatch_file.write("#SBATCH --mem=5G\n")
+            sbatch_file.write("#SBATCH -D ./\n")
+            sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
+            sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
+            sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
+            sbatch_file.write("ml bedtools\n\n")
+            for sorted_alignment_file in perturbed_sorted_alignment_list:
+                sorted_alignment_path = os.path.join(run_num_directory, sorted_alignment_file)
+                coverage_file_name = sorted_alignment_file.replace('_sorted_aligned_reads.bam ', 'coverage.tsv')
+                coverage_file_path = os.path.join(output_dir_path, coverage_file_name)
+                sbatch_file.write('bedtools genomecov -ibam %s -bga > %s\n' % (sorted_alignment_path, coverage_file_path))
+
+    @staticmethod
     def createSbatchDict():
         """
         create a dictionary of sbatch options. Generally, see https://slurm.schedmd.com/sbatch.html
@@ -79,7 +114,8 @@ class SbatchWriter:
         :returns: sbatch_dictionary with structure {--sbatch_option: value}
         """
         # create empty dictionary with keys corresponding to sbatch options
-        sbatch_options = ['--nodes', '--cpus_per_task', '--mem', '--array', '--chdir', '--output', '--error', '--job-name']
+        sbatch_options = ['--nodes', '--cpus_per_task', '--mem', '--array', '--chdir', '--output', '--error',
+                          '--job-name']
         sbatch_dict = dict.fromkeys(sbatch_options)
         # print message to user
         print('The sbatch options currently available in SbatchWriter.createSbatchDict() are: %s\n'
@@ -88,28 +124,22 @@ class SbatchWriter:
               'and before calling writeScript')
         # prompt user to enter values for each key
         for key in sbatch_dict:
-            value = input('enter value for %s: ' %key)
+            value = input('enter value for %s: ' % key)
             sbatch_dict[key] = value
 
         return sbatch_dict
 
-    def writeScript(self):
+    def writeSbatchHeader(self):
         with open(self.script_path, 'w') as script_file:
             # write she-bang
             script_file.write('#!/bin/bash\n')
             # write SBATCH options from dict
             for key, value in self.sbatch_dict.items():
-                script_file.write('#SBATCH %s=%s\n' %(key, value))
+                script_file.write('#SBATCH %s=%s\n' % (key, value))
             script_file.write('\n')
-            # write modules, if module_list is not empty
-            if self.module_list:
+            try:
                 for module in self.module_list:
-                    script_file.write('ml %s\n' %module)
-            script_file.write('\n')
-            if self.sample_list:
-                # if a sample_list is passed, create a environmental variable sample_list
-                script_file.write("read sample_list < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n" %self.sample_list)
-                for command in self.command_list:
-                    # in the command list, ${{sample}} may be used to write the sample basename as part of a filename. eg:
-                    # novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam.format(genome_file_index, output_path)
-                    script_file.write("sample=${{sample_list##*/}}; sample=${{sample%.%s}}; %s\n" %(self.sample_file_extension,command))
+                    script_file.write('ml %s\n' % module)
+                script_file.write('\n')
+            except AttributeError:
+                pass
