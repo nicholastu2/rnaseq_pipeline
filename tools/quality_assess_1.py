@@ -19,6 +19,7 @@ COUNT_VARS = ["total_mapped_reads", "with_feature", "no_feature", "ambiguous", "
 
 def main(argv):
     # parse cmd line arguments
+    print('...parsing cmd line input')
     args = parseArgs(argv)  # TODO error check all input
     try:
         if not os.path.isdir(args.reports_dir):
@@ -51,12 +52,15 @@ def main(argv):
                                  output_dir=args.output_dir,
                                  quality_assessment_filename=quality_assessment_filename)
 
+    print('...compiling alignment information')
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
     alignment_files_df = compileData(qa.align_count_path, "_novoalign.log")
+    print('...compiling read count information')
     count_files_df = compileData(qa.align_count_path, "_read_count.tsv")
-
+    print('...creating dataframe')
     # concat the alignment and count data
     combined_df = pd.concat([alignment_files_df, count_files_df], axis=1, sort=True, join="inner")
+    print('writing output to %s' %output_path)
     # write to csv
     combined_df.to_csv(output_path, columns=ALIGN_VARS + COUNT_VARS[1:], index_label="Sample")
 
@@ -68,6 +72,7 @@ def main(argv):
 
     # perturbed genotype check
     if args.coverage_check:
+        print('...extracting perturbed samples from query sheet for coverage check sbatch script')
         # check if all necessary components are present
         if os.path.isfile(args.query_sheet_path):
             qa.query_sheet_path = args.query_sheet_path
@@ -82,6 +87,7 @@ def main(argv):
         # create path to new sbatch script
         sbatch_job_script_path = os.path.join(qa.job_scripts, 'coverage_%s_%s.sbatch' %(qa.year_month_day, utils.hourMinuteSecond()))
         # write sbatch script
+        print('...writing coverage check sbatch script')
         with open(sbatch_job_script_path, 'w') as sbatch_file:
             sbatch_file.write("#!/bin/bash\n")
             sbatch_file.write("#SBATCH --mem=5G\n")
@@ -96,6 +102,10 @@ def main(argv):
                 coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
                 coverage_output_path = os.path.join(qa.align_count_path, coverage_filename)
                 sbatch_file.write('bedtools genomecov -ibam %s -bga > %s\n' %(sorted_alignment_path, coverage_output_path))
+        print('sbatch script to quantify per base coverage in perturbed samples at %s' %sbatch_job_script_path)
+        print('submitting sbatch job. Once this completes, use script quantify_perturbed_coverage.py')
+        cmd = 'sbatch %s'%sbatch_job_script_path
+        utils.executeSubProcess(cmd)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
