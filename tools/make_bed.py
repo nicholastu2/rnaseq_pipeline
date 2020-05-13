@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-   docstring
-   usage: usage statement here
+   create .bed from gtf with columns chr\tstart\tstop\tfeature
+   usage: make_bed.py -a /path/to/.gtf -g CNAG_00102 -b bed_name.bed
 """
 import sys
 import argparse
 import logging
 import re
+
 
 def main(argv):
     """ main method
@@ -24,16 +25,18 @@ def main(argv):
         for line in file:
             if re.search(gene, line):
                 x = line.strip().split('\t')
-                bed.write('%s\t%s\t%s\t%s_%s\n' % (x[0], x[3], x[4], x[2], gene))
+                bed.write('%s\t%s\t%s\t%s\n' % (x[0], x[3], x[4], x[2]))
 
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
-        description="description here")
+        description="create a bed file from a gtf and a given gene")
     parser.add_argument("-a", "--gtf", required=True,
-                        help='explanation')
-    parser.add_argument('-g', '--gene', required=True),
-    parser.add_argument('-b', '--bed_file_name', required=True)
+                        help='the .gtf for a given organism')
+    parser.add_argument('-g', '--gene', required=True,
+                        help='the gene you wish to extract from the gtf'),
+    parser.add_argument('-b', '--bed_file_name', required=True,
+                        help='the name of the bedfile')
 
     args = parser.parse_args(argv[1:])
     return args
