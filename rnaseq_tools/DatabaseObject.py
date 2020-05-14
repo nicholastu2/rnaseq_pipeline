@@ -271,7 +271,7 @@ class DatabaseObject:
         """
         timestr = ('%s_%s' % (utils.yearMonthDay(), utils.hourMinuteSecond()))
         # store path to directory. current working directory is default
-        if kwargs['path_to_directory']:
+        if kwargs['path_to_directory']: # TODO error handling == this wont work
             path_to_directory = kwargs['path_to_directory']
         else:
             path_to_directory = os.getcwd()
