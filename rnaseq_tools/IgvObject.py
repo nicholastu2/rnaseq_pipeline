@@ -70,7 +70,7 @@ class IgvObject(OrganismData):
         if not os.path.isfile(self.query_sheet_path):
             raise AttributeError('QuerySheetPathNotValid')
         else:
-            query_df = self.query_sheet_path
+            query_df = utils.readInDataframe(self.query_sheet_path)
             self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
         # if an scratch_alignment_source is not passed in constructor of IgvObject, create one in rnaseq_tmp/<timenow>_igv_files and store the path in self.scratch_alignment_source
         if not hasattr(self, 'scratch_alignment_source'):

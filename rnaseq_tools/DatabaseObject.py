@@ -224,7 +224,7 @@ class DatabaseObject:
             # convert column headings to upper case
             rnaseq_metadata_df.columns = rnaseq_metadata_df.columns.str.upper()
         except AttributeError:
-            sys.exit('standardizeDatabaseDataframe takes a dataframe, not a filepath, as an argument')
+            print('standardizeDatabaseDataframe takes a dataframe, not a filepath, as an argument')
 
         # regex to extract run_number, if needed
         regex = r"(?<=sequence\/run_)\d*"
