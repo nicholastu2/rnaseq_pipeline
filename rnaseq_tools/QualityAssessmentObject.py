@@ -206,6 +206,8 @@ class QualityAssessmentObject(StandardData):
         post_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] > '2015-01-01']
         post_2015_countfilename_list = list(post_2015_df['COUNTFILENAME'])
 
+        cmd_list = []
+
         for countfilename in post_2015_countfilename_list:
             bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
             try:
@@ -223,8 +225,8 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
-            utils.executeSubProcess(qorts_cmd)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (bamfilename_path, self.annotation_file, output_subdir)
+            cmd_list.append(qorts_cmd)
 
         for countfilename in pre_2015_countfilename_list:
             bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
@@ -243,5 +245,12 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
-            utils.executeSubProcess(qorts_cmd)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (bamfilename_path, self.annotation_file, output_subdir)
+            cmd_list.append(qorts_cmd)
+
+        with open(self.sbatch_script, 'w') as sbatch_file:
+            sbatch_file.write('\n')
+            sbatch_file.write('\n')
+
+            for cmd in cmd_list:
+                sbatch_file.write(cmd)
