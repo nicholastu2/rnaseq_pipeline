@@ -44,8 +44,7 @@ def main(argv):
         sys.exit('path to reports directory is not valid')
 
     # create OrganismData object. Since organism is passed. setOrganismData is called which includes StandardData.standardDirectoryStructure(). Pass config_file to this constructor if not running on htcf
-    od = OrganismData(organism=args.organism,
-                      config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini')
+    od = OrganismData(organism=args.organism)
 
     df_wt_filter = standardized_query_df['GENOTYPE'] != 'CNAG_00000'
     perturbed_genotype_list = standardized_query_df[df_wt_filter]['GENOTYPE'].unique()
@@ -108,7 +107,7 @@ def main(argv):
             countfilename = os.path.basename(coverage_path.replace('_coverage.tsv', '_read_count.tsv'))
             percent_coverage_dict.setdefault(countfilename, sum(cds_region_df['length'] * cds_region_df['coverage']) / sum(cds_region_df['length']))
 
-    # this is a quick way of determining if the quality assessment is quality_assess_1 or 2
+    # this is a quick possibly dirty way of determining if the quality assessment is quality_assess_1 or 2. Area of improvement.
     if 'Samples' in list(quality_assessment_df.columns.values()):
         coverage_df = pd.DataFrame.from_dict(percent_coverage_dict, orient='index', columns=['percent_coverage']).reset_index()
         coverage_df.rename(columns={'index': 'Sample'}, inplace=True)
@@ -125,11 +124,11 @@ def parseArgs(argv):
     parser = argparse.ArgumentParser(
         description="add a column to the quality_assess_1 output quantifying gene coverage of perturbed gene")
     parser.add_argument("-r", "--reports", required=True,
-                        help="[REPORTS] path to the directory with the alignment and count logs where the coverage files were deposited by qual_assess_1. most likely reports/run_####")
-    parser.add_argument("-qa", "--quality_assess_1_path", required=True,
-                        help='[REQUIRED] output of quality_assess_1. Should be located in reports/run_####/<organism>_pipeline_info')
+                        help="[REPORTS] path to the directory with the alignment/count output if qual_assess_1 or experiment directory if qual_assess_2")
+    parser.add_argument("-qa", "--quality_assessment", required=True,
+                        help='[REQUIRED] output of quality_assess_1 or quality_assess_2.')
     parser.add_argument("-qs", "--query_sheet_path", required=True,
-                        help='[REQUIRED] query sheet -- should be the same one submitted to quality_assess_1 for coverage check')
+                        help='[REQUIRED] query sheet of only the samples in the directory passed in flag -r')
     parser.add_argument('-g', '--organism', required=True,
                         help='[REQUIRED] Must be one of organisms in genome_files and configured for use with OrganismDataObject. Currently included: KN99, S288C_R64, H99')
 

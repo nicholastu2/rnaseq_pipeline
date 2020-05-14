@@ -110,7 +110,7 @@ class QualityAssessmentObject(StandardData):
             if not hasattr(self, 'standardized_database_df'):
                 self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
         except AttributeError:
-            sys.exit('no standardized query df provided')
+            print('no standardized query df provided')
 
         # create filter (boolean column, used in following line)
         df_wt_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
