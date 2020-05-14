@@ -22,7 +22,7 @@ def main(argv):
     args = parseArgs(argv)
     # TODO: add error checking for organism in OrganismData object itself
     try:
-        if not os.path.isfile(args.quality_assess_1_path):
+        if not os.path.isfile(args.quality_assessment_path):
             raise FileNotFoundError('QualityAssessSheetPathNotValid')
         quality_assessment_path = args.quality_assess_1_path
         quality_assessment_df = utils.readInDataframe(quality_assessment_path)
@@ -125,7 +125,7 @@ def parseArgs(argv):
         description="add a column to the quality_assess_1 output quantifying gene coverage of perturbed gene")
     parser.add_argument("-r", "--reports", required=True,
                         help="[REPORTS] path to the directory with the alignment/count output if qual_assess_1 or experiment directory if qual_assess_2")
-    parser.add_argument("-qa", "--quality_assessment", required=True,
+    parser.add_argument("-qa", "--quality_assessment_path", required=True,
                         help='[REQUIRED] output of quality_assess_1 or quality_assess_2.')
     parser.add_argument("-qs", "--query_sheet_path", required=True,
                         help='[REQUIRED] query sheet of only the samples in the directory passed in flag -r')
