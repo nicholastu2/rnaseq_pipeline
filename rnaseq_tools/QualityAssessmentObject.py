@@ -196,7 +196,7 @@ class QualityAssessmentObject(StandardData):
         except FileExistsError or AttributeError:
             print('You must pass a correct path to an annotation file (see genome_files)')
 
-        sorted_bamfile_list = glob(self.align_count_path, '_sorted_aligned_reads.bam')
+        sorted_bamfile_list = glob(os.path.join(self.align_count_path, '*_sorted_aligned_reads.bam'))
 
         # sort list of countfilenames pre and post 2015
         self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])
