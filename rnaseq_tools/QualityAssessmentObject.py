@@ -197,6 +197,7 @@ class QualityAssessmentObject(StandardData):
             print('You must pass a correct path to an annotation file (see genome_files)')
 
         sorted_bamfile_list = glob(os.path.join(self.align_count_path, '*_sorted_aligned_reads.bam'))
+        sorted_bamfile_list = [os.path.basename(x) for x in sorted_bamfile_list]
 
         # sort list of countfilenames pre and post 2015
         self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])
