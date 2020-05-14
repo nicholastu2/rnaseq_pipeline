@@ -24,7 +24,7 @@ def main(argv):
     try:
         if not os.path.isfile(args.quality_assessment_path):
             raise FileNotFoundError('QualityAssessSheetPathNotValid')
-        quality_assessment_path = args.quality_assess_1_path
+        quality_assessment_path = args.quality_assessment_path
         quality_assessment_df = utils.readInDataframe(quality_assessment_path)
     except FileNotFoundError:
         sys.exit('path to quality_assess_1 not valid')
