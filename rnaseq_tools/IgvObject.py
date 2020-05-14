@@ -85,8 +85,7 @@ class IgvObject(OrganismData):
             setattr(self, 'scratch_alignment_source', os.path.join(self.rnaseq_tmp, '{}_igv_files'.format(timestr)))
             utils.mkdirp(self.scratch_alignment_source)
 
-    def moveAlignmentFiles(
-            self):  # TODO: THIS ALSO CHECKS FOR AND MAKES A LIST OF ALIGNMENT FILES TO INDEX WITH SAMTOOLS -- NOT CLEAR IN NAME
+    def moveAlignmentFiles(self):  # TODO: THIS ALSO CHECKS FOR AND MAKES A LIST OF ALIGNMENT FILES TO INDEX WITH SAMTOOLS -- NOT CLEAR IN NAME
         """ TODO: a general move files script needs to be written. input list of files to be moved, source, dest, move files if they are not in dest. put in rnaseq_tools.utils
             ensure that all alignment files are in self.scratch_alignment_source. If no self.scratch_alignment_source set, then these will be deposited in
             rnaseq_tmp/datetime_igv_files
