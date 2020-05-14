@@ -53,6 +53,7 @@ class IgvObject(OrganismData):
             self.standardized_database_df = kwargs['standardized_database_df']
             self.scratch_alignment_source = kwargs['scratch_alignment_source']
             self.igv_output_dir = kwargs['igv_output_dir']
+            self.sample_list = kwargs['sample_list']
         except KeyError:
             pass
         # initialize Standard data with the extended _attributes
@@ -72,6 +73,8 @@ class IgvObject(OrganismData):
         else:
             query_df = utils.readInDataframe(self.query_sheet_path)
             self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
+            if not hasattr(self, 'sample_list'):
+                self.sample_list = list(self.standardized_database_df['COUNTFILENAME'])
         # if an scratch_alignment_source is not passed in constructor of IgvObject, create one in rnaseq_tmp/<timenow>_igv_files and store the path in self.scratch_alignment_source
         if not hasattr(self, 'scratch_alignment_source'):
             print(
@@ -89,7 +92,6 @@ class IgvObject(OrganismData):
             rnaseq_tmp/datetime_igv_files
             This needs to be done b/c indexing can only take place via srun/sbatch (on compute node. samtools not available on login node as of 3/2020)
         """
-
         for sample in self.sample_list:
             # strip .fastq.gz if it is there and add _read_count.tsv -- remember that self.query_df which has fastqFileName --> COUNTFILENAME and .fastq.gz converted to _read_count.tsv extensions. All column headings CAPITAL
             if sample.endswith('.fastq.gz'):
