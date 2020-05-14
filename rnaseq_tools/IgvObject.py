@@ -67,7 +67,7 @@ class IgvObject(OrganismData):
              set the attributes necessary to run IgvObjects
              :raises: AttributeError('QuerySheetPathNotValid')
         """
-        if os.path.isfile(self.query_sheet_path):
+        if not os.path.isfile(self.query_sheet_path):
             raise AttributeError('QuerySheetPathNotValid')
         else:
             query_df = self.query_sheet_path
