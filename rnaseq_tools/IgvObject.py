@@ -97,7 +97,8 @@ class IgvObject(OrganismData):
             if sample.endswith('.fastq.gz'):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
             # extract run_number just in case needed to find bam file in align_expr
-            run_number = DatabaseObject.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
+            run_number = DatabaseObject.extractValueFromStandardizedQuery(self.standardized_database_df,
+                                                                          'COUNTFILENAME', sample, 'RUNNUMBER',
                                                                           leading_zero_dict=self._run_numbers_with_zeros)
             self.logger.debug('the run_number extracted is: %s' % run_number)
             # create bamfile name
