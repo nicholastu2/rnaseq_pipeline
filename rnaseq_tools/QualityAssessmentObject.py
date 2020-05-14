@@ -1,8 +1,9 @@
-import sys
 import os
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
+from glob import glob
+import pandas as pd
 
 
 class QualityAssessmentObject(StandardData):
@@ -21,7 +22,7 @@ class QualityAssessmentObject(StandardData):
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'QualityAssessmentObject'
 
-        # set optional kwarg arguments
+        # set optional kwarg arguments # TODO: clean this up
         try:
             self.standardized_database_df = kwargs['standardized_database_df']
         except KeyError:
@@ -38,6 +39,10 @@ class QualityAssessmentObject(StandardData):
             self.overexpress_gene_list = kwargs['overexpress_gene_list']
         except KeyError:
             self.overexpress_gene_list = []  # expecting no nested lists in this
+        try:
+            self.align_count_path = kwargs['align_count_path']
+        except KeyError:
+            pass
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
@@ -106,11 +111,20 @@ class QualityAssessmentObject(StandardData):
             if not hasattr(self, 'query_path'):
                 raise AttributeError('NoQueryPath')
             if not hasattr(self, 'query_df'):
+                if not os.path.isfile(self.query_path):
+                    raise FileNotFoundError('QueryPathNotValid')
                 query_df = utils.readInDataframe(self.query_path)
-            if not hasattr(self, 'standardized_database_df'):
                 self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
         except AttributeError:
             print('no standardized query df provided')
+        except FileNotFoundError:
+            print('query path not valid')
+        try:
+            if not hasattr(self, 'align_count_path'):
+                raise AttributeError('NoAlignCountsPath')
+        except AttributeError:
+            print('You must pass a path to a directory with alignment files\n'
+                  '(typically either the output of align_counts.py or create_experiment.py')
 
         # create filter (boolean column, used in following line)
         df_wt_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
@@ -147,3 +161,90 @@ class QualityAssessmentObject(StandardData):
 
     def updateStatusColumn(self):
         pass
+
+    def qortsPlots(self):
+        """
+            create the qorts multiplots
+        """
+        try:
+            if not os.path.isfile(self.align_count_path):
+                raise NotADirectoryError('AlignCountPathNotValid')
+        except NotADirectoryError or AttributeError:
+            print(
+                'Align count path is either not set or not valid. align_count_path should be pointed toward a directory\n'
+                'with alignment files, typically the output of align_count.py or create_experiment.py')
+
+        try:
+            if not os.path.isfile(self.query_path):
+                raise FileExistsError('QueryPathNotValid')
+            else:
+                if not hasattr(self, 'standardized_database_df'):
+                    query_df = utils.readInDataframe(self.query_path)
+                    self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_df)
+        except FileExistsError:
+            print('Query Path not valid')
+
+        try:
+            if not os.path.isdir(self.qorts_output):
+                raise NotADirectoryError('QortsOutputDoesNotExist')
+        except NotADirectoryError or AttributeError:
+            print('qorts_output is either not passed as an argument, or does not exist.')
+
+        try:
+            if not os.path.isfile(self.annotation_file):
+                raise FileExistsError('AnnotationFilePathNotValid')
+        except FileExistsError or AttributeError:
+            print('You must pass a correct path to an annotation file (see genome_files)')
+
+        sorted_bamfile_list = glob(self.align_count_path, '_sorted_aligned_reads.bam')
+
+        # sort list of countfilenames pre and post 2015
+        self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])
+        pre_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] <= '2015-01-01']
+        pre_2015_countfilename_list = list(pre_2015_df['COUNTFILENAME'])
+        post_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] > '2015-01-01']
+        post_2015_countfilename_list = list(post_2015_df['COUNTFILENAME'])
+
+        for countfilename in post_2015_countfilename_list:
+            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            try:
+                if not bamfilename in sorted_bamfile_list:
+                    raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
+            except FileNotFoundError:
+                print('A sample in the query could not be located in the directory with the alignment files.\n'
+                      'Make sure the query provided corresponds to the align_count_path directory')
+
+            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
+            utils.mkdirp(output_subdir)
+            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
+            try:
+                if not os.path.exists(bamfilename_path):
+                    raise FileExistsError('BamfilePathNotValid')
+            except FileExistsError:
+                print('path from align_count_path to bamfile does not exist')
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
+                        '--singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
+            print(qorts_cmd)
+            #utils.executeSubProcess(qorts_cmd)
+
+        for countfilename in pre_2015_countfilename_list:
+            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            try:
+                if not bamfilename in sorted_bamfile_list:
+                    raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
+            except FileNotFoundError:
+                print('A sample in the query could not be located in the directory with the alignment files.\n'
+                      'Make sure the query provided corresponds to the align_count_path directory')
+
+            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
+            utils.mkdirp(output_subdir)
+            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
+            try:
+                if not os.path.exists(bamfilename_path):
+                    raise FileExistsError('BamfilePathNotValid')
+            except FileExistsError:
+                print('path from align_count_path to bamfile does not exist')
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
+                        '--singleEnded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
+            print(qorts_cmd)
+            #utils.executeSubProcess(qorts_cmd)

@@ -87,8 +87,8 @@ def main(argv):
                 qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
             print('... Assessing insertion of resistance cassette')
             qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
-            print('... Assessing concordance among replicates')
-            #qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
+            print('... Assessing concordance among replicates') # TODO: MAKE THIS AN OPTION IN PARSEARGS
+            qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
             print('... Auto auditing')
             qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
             print('...writing summary to %s' % output_name)
