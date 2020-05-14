@@ -313,9 +313,12 @@ class DatabaseObject(StandardData):
         # extract value of interest from row
         extracted_value = row[extract_column].values[0]
         # if leading_zero_dict (see StandardData) passed to kwargs, if the extracted value is a runNumber in the leading_zero_dict, then return with a leading 0
-        if kwargs['leading_zero_dict']:  # TODO: casting this to an int is a bit ugly -- may be a point of weakness
-            if int(extracted_value) in kwargs['leading_zero_dict']:
-                return str(kwargs['leading_zero_dict'][int(extracted_value)])
+        try:
+            if kwargs['leading_zero_dict']:  # TODO: casting this to an int is a bit ugly -- may be a point of weakness
+                if int(extracted_value) in kwargs['leading_zero_dict']:
+                    return str(kwargs['leading_zero_dict'][int(extracted_value)])
+        except KeyError:
+            pass
 
         return extracted_value
 
