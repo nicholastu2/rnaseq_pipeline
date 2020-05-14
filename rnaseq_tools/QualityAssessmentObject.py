@@ -174,14 +174,14 @@ class QualityAssessmentObject(StandardData):
                 'Align count path is either not set or not valid. align_count_path should be pointed toward a directory\n'
                 'with alignment files, typically the output of align_count.py or create_experiment.py')
 
-        try:
+        try: # TODO: clean this up
             if not os.path.isfile(self.query_path):
                 raise FileExistsError('QueryPathNotValid')
             else:
                 if not hasattr(self, 'standardized_database_df'):
                     query_df = utils.readInDataframe(self.query_path)
                     self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
-        except FileExistsError:
+        except FileExistsError or AttributeError:
             print('Query Path not valid')
 
         try:
@@ -224,8 +224,7 @@ class QualityAssessmentObject(StandardData):
                 print('path from align_count_path to bamfile does not exist')
             qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
                         '--singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
-            print(qorts_cmd)
-            #utils.executeSubProcess(qorts_cmd)
+            utils.executeSubProcess(qorts_cmd)
 
         for countfilename in pre_2015_countfilename_list:
             bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
@@ -246,5 +245,4 @@ class QualityAssessmentObject(StandardData):
                 print('path from align_count_path to bamfile does not exist')
             qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
                         '--singleEnded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
-            print(qorts_cmd)
-            #utils.executeSubProcess(qorts_cmd)
+            utils.executeSubProcess(qorts_cmd)
