@@ -211,7 +211,7 @@ class QualityAssessmentObject(StandardData):
                 if not bamfilename in sorted_bamfile_list:
                     raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
             except FileNotFoundError:
-                print('A sample in the query could not be located in the directory with the alignment files.\n'
+                return('A sample in the query could not be located in the directory with the alignment files.\n'
                       'Make sure the query provided corresponds to the align_count_path directory')
 
             output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
@@ -222,8 +222,7 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
-                        '--singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
             utils.executeSubProcess(qorts_cmd)
 
         for countfilename in pre_2015_countfilename_list:
@@ -243,6 +242,5 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar ' \
-                        '--singleEnded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s' % (bamfilename_path, self.annotation_file, output_subdir)
             utils.executeSubProcess(qorts_cmd)
