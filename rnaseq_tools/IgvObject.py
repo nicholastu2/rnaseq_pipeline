@@ -97,8 +97,8 @@ class IgvObject(OrganismData):
             if sample.endswith('.fastq.gz'):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
             # extract run_number just in case needed to find bam file in align_expr
-            run_number = self.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
-                                                                check_leading_zero=True)
+            run_number = DatabaseObject.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
+                                                                          check_leading_zero=True)
             self.logger.debug('the run_number extracted is: %s' % run_number)
             # create bamfile name
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
@@ -122,7 +122,8 @@ class IgvObject(OrganismData):
            script will be place in rnaseq_pipeline/job_scripts
        """
         if not hasattr(self, 'samtools_index_sbatch_script'):
-            self.samtools_index_sbatch_script = os.path.join(self.job_scripts, utils.dirName(self.scratch_alignment_source) + '_igv_index.sbatch')
+            self.samtools_index_sbatch_script = os.path.join(self.job_scripts, utils.dirName(
+                self.scratch_alignment_source) + '_igv_index.sbatch')
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
@@ -170,14 +171,16 @@ class IgvObject(OrganismData):
                 # add to igv_snapshot_dict
                 if hasattr(self, 'drug_marker_list'):
                     genotype.extend(self.drug_marker_list)
-                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)  # TODO: clean this up into a single line, make function to avoid repeated code below w/wildtype
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(
+                    genotype)  # TODO: clean this up into a single line, make function to avoid repeated code below w/wildtype
                 igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
                 igv_snapshot_dict[sample]['bed'] = None
             # else if the object does not have an attribute wildtype, simply create a dictionary without a wildtype
             elif not hasattr(self, 'wildtype'):
                 if hasattr(self, 'drug_marker_list'):
                     genotype.extend(self, 'drug_marker_list')
-                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(genotype)  # TODO: clean this up repeated code
+                igv_snapshot_dict.setdefault(sample, {}).setdefault('gene', []).extend(
+                    genotype)  # TODO: clean this up repeated code
                 igv_snapshot_dict[sample]['bam'] = bamfile_fullpath
                 igv_snapshot_dict[sample]['bed'] = None
             # if genotype is equal to wildtype, then store the sample as the wildtype (only one, check if this is right)
@@ -219,7 +222,8 @@ class IgvObject(OrganismData):
                     gene_parsed_annotation_dict = self.annotation_dict[gene]
                     file.write('%s\t%d\t%d\t[%s]%s.%s\n' % (gene_parsed_annotation_dict['chrm'],
                                                             gene_parsed_annotation_dict['coords'][0] - flanking_region,
-                                                            gene_parsed_annotation_dict['coords'][1] + flanking_region, sample, gene,
+                                                            gene_parsed_annotation_dict['coords'][1] + flanking_region,
+                                                            sample, gene,
                                                             file_format))
 
     def writeIgvJobScript(self, fig_format='png'):
