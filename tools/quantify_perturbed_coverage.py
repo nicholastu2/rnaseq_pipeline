@@ -108,7 +108,7 @@ def main(argv):
             percent_coverage_dict.setdefault(countfilename, sum(cds_region_df['length'] * cds_region_df['coverage']) / sum(cds_region_df['length']))
 
     # this is a quick possibly dirty way of determining if the quality assessment is quality_assess_1 or 2. Area of improvement.
-    if 'Samples' in list(quality_assessment_df.columns.values()):
+    if 'Samples' in list(quality_assessment_df.columns):
         coverage_df = pd.DataFrame.from_dict(percent_coverage_dict, orient='index', columns=['percent_coverage']).reset_index()
         coverage_df.rename(columns={'index': 'Sample'}, inplace=True)
         coverage_df['Sample'] = coverage_df.Sample.str.replace('_read_count.tsv', '')
