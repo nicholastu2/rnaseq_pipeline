@@ -98,7 +98,7 @@ class IgvObject(OrganismData):
                 sample = utils.pathBaseName(sample) + '_read_count.tsv'
             # extract run_number just in case needed to find bam file in align_expr
             run_number = DatabaseObject.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'RUNNUMBER',
-                                                                          check_leading_zero=True)
+                                                                          leading_zero_dict=self._run_numbers_with_zeros)
             self.logger.debug('the run_number extracted is: %s' % run_number)
             # create bamfile name
             bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')

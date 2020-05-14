@@ -10,9 +10,11 @@ import os
 import re
 import sys
 from rnaseq_tools import utils
+from rnaseq_tools.StandardDataObject import StandardData
+
 
 # TODO: more error handling in functions
-class DatabaseObject:
+class DatabaseObject(StandardData):
     def __init__(self, database_top, **kwargs):
         """
             constructor
@@ -33,7 +35,7 @@ class DatabaseObject:
             try:
                 self.logger_path = kwargs['logger_path']
             except KeyError:
-                self.logger_path = os.path.join(os.getcwd(), 'DatabaseObject_logger_%s.log' %utils.yearMonthDay())
+                self.logger_path = os.path.join(os.getcwd(), 'DatabaseObject_logger_%s.log' % utils.yearMonthDay())
             self.logger = utils.createLogger(self.logger_path, __name__)
 
         # store path to topmost database directory
@@ -43,7 +45,8 @@ class DatabaseObject:
         try:
             self.database_subdirectories = kwargs['database_subdirectories']
         except KeyError:
-            self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
+            self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample',
+                                            'bioSample']
 
         # see setter setFilterJson()
         self.filter_json = None
@@ -123,7 +126,8 @@ class DatabaseObject:
             subdirectory = self.database_subdirectories[i + 1]
             database_key_column = self.database_key_columns[i]
             # keep merging the next sheet to self.database_df
-            self.database_df = pd.merge(self.database_df, self.concat_database_dict[subdirectory], how='left', on=list(database_key_column))
+            self.database_df = pd.merge(self.database_df, self.concat_database_dict[subdirectory], how='left',
+                                        on=list(database_key_column))
 
     def setConcatDatabaseDict(self):
         """
@@ -162,7 +166,7 @@ class DatabaseObject:
             read in the filter json. See note in filterDatabaseDataframe()
             :raises: ValueError("NoFilterJson")
         """
-        try: # TODO: this can be handled without the raise -- figure out what error is thrown when self.filter_json_path is empty in pd.read_json
+        try:  # TODO: this can be handled without the raise -- figure out what error is thrown when self.filter_json_path is empty in pd.read_json
             if self.filter_json_path is not None:
                 self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
             else:
@@ -203,12 +207,13 @@ class DatabaseObject:
                 filter_str = filter_str + '{} == {}'.format(key, value) + ' & '
             # once out of both loops, split the string on the final &, retain the substring before the split, and eliminate whitespace
             filter_str = filter_str.rsplit('&', 1)[0].strip() + ')'
-            self.logger.debug('the filter created from the json_dict is %s' %filter_str)
+            self.logger.debug('the filter created from the json_dict is %s' % filter_str)
             # use the filter_str formula to filter the dataframe
             self.filtered_database_df = self.database_df.query(filter_str)
 
     @staticmethod
-    def standardizeDatabaseDataframe(rnaseq_metadata_df, prefix='', suffix='_read_count.tsv', fastq_filename_rename='COUNTFILENAME', **kwargs):
+    def standardizeDatabaseDataframe(rnaseq_metadata_df, prefix='', suffix='_read_count.tsv',
+                                     fastq_filename_rename='COUNTFILENAME', **kwargs):
         """
             convert a dataframe containing sample info to a 'standard form' -- capitalized column headings and FASTQFILENAME
             renamed to COUNTFILENAME with appropriate prefix and suffix (pointing to count file in lts_align_expr)
@@ -239,8 +244,9 @@ class DatabaseObject:
                     run_number = re.search(regex, fastq_file_path)[0]
                 except TypeError:
                     if kwargs['logger']:
-                        kwargs['logger'].error('No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
-                        'standardizeDatabaseDataframe')
+                        kwargs['logger'].error(
+                            'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
+                            'standardizeDatabaseDataframe')
                     sys.exit(
                         'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
                         'standardizeDatabaseDataframe')
@@ -271,19 +277,19 @@ class DatabaseObject:
         """
         timestr = ('%s_%s' % (utils.yearMonthDay(), utils.hourMinuteSecond()))
         # store path to directory. current working directory is default
-        if kwargs['path_to_directory']: # TODO error handling == this wont work
+        if kwargs['path_to_directory']:  # TODO error handling == this wont work
             path_to_directory = kwargs['path_to_directory']
         else:
             path_to_directory = os.getcwd()
         # store filename. rnaseq_metadata_yearmonthday_hourminutesecond.csv is default
         if kwargs['filename']:
-            filename = kwargs['filename'] + '_%s'%timestr
+            filename = kwargs['filename'] + '_%s' % timestr
         else:
-            filename = 'rnaseq_metadata_%s.csv'%timestr
+            filename = 'rnaseq_metadata_%s.csv' % timestr
         # create path to dataframe
         dataframe_path = os.path.join(path_to_directory, filename)
         if kwargs['logger']:
-            kwargs['logger'].debug('The dataframe path is: %s'%dataframe_path)
+            kwargs['logger'].debug('The dataframe path is: %s' % dataframe_path)
         # write dataframe
         rnaseq_metadata_df.to_csv(dataframe_path, index=False)
         # return path
@@ -324,10 +330,12 @@ class DatabaseObject:
         key_tuples = database_subdirectory_concat_df[key_columns].apply(tuple, axis=1)
         num_keys = key_tuples.size
         num_unique_keys = key_tuples.unique().size
-        print("\nThe number of unique keys is {}. The number of rows is {}. If these are equal, the keys are unique.".format(num_keys, num_unique_keys))
+        print(
+            "\nThe number of unique keys is {}. The number of rows is {}. If these are equal, the keys are unique.".format(
+                num_keys, num_unique_keys))
         if not num_keys == num_unique_keys:
             non_unique_rows = database_subdirectory_concat_df[database_subdirectory_concat_df[key_columns].duplicated()]
-            print("\nThe following indicies are not unique:\n\t%s" %non_unique_rows)
+            print("\nThe following indicies are not unique:\n\t%s" % non_unique_rows)
             print("\nDo you want to continue? Enter y or n: ")
             user_response = input()
             if user_response == 'n':
