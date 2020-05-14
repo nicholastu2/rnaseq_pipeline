@@ -180,7 +180,7 @@ class QualityAssessmentObject(StandardData):
             else:
                 if not hasattr(self, 'standardized_database_df'):
                     query_df = utils.readInDataframe(self.query_path)
-                    self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_df)
+                    self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
         except FileExistsError:
             print('Query Path not valid')
 
