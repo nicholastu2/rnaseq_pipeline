@@ -158,7 +158,8 @@ class IgvObject(OrganismData):
                 print(
                     'bamfile does not exist in scratch_alignment_source %s. Run moveAlignmentFiles first.' % self.scratch_alignment_source)
                 break
-            genotype = DatabaseObject.extractValueFromStandardizedQuery('COUNTFILENAME', sample, 'GENOTYPE')
+            genotype = DatabaseObject.extractValueFromStandardizedQuery(self.standardized_database_df,
+                                                                        'COUNTFILENAME', sample, 'GENOTYPE')
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
             # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
             genotype = genotype.split('.')
