@@ -63,7 +63,7 @@ def main(argv):
             print('checking for, and creating if DNE, %s bedfile in %s' %(perturbed_genotype, parent_dir_qual_assess))
             if not os.path.isfile(bedfile_path):
                 print('...creating bed file for %s' %perturbed_genotype)
-                cmd = '/home/chase/code/brentlab/rnaseq_pipeline/tools/make_bed.py -a %s -g %s -b %s' % (od.annotation_file, perturbed_genotype, bedfile_path)
+                cmd = 'make_bed.py -a %s -g %s -b %s' % (od.annotation_file, perturbed_genotype, bedfile_path)
                 utils.executeSubProcess(cmd)
             # set key: value in dictionary
             bedfile_path_dict.setdefault(perturbed_genotype, bedfile_path)
