@@ -52,15 +52,21 @@ def main(argv):
     bedfile_path_dict = {}
     for perturbed_genotype in perturbed_genotype_list:
         # put bedfiles into parent dir of quality_assess --> this is intended to be <OrganismData>_pipeline_info generally
-        parent_dir_qual_assess = utils.dirPath(quality_assessment_path)
-        bedfile_path = os.path.join(parent_dir_qual_assess, '%s.bed' % perturbed_genotype)
-        print('checking for, and creating if DNE, %s bedfile in %s' %(perturbed_genotype, parent_dir_qual_assess))
-        if not os.path.isfile(bedfile_path):
-            print('...creating bed file for %s' %perturbed_genotype)
-            cmd = '/home/chase/code/brentlab/rnaseq_pipeline/tools/make_bed.py -a %s -g %s -b %s' % (od.annotation_file, perturbed_genotype, bedfile_path)
-            utils.executeSubProcess(cmd)
-        # set key: value in dictionary
-        bedfile_path_dict.setdefault(perturbed_genotype, bedfile_path)
+        parent_dir_qual_assess = os.path.split(quality_assessment_path)[0]
+        try:
+            if not os.path.isdir(parent_dir_qual_assess):
+                raise NotADirectoryError('ParentDirectoryOfQualityAssessNotFound')
+        except NotADirectoryError:
+            print('Could not extract the parent directory of the quality_assessment file. Try passing in the absolute path.')
+        finally:
+            bedfile_path = os.path.join(parent_dir_qual_assess, '%s.bed' % perturbed_genotype)
+            print('checking for, and creating if DNE, %s bedfile in %s' %(perturbed_genotype, parent_dir_qual_assess))
+            if not os.path.isfile(bedfile_path):
+                print('...creating bed file for %s' %perturbed_genotype)
+                cmd = '/home/chase/code/brentlab/rnaseq_pipeline/tools/make_bed.py -a %s -g %s -b %s' % (od.annotation_file, perturbed_genotype, bedfile_path)
+                utils.executeSubProcess(cmd)
+            # set key: value in dictionary
+            bedfile_path_dict.setdefault(perturbed_genotype, bedfile_path)
 
     # create dictionary to store {perturbed_genotype: [list of coverage.tsv files]
     perturbed_coverage_dict = {}

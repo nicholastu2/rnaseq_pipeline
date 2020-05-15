@@ -54,6 +54,7 @@ class IgvObject(OrganismData):
             self.scratch_alignment_source = kwargs['scratch_alignment_source']
             self.igv_output_dir = kwargs['igv_output_dir']
             self.sample_list = kwargs['sample_list']
+            self.drug_marker_list = kwargs['drug_marker_list']
         except KeyError:
             pass
         # initialize Standard data with the extended _attributes

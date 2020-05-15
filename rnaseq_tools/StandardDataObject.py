@@ -116,21 +116,24 @@ class StandardData:
         except FileNotFoundError:
             print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
                   "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
-
-        # if interactive is False, link from lts # TODO: figure out how to do this while off the cluster -- change interactive to align_expr_sequence or something like that, set false if don't have access to those directories
-        if not self.interactive:
-            # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
-            lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
-            utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
-                                     self.user_rnaseq_pipeline_directory)
-
-        # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
-        # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
-        setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
-        if not os.path.exists(self.genome_files):
-            genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
-            cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
-            utils.executeSubProcess(cmd)
+        try:
+            # if interactive is False, link from lts # TODO: figure out how to do this while off the cluster -- change interactive to align_expr_sequence or something like that, set false if don't have access to those directories
+            if not self.interactive:
+                # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
+                lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
+                utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
+                                         self.user_rnaseq_pipeline_directory)
+        except FileNotFoundError:
+            print('Could not find lts_align_expr or lts_sequence. If on htcf,\n'
+                  'set interactive=True in object call to skip soft linking to /lts in rnaseq_pipe.\n'
+                  'If not on htcf, check your config file')
+            # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
+            # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
+            setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
+            if not os.path.exists(self.genome_files):
+                genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
+                cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
+                utils.executeSubProcess(cmd)
 
     def createStandardDataLogger(self):
         """
