@@ -254,3 +254,4 @@ class QualityAssessmentObject(StandardData):
 
             for cmd in cmd_list:
                 sbatch_file.write(cmd)
+                sbatch_file.write('\n')
