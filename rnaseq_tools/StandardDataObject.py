@@ -116,17 +116,13 @@ class StandardData:
         except FileNotFoundError:
             print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
                   "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
-        try:
-            # if interactive is False, link from lts # TODO: figure out how to do this while off the cluster -- change interactive to align_expr_sequence or something like that, set false if don't have access to those directories
-            if not self.interactive:
-                # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
-                lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
-                utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
-                                         self.user_rnaseq_pipeline_directory)
-        except FileNotFoundError:
-            print('Could not find lts_align_expr or lts_sequence. If on htcf,\n'
-                  'set interactive=True in object call to skip soft linking to /lts in rnaseq_pipe.\n'
-                  'If not on htcf, check your config file')
+        if self.interactive:
+            print('Remember you will not be able to access lts_align_expr or lts_sequence in an interactive session on htcf')
+        else:
+            # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
+            lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
+            utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
+                                     self.user_rnaseq_pipeline_directory)
             # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
             # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
             setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
