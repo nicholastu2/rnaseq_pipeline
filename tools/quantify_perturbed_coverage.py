@@ -44,7 +44,7 @@ def main(argv):
         sys.exit('path to reports directory is not valid')
 
     # create OrganismData object. Since organism is passed. setOrganismData is called which includes StandardData.standardDirectoryStructure(). Pass config_file to this constructor if not running on htcf
-    od = OrganismData(organism=str(args.organism))
+    od = OrganismData(organism=args.organism)
 
     df_wt_filter = standardized_query_df['GENOTYPE'] != 'CNAG_00000'
     perturbed_genotype_list = standardized_query_df[df_wt_filter]['GENOTYPE'].unique()
@@ -84,7 +84,12 @@ def main(argv):
                      'Please make sure that the _coverage.tsv are there, and that the query .csv is accurate to the contents of the report_directory')
         perturbed_coverage_dict.setdefault(row['GENOTYPE'], []).append(coverage_filename)
 
+    perturbed_coverage_dict_len = len(perturbed_coverage_dict)
+    iter_count = 1
     for perturbed_genotype, coverage_path_list in perturbed_coverage_dict.items():
+        if '.' in perturbed_genotype or "_over" in perturbed_genotype:
+            continue
+        print('quantifying coverage for %s. This is number %s / %s' %(perturbed_genotype, iter_count, perturbed_coverage_dict_len))
         for coverage_filename in coverage_path_list:
             coverage_path = os.path.join(reports_directory, coverage_filename)
             # create df from coverage file associated with sample
@@ -112,6 +117,7 @@ def main(argv):
                 cds_region_df.loc[index, 'coverage'] = coverage
             countfilename = os.path.basename(coverage_path.replace('_coverage.tsv', '_read_count.tsv'))
             percent_coverage_dict.setdefault(countfilename, sum(cds_region_df['length'] * cds_region_df['coverage']) / sum(cds_region_df['length']))
+        iter_count = iter_count + 1
 
     # this is a quick possibly dirty way of determining if the quality assessment is quality_assess_1 or 2. Area of improvement.
     if 'Samples' in list(quality_assessment_df.columns):
