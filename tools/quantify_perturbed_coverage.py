@@ -44,7 +44,7 @@ def main(argv):
         sys.exit('path to reports directory is not valid')
 
     # create OrganismData object. Since organism is passed. setOrganismData is called which includes StandardData.standardDirectoryStructure(). Pass config_file to this constructor if not running on htcf
-    od = OrganismData(organism=args.organism)
+    od = OrganismData(organism=str(args.organism))
 
     df_wt_filter = standardized_query_df['GENOTYPE'] != 'CNAG_00000'
     perturbed_genotype_list = standardized_query_df[df_wt_filter]['GENOTYPE'].unique()
