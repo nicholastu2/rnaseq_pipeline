@@ -21,6 +21,7 @@ from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools.SbatchWriterObject import SbatchWriter
 from rnaseq_tools import utils
 
+
 # TODO: re-break up main script into functions for readability
 
 def main(argv):
@@ -31,13 +32,20 @@ def main(argv):
         if not os.path.isdir(args.fastq_path):
             raise NotADirectoryError('FastqDirectoryDoesNotExist')
     except NotADirectoryError:
-        print('The path to %s for the raw fastq_files does not exist. Correct and re-submit. Remember this directory cannot be in long term storage')
+        print('The path to %s for the raw fastq_files does not exist. Correct and re-submit.\n'
+              'Remember this directory cannot be in long term storage')
+    # in event a run_####_samples is not passed, ask user for a replacement for run_number
+    try:
+        run_number = utils.getRunNumber(args.fastq_path)
+    except AttributeError:
+        run_number = input('No run number found. Enter a number, word or phrase to be appended to run_ that will be used to create a\n'
+                           'subdirectory in output: ')
     print('...creating OrganismDataObject')
     od = OrganismData(organism=args.organism,
                       fastq_path=args.fastq_path,
                       strandness=args.strandness,
                       email=args.user_email,
-                      run_number=utils.getRunNumber(args.fastq_path))
+                      run_number=run_number)
     # check directory structure and set organism data (see OrganismData.setOrganismData())
     od.setOrganismData()
     # create logger for this script if od logger is set
@@ -52,8 +60,8 @@ def main(argv):
     align_only = args.align_only
 
     print('...extracting list of fastq files to process')
-    fastq_list_file = '%s/run_%s_fastq_list.txt' %(od.job_scripts, od.run_number)
-    logger.info('The fastq list file path is %s' %fastq_list_file)
+    fastq_list_file = '%s/run_%s_fastq_list.txt' % (od.job_scripts, od.run_number)
+    logger.info('The fastq list file path is %s' % fastq_list_file)
     print('The fastq list file path is %s' % fastq_list_file)
     # extract all files with the extensions in the list from od.fastq_path
     fastq_file_list = utils.getFileListFromDirectory(od.fastq_path, ["fastq.gz", "fastq", "fq.gz", "fq"])
@@ -62,31 +70,32 @@ def main(argv):
     # write list to file
     with open(fastq_list_file, 'w') as file:
         for fastq_basename in fastq_file_list:
-            file.write('%s\n' %fastq_basename)
+            file.write('%s\n' % fastq_basename)
     if not os.path.isfile(fastq_list_file):
-        sys.exit("list of fastq files at %s does not exist" %fastq_list_file)
+        sys.exit("list of fastq files at %s does not exist" % fastq_list_file)
     else:
-        print('list of fastq files may be found at %s' %fastq_list_file)
+        print('list of fastq files may be found at %s' % fastq_list_file)
 
     print('...writing sbatch job_script')
     # create path for sbatch job_script
-    sbatch_job_script_path = '%s/run_%s_mblab_rnaseq.sbatch' %(od.job_scripts, od.run_number)
-    logger.info('sbatch job script path is %s' %sbatch_job_script_path)
+    sbatch_job_script_path = '%s/run_%s_mblab_rnaseq.sbatch' % (od.job_scripts, od.run_number)
+    logger.info('sbatch job script path is %s' % sbatch_job_script_path)
     # create a slurm submission script and write to ./job_scripts
-    SbatchWriter.writeAlignCountJobScript(sbatch_job_script_path, od.output_dir, fastq_list_file, num_fastqs, od.novoalign_index,
+    SbatchWriter.writeAlignCountJobScript(sbatch_job_script_path, od.output_dir, fastq_list_file, num_fastqs,
+                                          od.novoalign_index,
                                           od.annotation_file, od.feature_type, od.strandness, align_only)
     if not os.path.isfile(sbatch_job_script_path):
-        sys.exit('sbatch job_script does not exist at path %s' %sbatch_job_script_path)
+        sys.exit('sbatch job_script does not exist at path %s' % sbatch_job_script_path)
     else:
-        print('sbatch script may be found at %s' %sbatch_job_script_path)
+        print('sbatch script may be found at %s' % sbatch_job_script_path)
 
     # submit sbatch job
     print('...submitting sbatch job')
     if od.email is None:
-        cmd = "sbatch %s" %sbatch_job_script_path
+        cmd = "sbatch %s" % sbatch_job_script_path
         utils.executeSubProcess(cmd)
     else:
-        cmd = "sbatch --mail-type=END,FAIL --mail-user=%s %s" %(od.email, sbatch_job_script_path)
+        cmd = "sbatch --mail-type=END,FAIL --mail-user=%s %s" % (od.email, sbatch_job_script_path)
         utils.executeSubProcess(cmd)
 
     print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(od.output_dir, od.run_number,
@@ -102,7 +111,7 @@ def main(argv):
     with open(pipeline_info_path, "a+") as file:
         file.write("\n")
         current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
-        file.write('Date processed: %s' %current_datetime)
+        file.write('Date processed: %s' % current_datetime)
         file.write("\n")
 
     # include the head of the gff/gtf, also
@@ -111,7 +120,8 @@ def main(argv):
 
 
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description="Generate and submit an sbatch script to align-only or align+count a directory of fastq_files")
+    parser = argparse.ArgumentParser(
+        description="Generate and submit an sbatch script to align-only or align+count a directory of fastq_files")
     parser.add_argument("-f", "--fastq_path", required=True,
                         help="[REQUIRED] Directory path of fastq files.\n"
                              "Must be stored in a directory that begins with run_####_'n"

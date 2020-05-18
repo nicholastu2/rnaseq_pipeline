@@ -23,9 +23,7 @@ def getRunNumber(fastq_path):
         regex = r"run_(\d*)"
         run_num = re.search(regex, fastq_path).group(1)
     except AttributeError:
-        print("\nrun_number not found in the fastq_filename input path."
-              " Please use the optional cmd line input to enter a run number")
-        sys.exit()
+        raise AttributeError('NoRunNumber')  # raise this, handle in the program that uses utils.getRunNumber
     else:
         return run_num
 
