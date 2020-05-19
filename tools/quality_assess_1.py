@@ -54,7 +54,7 @@ def main(argv):
     output_path = os.path.join(output_directory, quality_assessment_filename)
     # create QualityAssessmentObject
     qa = QualityAssessmentObject(align_count_path=align_count_path,
-                                 run_number=utils.getRunNumber(args.reports_dir),
+                                 run_number=run_number,
                                  output_dir=args.output_dir,
                                  quality_assessment_filename=quality_assessment_filename)
 
