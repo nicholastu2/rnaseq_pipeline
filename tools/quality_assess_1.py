@@ -40,6 +40,8 @@ def main(argv):
             raise FileNotFoundError('QuerySheetDoesNotExist')
     except FileNotFoundError:
         print('%s does not lead to a valid file. Check and resubmit correct -qs' %args.query_sheet_path)
+    except TypeError:
+        pass
 
     # get run number
     run_number = utils.getRunNumber(args.reports_dir)
