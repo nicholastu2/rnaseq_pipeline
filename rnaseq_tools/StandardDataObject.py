@@ -113,7 +113,7 @@ class StandardData:
         try:
             mblab_shared_dirs = ['scratch_sequence', 'database_files']
             utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)
-        except FileNotFoundError:
+        except FileNotFoundError('SourceDoesNotExist'):
             print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
                   "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
         if self.interactive:
