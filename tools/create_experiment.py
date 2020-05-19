@@ -15,9 +15,9 @@ FASTQ_TYPES = [".fastq.gz", ".fq.gz"]
 
 def main(argv):
     # store suffixes of the files we wish to move
-    #count_suffix = '_read_count.tsv'
+    count_suffix = '_read_count.tsv'
     novoalign_log_suffix = '_novoalign.log'
-    #sorted_alignment_suffix = '_sorted_aligned_reads.bam'
+    sorted_alignment_suffix = '_sorted_aligned_reads.bam'
 
     # parse cmd line arguments
     args = parseArgs(argv)
