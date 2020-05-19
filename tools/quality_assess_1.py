@@ -43,8 +43,12 @@ def main(argv):
     except TypeError:
         pass
 
-    # get run number
-    run_number = utils.getRunNumber(args.reports_dir)
+    # get run number if exists for output naming. if DNE, ask user to provide name to insert after run_<using run_num>_summary.csv
+    try:
+        run_number = utils.getRunNumber(args.reports_dir)
+    except AttributeError:
+        run_number = input('No run number detected in input directory name. Enter something to insert in the output directory\n'
+                           'name: run_<what_you_input>_summary.csv: ')
     # create filename
     quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
     output_path = os.path.join(output_directory, quality_assessment_filename)
