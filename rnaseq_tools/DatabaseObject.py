@@ -170,7 +170,7 @@ class DatabaseObject(StandardData):
             if self.filter_json_path is not None:
                 try:
                     self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
-                except TypeError('JsonFormatNotValid'):
+                except TypeError:
                     print('The Json format entered cannot be read by pandas as a json. Check the formatting of the file.')
             else:
                 raise FileNotFoundError("NoFilterJson")
