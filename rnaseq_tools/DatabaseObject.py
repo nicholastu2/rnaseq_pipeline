@@ -166,13 +166,13 @@ class DatabaseObject(StandardData):
             read in the filter json. See note in filterDatabaseDataframe()
             :raises: ValueError("NoFilterJson")
         """
-        try:  # TODO: this can be handled without the raise -- figure out what error is thrown when self.filter_json_path is empty in pd.read_json
-            if self.filter_json_path is not None:
+        if self.filter_json_path is None:
+            raise FileNotFoundError("NoFilterJson")
+        else:
+            try:
                 self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
-            else:
-                raise FileNotFoundError("NoFilterJson")
-        except FileNotFoundError or ValueError:
-            self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
+            except FileNotFoundError or ValueError:
+                self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
 
     def dropRowsIfEmptyFastqFilename(self):
         """
