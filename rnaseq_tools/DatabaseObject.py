@@ -168,7 +168,10 @@ class DatabaseObject(StandardData):
         """
         try:  # TODO: this can be handled without the raise -- figure out what error is thrown when self.filter_json_path is empty in pd.read_json
             if self.filter_json_path is not None:
-                self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
+                try:
+                    self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
+                except TypeError('JsonFormatNotValid'):
+                    print('The Json format entered cannot be read by pandas as a json. Check the formatting of the file.')
             else:
                 raise FileNotFoundError("NoFilterJson")
         except FileNotFoundError:
