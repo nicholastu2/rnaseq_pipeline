@@ -168,14 +168,11 @@ class DatabaseObject(StandardData):
         """
         try:  # TODO: this can be handled without the raise -- figure out what error is thrown when self.filter_json_path is empty in pd.read_json
             if self.filter_json_path is not None:
-                try:
-                    self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
-                except ValueError:
-                    print('The Json format entered cannot be read by pandas as a json. Check the formatting of the file.')
+                self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
             else:
                 raise FileNotFoundError("NoFilterJson")
-        except FileNotFoundError:
-            self.logger.error('No json present in filterDatabaseDataframe')
+        except FileNotFoundError | ValueError:
+            self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
 
     def dropRowsIfEmptyFastqFilename(self):
         """
