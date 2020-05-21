@@ -100,23 +100,29 @@ def main(argv):
 
     print('\nannotation and pipeline information recorded in {}/run_{}/{}'.format(od.output_dir, od.run_number,
                                                                                   'pipeline_info'))
-    output_subdir_path = os.path.join(od.output_dir, "{}_pipeline_info".format(od.organism))
-    utils.mkdirp(output_subdir_path)
+    pipeline_info_subdir_path = os.path.join(od.output_dir, "{}_pipeline_info".format(od.organism))
+    utils.mkdirp(pipeline_info_subdir_path)
 
     # write version info from the module .lua file (see the .lua whatis statements)
-    pipeline_info_path = os.path.join(output_subdir_path, 'pipeline_info.txt')
-    cmd_pipeline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_path)
+    pipeline_info_txt_file_path = os.path.join(pipeline_info_subdir_path, 'pipeline_info.txt')
+    cmd_pipeline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_txt_file_path)
     utils.executeSubProcess(cmd_pipeline_info)
-    # include the date processed in output_subdir_path/pipeline_into.txt
-    with open(pipeline_info_path, "a+") as file:
+    # include the date processed in pipeline_info_subdir_path/pipeline_into.txt
+    with open(pipeline_info_txt_file_path, "a+") as file:
         file.write("\n")
         current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
         file.write('Date processed: %s' % current_datetime)
         file.write("\n")
 
     # include the head of the gff/gtf, also
-    cmd_annotation_info = "head {} >> {}".format(od.annotation_file, pipeline_info_path)
+    cmd_annotation_info = "head {} >> {}".format(od.annotation_file, pipeline_info_txt_file_path)
     utils.executeSubProcess(cmd_annotation_info)
+    # include copy of job script
+    cmd_cp_job_script_to_pipeline_info = 'rsync -aHv %s %s' %(sbatch_job_script_path, pipeline_info_subdir_path)
+    utils.executeSubProcess(cmd_cp_job_script_to_pipeline_info)
+    # include copy of list of fastq files
+    cmd_cp_fastq_file_list_to_pipeline_info = 'rsync -aHv %s %s' %(fastq_list_file, pipeline_info_subdir_path)
+    utils.executeSubProcess(cmd_cp_fastq_file_list_to_pipeline_info)
 
 
 def parse_args(argv):

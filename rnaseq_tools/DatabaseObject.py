@@ -162,7 +162,7 @@ class DatabaseObject(StandardData):
             self.database_key_columns.append(left_database_columns.intersection(right_database_columns))
 
     def setFilterJson(self):
-        """
+        """ TODO: error handling not working for invalid json. fix this.
             read in the filter json. See note in filterDatabaseDataframe()
             :raises: ValueError("NoFilterJson")
         """
