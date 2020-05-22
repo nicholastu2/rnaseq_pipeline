@@ -82,8 +82,7 @@ def main(argv):
     logger.info('sbatch job script path is %s' % sbatch_job_script_path)
     # create a slurm submission script and write to ./job_scripts
     SbatchWriter.writeAlignCountJobScript(sbatch_job_script_path, od.output_dir, fastq_list_file, num_fastqs,
-                                          od.novoalign_index,
-                                          od.annotation_file, od.feature_type, od.strandness, align_only)
+                                          od.novoalign_index, od.annotation_file, od.feature_type, od.strandness, align_only)
     if not os.path.isfile(sbatch_job_script_path):
         sys.exit('sbatch job_script does not exist at path %s' % sbatch_job_script_path)
     else:
