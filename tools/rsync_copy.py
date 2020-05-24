@@ -51,7 +51,7 @@ def main(argv):
             '\nThe Directory you wish to copy the files to Does Not Exist. If you wish to create the directory, enter \'y\'. Else, the script will exit.\n')
         response = input()
         if response == 'y':
-            utils.mkdirp(args.desination)
+            utils.mkdirp(args.destination)
             destination = utils.addForwardSlash(args.destination)
         else:
             sys.exit('Script exiting -- Correct the filepath and try again if you wish.')
