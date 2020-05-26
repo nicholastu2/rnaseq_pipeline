@@ -272,7 +272,7 @@ def countsPerMillion(raw_count_path, output_FULL_path):
         :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R.
         eg <experiment_name>_log2_cpm.csv
     """
-    cmd = 'log2_cpm.R -r {} -o {}'.format(raw_count_path, output_FULL_path)
+    cmd = 'log2_cpm.R -r %s -o %s' %(raw_count_path, output_FULL_path)
     executeSubProcess(cmd)
 
 
@@ -283,7 +283,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        raise IOError("{} failed to execute. check the code.".format(cmd))
+        raise IOError('%s failed to execute. check the code' %cmd)
 
 
 def configure(object_instance, config_file, config_header, prefix=''):
