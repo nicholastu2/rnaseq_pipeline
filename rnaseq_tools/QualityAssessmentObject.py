@@ -4,7 +4,7 @@ from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
 from glob import glob
 import pandas as pd
-
+import re
 
 class QualityAssessmentObject(StandardData):
 
@@ -43,6 +43,132 @@ class QualityAssessmentObject(StandardData):
             self.align_count_path = kwargs['align_count_path']
         except KeyError:
             pass
+
+    @staticmethod
+    def compileData(dir_path, suffix_list):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+        """
+        get a list of the filenames in the run_#### file that correspond to a given type
+        :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
+        :param suffix_list: the type of file either novoalign or _read_count (htseq count output) currently set
+        :returns: a dataframe containing the files according to their suffix
+        """
+        # instantiate dataframe
+        align_df = pd.DataFrame()
+        htseq_count_df = pd.DataFrame()
+        # assemble qual_assess_df dataframe
+        for suffix in suffix_list: # TODO: error checking: alignment must come before read_count
+            # extract files in directory with given suffix
+            file_paths = glob("{}/*{}".format(dir_path, suffix))
+            for file_path in file_paths:
+                # extract fastq filename
+                fastq_filename = re.findall(r'(.+?)%s' % suffix, os.path.basename(file_path))[0]
+                # set sample name in library_metadata_dict
+                library_metadata_dict = {"FASTQFILENAME": fastq_filename}
+                if "novoalign" in suffix:
+                    library_metadata_dict.update(QualityAssessmentObject.parseAlignmentLog(file_path))
+                    align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+                elif "read_count" in suffix:
+                    library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(file_path))
+                    htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        # create dataframe from library_metadata_dict
+        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+
+        # reformat qual_assess_1 columns
+        if "_novoalign.log" in suffix_list and "_read_count.tsv" in suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
+            # with_feature_ratio is UNIQUE_ALIGNMENT (from novoalign log) - NO_FEATURE (from htseq-counts output) / no_feature
+            # store this for use in htseq column reformatting below
+            with_feature_count = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df['AMBIGUOUS_FEATURE'] -
+                                  qual_assess_df['TOO_LOW_AQUAL'])
+            # create new column TOTAL_ALIGNMENT_PCT as unique + multi maps as percentage of library size
+            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df['MULTI_MAP']) / qual_assess_df[
+                'LIBRARY_SIZE'].astype('float')
+            # total_alignment_count column for use with htseq columns below
+            total_alignment_count_column = (qual_assess_df['TOTAL_ALIGNMENT'] * qual_assess_df['LIBRARY_SIZE']).astype('float')
+            # convert UNIQUE_ALIGNMENT to percent of library size
+            qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # convert MULTI_MAP to percentage of library_size
+            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # convert NO_MAP tp percentage of library_size
+            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # convert HOMOPOLY_FILTER to percent of library size
+            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # convert READ_LENGTH_FILTER to percent of library size
+            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # see first line of this if statement for explanation of with_feature_count
+            qual_assess_df['WITH_FEATURE_RATIO'] = with_feature_count / qual_assess_df['NO_FEATURE'].astype('float')
+            qual_assess_df['WITH_FEATURE'] = with_feature_count / total_alignment_count_column
+            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / total_alignment_count_column
+            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / total_alignment_count_column
+            qual_assess_df['NOT_ALIGNED_TO_FEATURE'] = qual_assess_df['NOT_ALIGNED_TO_FEATURE'] / total_alignment_count_column
+            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / total_alignment_count_column
+            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / total_alignment_count_column
+
+        return qual_assess_df.set_index("FASTQFILENAME")
+
+    @staticmethod
+    def parseAlignmentLog(alignment_log_file_path):
+        """
+            parse the information on the alignment out of a novoalign log
+            :param alignment_log_file_path: the filepath to a novoalign alignment log
+            :returns: a dictionary of the parsed data of the input file
+        """
+        library_metadata_dict = {}
+        alignment_regex_dict = {'LIBRARY_SIZE': r"(?<=Read Sequences:\s)\s*\d*",
+                                'UNIQUE_ALIGNMENT': r"(?<=Unique Alignment:\s)\s*\d*",
+                                'MULTI_MAP': r"(?<=Multi Mapped:\s)\s*\d*",
+                                'NO_MAP': r"(?<=No Mapping Found:\s)\s*\d*",
+                                'HOMOPOLY_FILTER': r"(?<=Homopolymer Filter:\s)\s*\d*",
+                                'READ_LENGTH_FILTER': r"(?<=Read Length:\s)\s*\d*"}
+
+        # open the log path
+        alignment_file = open(alignment_log_file_path, 'r')
+        alignment_file_text = alignment_file.read()
+        # loop over alignment_regex dict and enter values extracted from alignment_file into alignment_metadata_dict
+        for alignment_category, regex_pattern in alignment_regex_dict.items():
+            # extract the value corresponding to the alignment_category regex (see alignment_regex_dict)
+            try:
+                extracted_value = int(re.findall(regex_pattern, alignment_file_text)[0])
+            except ValueError:
+                print('problem with file %s' %alignment_log_file_path)
+            # check that the value is both an int and not 0
+            if not (isinstance(extracted_value, int) and extracted_value == 0):
+                library_metadata_dict.setdefault(alignment_category, extracted_value)
+            else:
+                print('cannot find %s in %s' %(alignment_category, alignment_log_file_path))
+
+        # close the alignment_file and return
+        alignment_file.close()
+        return library_metadata_dict
+
+    @staticmethod
+    def parseGeneCount(htseq_counts_path):
+        """
+        count the gene counts that mapped either to genes (see COUNT_VARS at top of script for other features)
+        :param htseq_counts_path: a path to a  _read_count.tsv file (htseq-counts output)
+        :returns: a dictionary with the keys ALIGNMENT_NOT_UNIQUE, TOO_LOW_AQUAL, AMBIGUOUS_FEATURE, NO_FEATURE
+        """
+        library_metadata_dict = {}
+        # TODO: error checking on keys
+        htseq_file = open(htseq_counts_path, 'r')
+        htseq_file_reversed = reversed(htseq_file.readlines())
+
+        line = next(htseq_file_reversed)
+        while not line.startswith('CNAG'):
+            # strip newchar, split on tab
+            line = line.strip().split('\t')
+            # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
+            htseq_count_metadata_category = line[0][2:].upper() # drop the __ in front of the category
+            # enter to htseq_count_dict
+            library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
+            # iterate
+            line = next(htseq_file_reversed)
+        # rename some key/value pairs
+        library_metadata_dict['NOT_ALIGNED_TO_FEATURE'] = library_metadata_dict.pop('NOT_ALIGNED')
+        library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
+        library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
+
+        htseq_file.close()
+        return library_metadata_dict
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
