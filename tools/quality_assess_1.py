@@ -47,7 +47,7 @@ def main(argv):
     qa = QualityAssessmentObject(align_count_path=align_count_path,
                                  run_number=run_number,
                                  output_dir=args.output_dir,
-                                 quality_assessment_filename=quality_assessment_filename, config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini')
+                                 quality_assessment_filename=quality_assessment_filename)
 
     print('...compiling alignment information')
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
