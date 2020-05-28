@@ -2,7 +2,6 @@
 import sys
 import os
 import argparse
-import pandas as pd
 from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
 from rnaseq_tools.DatabaseObject import DatabaseObject
 from rnaseq_tools import utils
@@ -10,7 +9,7 @@ from rnaseq_tools import utils
 def main(argv):
     # parse cmd line arguments
     print('...parsing cmd line input')
-    args = parseArgs(argv)  # TODO error check all input
+    args = parseArgs(argv)
     try:
         if not os.path.isdir(args.reports_dir):
             raise NotADirectoryError('OutputDirDoesNotExist')
@@ -40,26 +39,35 @@ def main(argv):
         run_number = input(
             'No run number detected in input directory name. Enter something to insert in the output directory\n'
             'name: run_<what_you_input>_summary.csv: ')
+    # store interactive flag
+    try:
+        interactive_flag = args.interactive
+    except AttributeError:
+        interactive_flag = False
+
+    # TODO: ERROR CHECKING FOR GENOTYPE CHECK
+
     # create filename
     quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
     output_path = os.path.join(output_directory, quality_assessment_filename)
     # create QualityAssessmentObject
-    qa = QualityAssessmentObject(align_count_path=align_count_path,
+    qa = QualityAssessmentObject(align_count_path=align_count_path, #TODO: ADD FLAG FOR INTERACTIVE IN OPTIONS
                                  run_number=run_number,
                                  output_dir=args.output_dir,
-                                 quality_assessment_filename=quality_assessment_filename)
+                                 quality_assessment_filename=quality_assessment_filename,
+                                 config_file=args.config_file,
+                                 interactive=interactive_flag)  # note: config_file is error checked in StandardDataObject. not necessary in this script
 
     print('...compiling alignment information')
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
     qual_assess_1_df = QualityAssessmentObject.compileData(qa.align_count_path, ["_novoalign.log", "_read_count.tsv"])
-
     # re_order columns
     column_order = ['LIBRARY_SIZE', 'TOTAL_ALIGNMENT', 'UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NO_MAP', 'HOMOPOLY_FILTER',
-                    'READ_LENGTH_FILTER', 'WITH_FEATURE_RATIO', 'WITH_FEATURE', 'NO_FEATURE',
-                    'NOT_ALIGNED_TO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE', 'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL']
+                    'READ_LENGTH_FILTER', 'NOT_ALIGNED_TOTAL', 'WITH_FEATURE', 'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE',
+                    'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL']
     qual_assess_1_df = qual_assess_1_df[column_order]
+
     print('writing output to %s' % output_path)
-    # write to csv
     qual_assess_1_df.to_csv(output_path, index_label="FASTQFILENAME")
 
     # TODO: make genotype check automatic
@@ -119,6 +127,12 @@ def parseArgs(argv):
                         help="[OPTIONAL] For Crypto experiments. Set this flag to add a column to the output dataframe with percent gene coverage")
     parser.add_argument("-qs", "--query_sheet_path",
                         help="[OPTIONAL] But required with -cc is set. Path to query sheet filtered for the files contained in the path passed to -r")
+    parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
+                        help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
+                             "Use this flag to replace that config file")
+    parser.add_argument('--interactive', action='store_true',
+                        help="[OPTIONAL] set this flag (only --interactive, no input necessary) to tell StandardDataObject not\n"
+                             "to attempt to look in /lts if on a compute node on the cluster")
     args = parser.parse_args(argv[1:])
     return args
 

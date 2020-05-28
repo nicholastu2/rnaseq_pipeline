@@ -1,10 +1,11 @@
 import os
+import functools
+import re
+import pandas as pd
+from glob import glob
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
-from glob import glob
-import pandas as pd
-import re
 
 class QualityAssessmentObject(StandardData):
 
@@ -70,36 +71,31 @@ class QualityAssessmentObject(StandardData):
                 elif "read_count" in suffix:
                     library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(file_path))
                     htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-        # create dataframe from library_metadata_dict
+        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
         qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
 
         # reformat qual_assess_1 columns
         if "_novoalign.log" in suffix_list and "_read_count.tsv" in suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
-            # with_feature_ratio is UNIQUE_ALIGNMENT (from novoalign log) - NO_FEATURE (from htseq-counts output) / no_feature
-            # store this for use in htseq column reformatting below
-            with_feature_count = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df['AMBIGUOUS_FEATURE'] -
-                                  qual_assess_df['TOO_LOW_AQUAL'])
+            # store library size column
+            library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
+            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df['AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
+
             # create new column TOTAL_ALIGNMENT_PCT as unique + multi maps as percentage of library size
-            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df['MULTI_MAP']) / qual_assess_df[
-                'LIBRARY_SIZE'].astype('float')
-            # total_alignment_count column for use with htseq columns below
-            total_alignment_count_column = (qual_assess_df['TOTAL_ALIGNMENT'] * qual_assess_df['LIBRARY_SIZE']).astype('float')
-            # convert UNIQUE_ALIGNMENT to percent of library size
-            qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # convert MULTI_MAP to percentage of library_size
-            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # convert NO_MAP tp percentage of library_size
-            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # convert HOMOPOLY_FILTER to percent of library size
-            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # convert READ_LENGTH_FILTER to percent of library size
-            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # see first line of this if statement for explanation of with_feature_count
-            qual_assess_df['WITH_FEATURE_RATIO'] = with_feature_count / qual_assess_df['NO_FEATURE'].astype('float')
-            qual_assess_df['WITH_FEATURE'] = with_feature_count / total_alignment_count_column
+            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df['MULTI_MAP']) / library_size_column
+            # convert novoalign columns to percents of library_size_column
+            total_alignment_count_column = qual_assess_df['TOTAL_ALIGNMENT'] * library_size_column
+            qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / library_size_column
+            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
+            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
+            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
+            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
+
+            # convert htseq count columns to percent of aligned reads
+            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / total_alignment_count_column
+            qual_assess_df['WITH_FEATURE'] = with_feature_column / total_alignment_count_column
             qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / total_alignment_count_column
             qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / total_alignment_count_column
-            qual_assess_df['NOT_ALIGNED_TO_FEATURE'] = qual_assess_df['NOT_ALIGNED_TO_FEATURE'] / total_alignment_count_column
             qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / total_alignment_count_column
             qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / total_alignment_count_column
 
@@ -131,7 +127,7 @@ class QualityAssessmentObject(StandardData):
             except ValueError:
                 print('problem with file %s' %alignment_log_file_path)
             # check that the value is both an int and not 0
-            if not (isinstance(extracted_value, int) and extracted_value == 0):
+            if isinstance(extracted_value, int):
                 library_metadata_dict.setdefault(alignment_category, extracted_value)
             else:
                 print('cannot find %s in %s' %(alignment_category, alignment_log_file_path))
@@ -163,7 +159,7 @@ class QualityAssessmentObject(StandardData):
             # iterate
             line = next(htseq_file_reversed)
         # rename some key/value pairs
-        library_metadata_dict['NOT_ALIGNED_TO_FEATURE'] = library_metadata_dict.pop('NOT_ALIGNED')
+        library_metadata_dict['NOT_ALIGNED_TOTAL'] = library_metadata_dict.pop('NOT_ALIGNED')
         library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
         library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
 

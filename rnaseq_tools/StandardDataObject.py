@@ -46,6 +46,7 @@ class StandardData:
 
         # set config, either entered when creating StandardDataObject or child, or use default expected on cluster # TODO: possible? to containerize scripts calling this with a repo structure and have path always point there (align_counts eg)
         self.default_config_path = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
+
         try:
             self.config_file = kwargs['config_file']
             if not os.path.isfile(self.config_file):
