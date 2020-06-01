@@ -67,6 +67,8 @@ class StandardData:
         # set interactive (flag for interactive session on htcf) to false if not already set. If True, StandardDataObject and child will not try to softlink to lts (long term storage)
         if not hasattr(self, 'interactive'):
             self.interactive = False  # TODO: NEED TO CHECK THIS -- CHILDREN MAY NOT OVERWITE!
+        # set/check standardDirectoryStructure # TODO: CHECK SUBDIRECTORIES AND FILES EG GENOME_FILES
+        self.standardDirectoryStructure()
 
     def standardDirectoryStructure(self):
         """
@@ -74,17 +76,14 @@ class StandardData:
         """
         # offer method to set user_scratch in config file
         try:
-            user_scratch = self.user_scratch
+            if not os.path.isdir(self.user_scratch):
+                raise NotADirectoryError('UserScratchDirectoryNotPresent')
         except AttributeError:
             # set attribute user_scratch (this is where rnaseq_pipeline and all subordinate folders/files will be
             user_scratch = os.path.join(self.mblab_scratch, self._user)
-        try:
-            if not os.path.isdir(user_scratch):
-                raise NotADirectoryError
-        except NotADirectoryError:
-            print('%s is not a valid path to a directory.')
-        else:
             setattr(self, 'user_scratch', user_scratch)
+        except NotADirectoryError:
+            utils.mkdirp(self.user_scratch)
 
         # if it does not already exist, create user_rnaseq_pipeline in user_scratch and set attribute
         setattr(self, 'user_rnaseq_pipeline_directory', '{}/rnaseq_pipeline'.format(self.user_scratch))

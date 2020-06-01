@@ -51,7 +51,8 @@ def main(argv):
     quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
     output_path = os.path.join(output_directory, quality_assessment_filename)
     # create QualityAssessmentObject
-    qa = QualityAssessmentObject(align_count_path=align_count_path, #TODO: ADD FLAG FOR INTERACTIVE IN OPTIONS
+    qa = QualityAssessmentObject(quality_assess_dir_path=align_count_path,
+                                 log_suffix_list = ["_novoalign.log", "_read_count.tsv"],
                                  run_number=run_number,
                                  output_dir=args.output_dir,
                                  quality_assessment_filename=quality_assessment_filename,

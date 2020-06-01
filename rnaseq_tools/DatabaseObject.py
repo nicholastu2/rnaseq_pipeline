@@ -1,9 +1,14 @@
 """
    A class to interact with the brentlab rnaseq_database
 
-   usage: query = DatabaseObject('/path/to/topmost_database_directory', logger_path = '/path/to/log_file')
-                  note: logger_path is not required, but if not provided one will automatically be created in $PWD
-                  optional: keyword arguments, ie database_subdirectories = ['list', 'of', 'subdirectories', 'you', 'wish', 'to', 'include']
+   usage: query = DatabaseObject()
+                  # keyword arguments of interest:
+                       config_file = '/path/to/StandardDataObject_config_file'
+                       interactive = True/False
+                       And any number of database specific keywords, such as:
+                           filter_json_path
+                           database_df
+                           etc (see constructor)
 """
 import pandas as pd
 import os
@@ -15,31 +20,19 @@ from rnaseq_tools.StandardDataObject import StandardData
 
 # TODO: more error handling in functions
 class DatabaseObject(StandardData):
-    def __init__(self, database_top, **kwargs):
+    def __init__(self, **kwargs):
         """
             constructor
-            :param database_top: path to the topmost directory of the database you wish to examine. Must have subdirectories
-            of individual sheets (ie fastqFilename, Library, S2cDNA, etc...) with individual sheets inside with key columns
-            connecting them both forwards and backwards.
             :param **kwargs: unspecified # keyword arguments. The keywords that are currently handled, if entered:
                                 logger_path = path to the directory in which to deposit the logger
 
             PLEASE NOTE: order of database_subdirectories is important. see comment in constructor
 
         """
-        # create logger
-        try:
-            if kwargs['stdout_logger']:
-                self.logger = utils.createStdOutLogger(name='DatabaseObject')
-        except KeyError:
-            try:
-                self.logger_path = kwargs['logger_path']
-            except KeyError:
-                self.logger_path = os.path.join(os.getcwd(), 'DatabaseObject_logger_%s.log' % utils.yearMonthDay())
-            self.logger = utils.createLogger(self.logger_path, __name__)
-
-        # store path to topmost database directory
-        self.database_top = database_top
+        # Call StandardData (parent class) constructor
+        self._add_expected_attributes = ['database_subdirectories', 'filter_json_path', 'database_df']
+        super(DatabaseObject, self).__init__(self._add_expected_attributes, **kwargs)
+        self.self_type = 'DatabaseObject'
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
         try:
@@ -77,8 +70,8 @@ class DatabaseObject(StandardData):
         """
         # associate each key (relevant subdirectories of database) with a list of of files (absolute path) in each key directory
         for subdirectory in self.database_subdirectories:
-            # create a path database_top/subdirectory
-            subdirectory_path = os.path.join(self.database_top, subdirectory)
+            # create a path database_files/subdirectory
+            subdirectory_path = os.path.join(self.database_files, subdirectory)
             # extract list of files in subdirectory_path (not recursive -- will return subdirs, but not their contents)
             subdirectory_files = utils.extractTopmostFiles(subdirectory_path)
 

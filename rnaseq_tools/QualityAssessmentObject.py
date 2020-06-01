@@ -41,12 +41,17 @@ class QualityAssessmentObject(StandardData):
         except KeyError:
             self.overexpress_gene_list = []  # expecting no nested lists in this
         try:
-            self.align_count_path = kwargs['align_count_path']
+            self.quality_assess_dir_path = kwargs['quality_assess_dir_path']
+        except KeyError:
+            pass
+        # the suffixes of the log/metadata info in list form. eg ['_novoalign.log', '_read_count.tsv'] for novoalign htseq count respectively
+        try:
+            self.log_suffix_list = kwargs['log_suffix_list']
         except KeyError:
             pass
 
-    @staticmethod
-    def compileData(dir_path, suffix_list):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+
+    def compileData(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
         """
         get a list of the filenames in the run_#### file that correspond to a given type
         :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
@@ -57,9 +62,9 @@ class QualityAssessmentObject(StandardData):
         align_df = pd.DataFrame()
         htseq_count_df = pd.DataFrame()
         # assemble qual_assess_df dataframe
-        for suffix in suffix_list: # TODO: error checking: alignment must come before read_count
+        for suffix in self.log_suffix_list: # TODO: error checking: alignment must come before read_count
             # extract files in directory with given suffix
-            file_paths = glob("{}/*{}".format(dir_path, suffix))
+            file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, suffix))
             for file_path in file_paths:
                 # extract fastq filename
                 fastq_filename = re.findall(r'(.+?)%s' % suffix, os.path.basename(file_path))[0]
@@ -75,7 +80,7 @@ class QualityAssessmentObject(StandardData):
         qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
 
         # reformat qual_assess_1 columns
-        if "_novoalign.log" in suffix_list and "_read_count.tsv" in suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
+        if "_novoalign.log" in self.log_suffix_list and "_read_count.tsv" in self.log_suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
             # store library size column
             library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
             # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
@@ -126,6 +131,9 @@ class QualityAssessmentObject(StandardData):
                 extracted_value = int(re.findall(regex_pattern, alignment_file_text)[0])
             except ValueError:
                 print('problem with file %s' %alignment_log_file_path)
+            except IndexError:
+                print('No %s in %s. Value set to 0' %(alignment_category, alignment_log_file_path))
+                extracted_value = 0
             # check that the value is both an int and not 0
             if isinstance(extracted_value, int):
                 library_metadata_dict.setdefault(alignment_category, extracted_value)
