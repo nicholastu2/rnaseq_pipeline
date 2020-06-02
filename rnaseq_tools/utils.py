@@ -331,7 +331,8 @@ def hourMinuteSecond():
     """
         :returns: hour-minute-second as 135301
     """
-    return time.strftime("%H%M%S")
+    hour_minute_second = str(time.strftime("%H%M%S"))
+    return hour_minute_second
 
 
 def softLinkAndSetAttr(object_instance, list_of_target_directories, source_path, intended_target_dir):

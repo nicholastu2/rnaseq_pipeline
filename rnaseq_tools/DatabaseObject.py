@@ -20,7 +20,7 @@ from rnaseq_tools.StandardDataObject import StandardData
 
 # TODO: more error handling in functions
 class DatabaseObject(StandardData):
-    def __init__(self, **kwargs):
+    def __init__(self, expected_attributes=None, **kwargs):
         """
             constructor
             :param **kwargs: unspecified # keyword arguments. The keywords that are currently handled, if entered:
