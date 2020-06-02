@@ -121,8 +121,11 @@ class StandardData:
         else:
             # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
             lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
-            utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
-                                     self.user_rnaseq_pipeline_directory)
+            try:
+                utils.softLinkAndSetAttr(self, lts_dirs_to_softlink, self.lts_rnaseq_data,
+                                         self.user_rnaseq_pipeline_directory)
+            except FileNotFoundError:
+                print('The source of %s does not exist. If you are on an interactive node on HTCF, include intearctive=True in your constructor call.' %(lts_dirs_to_softlink))
             # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
             # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
             setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))

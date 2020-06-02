@@ -81,7 +81,7 @@ process novoalign {
     """
     novoalign -r All -c 8 -o SAM -d param.S288C_R64_genome_index -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log".format(output_path))
     """
-    else if ($oganism == 'H99')
+    else if ($organism == 'H99')
     """
     novoalign -r All -c 8 -o SAM -d param.H99_genome_index -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log".format(output_path))
     """
