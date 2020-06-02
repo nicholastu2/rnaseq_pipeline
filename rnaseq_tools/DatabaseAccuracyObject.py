@@ -132,11 +132,11 @@ class DatabaseAccuracyObject(DatabaseObject):
         self.last_git_change = self.getLastGitChange(self.database_files)
         # set accuracyCheckFilename (expecting to be overwritten by @property method below when needed)
         time_stamp = str(self.year_month_day) + '_' + utils.hourMinuteSecond()
-        self.accuracy_check_output_file = os.path.join(self.reports, 'database_accuracy_check_' + time_stamp + '.txt')
+        self.accuracy_check_output_file = self.setAccuracyCheckFilename()
 
     def setAccuracyCheckFilename(self):
         time_stamp = str(self.year_month_day) + '_' + utils.hourMinuteSecond()
-        self.accuracy_check_output_file = os.path.join(self.reports, 'database_accuracy_check_' + time_stamp + '.txt')
+        return os.path.join(self.reports, 'database_accuracy_check_' + time_stamp + '.txt')
 
     @staticmethod
     def subdirectoryReport(subdirectory_name, database_assessment_object, subdir_filepath_list):
@@ -172,16 +172,13 @@ class DatabaseAccuracyObject(DatabaseObject):
                 subdirectory_report.write('\n\n')
             subdirectory_report.write('\n\n')
 
-    @staticmethod
-    def fullReport(database_dict, database_assessment_object):
+    def fullReport(self):
         """
             The intent is for this to be used to generate a full report on the entire database. However, any number of
             subdirectories may be passed up to all of the subdirectories in database_files
         """
-        dba = database_assessment_object
-        dba.setAccuracyCheckFilename()
-        for subdirectory_name, subdirectory_path_list in database_dict.items():
-            database_assessment_object.subdirectoryReport(subdirectory_name, dba, subdirectory_path_list)
+        for subdirectory_name, subdirectory_path_list in self.database_dict.items():
+            self.subdirectoryReport(subdirectory_name, self, subdirectory_path_list)
 
     @staticmethod
     def getLastGitChange(database_code_repo):

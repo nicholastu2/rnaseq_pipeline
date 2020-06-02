@@ -46,7 +46,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_fullReport(self):
         dba = DatabaseAccuracyObject(config_file='/home/chase/code/brentlab/rnaseq_pipeline/config/test_rnaseq_pipeline_config.ini')
-        dba.fullReport(dba.database_dict, dba)
+        dba.fullReport()
 
 
 if __name__ == '__main__':
