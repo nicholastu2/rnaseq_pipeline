@@ -63,8 +63,8 @@ class DatabaseAccuracyObject(DatabaseObject):
                                  'rnaPrepMethod': r"DirectZol|RiboPure0.5x|RiboPure0.25x|RiboPure0.125x|ComboA|ComboB|TRIzol", #TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
                                  'roboticRNAPrep': boolean_format,
                                  'RIBOSOMAL_BAND': boolean_format,
-                                 'Ribosomal_Band_Shape': r"straight|smile|NA",
-                                 'Small_RNA_Bands': boolean_format,
+                                 'RIBOSOMAL_BAND_SHAPE': r"straight|smile|NA",
+                                 'SMALL_RNA_BANDS': boolean_format,
                                  'RIN': r"[1-9]|10"}
 
         s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
