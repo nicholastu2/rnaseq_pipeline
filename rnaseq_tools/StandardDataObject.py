@@ -1,5 +1,6 @@
 from rnaseq_tools import utils
 import os
+import sys
 import getpass  # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
 
 
@@ -51,14 +52,11 @@ class StandardData:
             self.config_file = kwargs['config_file']
             if not os.path.isfile(self.config_file):
                 raise FileNotFoundError('ConfigFileNotFound')
-        except KeyError or FileNotFoundError:
-            try:
-                if not os.path.exists(self.default_config_path):
-                    raise FileNotFoundError('DefaultConfigPathNotValid')
-            except FileNotFoundError:
-                print('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
-            else:
+        except FileNotFoundError or KeyError:
+            if os.path.exists(self.default_config_path):
                 self.config_file = self.default_config_path
+            else:
+                sys.exit('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
         finally:
             utils.setAttributes(self, kwargs)
             # load config file
