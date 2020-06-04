@@ -51,18 +51,14 @@ class StandardData:
         try:
             self.config_file = kwargs['config_file']
         except KeyError:
-            try:
-                if not os.path.isfile(self.config_file):
-                    raise FileNotFoundError('ConfigFileNotFound')
-            except FileNotFoundError:
-                if os.path.exists(self.default_config_path):
-                    self.config_file = self.default_config_path
-            else:
-                sys.exit('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
+            self.config_file = self.default_config_path
         finally:
-            utils.setAttributes(self, kwargs)
-            # load config file
-            utils.configure(self, self.config_file, self.self_type)
+            if not os.path.isfile(self.config_file):
+                sys.exit('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
+            else:
+                utils.setAttributes(self, kwargs)
+                # load config file
+                utils.configure(self, self.config_file, self.self_type)
 
         # set interactive (flag for interactive session on htcf) to false if not already set. If True, StandardDataObject and child will not try to softlink to lts (long term storage)
         if not hasattr(self, 'interactive'):
