@@ -7,12 +7,13 @@ from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
 
+
 class QualityAssessmentObject(StandardData):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
         self._add_expected_attributes = ['quality_assessment_filename']
-        # TODO: This is a messy and repetitive way of adding expected attributes from children of OrganismData to add to StandardData
+        # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
         # initialize Standard data with the extended _attributes
@@ -50,7 +51,6 @@ class QualityAssessmentObject(StandardData):
         except KeyError:
             pass
 
-
     def compileData(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
         """
         get a list of the filenames in the run_#### file that correspond to a given type
@@ -62,7 +62,7 @@ class QualityAssessmentObject(StandardData):
         align_df = pd.DataFrame()
         htseq_count_df = pd.DataFrame()
         # assemble qual_assess_df dataframe
-        for suffix in self.log_suffix_list: # TODO: error checking: alignment must come before read_count
+        for suffix in self.log_suffix_list:  # TODO: error checking: alignment must come before read_count
             # extract files in directory with given suffix
             file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, suffix))
             for file_path in file_paths:
@@ -84,10 +84,13 @@ class QualityAssessmentObject(StandardData):
             # store library size column
             library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
             # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
-            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df['AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
+            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
+                'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
+            unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float')
 
             # create new column TOTAL_ALIGNMENT_PCT as unique + multi maps as percentage of library size
-            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df['MULTI_MAP']) / library_size_column
+            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df[
+                'MULTI_MAP']) / library_size_column
             # convert novoalign columns to percents of library_size_column
             total_alignment_count_column = qual_assess_df['TOTAL_ALIGNMENT'] * library_size_column
             qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / library_size_column
@@ -97,12 +100,12 @@ class QualityAssessmentObject(StandardData):
             qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
 
             # convert htseq count columns to percent of aligned reads
-            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / total_alignment_count_column
-            qual_assess_df['WITH_FEATURE'] = with_feature_column / total_alignment_count_column
-            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / total_alignment_count_column
-            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / total_alignment_count_column
-            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / total_alignment_count_column
-            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / total_alignment_count_column
+            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / library_size_column  # TODO: CHECK THIS
+            qual_assess_df['WITH_FEATURE'] = with_feature_column / unique_alignment_total
+            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / unique_alignment_total
+            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / unique_alignment_total
+            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / unique_alignment_total
+            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / unique_alignment_total
 
         return qual_assess_df.set_index("FASTQFILENAME")
 
@@ -130,15 +133,15 @@ class QualityAssessmentObject(StandardData):
             try:
                 extracted_value = int(re.findall(regex_pattern, alignment_file_text)[0])
             except ValueError:
-                print('problem with file %s' %alignment_log_file_path)
+                print('problem with file %s' % alignment_log_file_path)
             except IndexError:
-                print('No %s in %s. Value set to 0' %(alignment_category, alignment_log_file_path))
+                print('No %s in %s. Value set to 0' % (alignment_category, alignment_log_file_path))
                 extracted_value = 0
             # check that the value is both an int and not 0
             if isinstance(extracted_value, int):
                 library_metadata_dict.setdefault(alignment_category, extracted_value)
             else:
-                print('cannot find %s in %s' %(alignment_category, alignment_log_file_path))
+                print('cannot find %s in %s' % (alignment_category, alignment_log_file_path))
 
         # close the alignment_file and return
         alignment_file.close()
@@ -161,7 +164,7 @@ class QualityAssessmentObject(StandardData):
             # strip newchar, split on tab
             line = line.strip().split('\t')
             # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
-            htseq_count_metadata_category = line[0][2:].upper() # drop the __ in front of the category
+            htseq_count_metadata_category = line[0][2:].upper()  # drop the __ in front of the category
             # enter to htseq_count_dict
             library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
             # iterate
@@ -304,7 +307,7 @@ class QualityAssessmentObject(StandardData):
                 'Align count path is either not set or not valid. align_count_path should be pointed toward a directory\n'
                 'with alignment files, typically the output of align_count.py or create_experiment.py')
 
-        try: # TODO: clean this up
+        try:  # TODO: clean this up
             if not os.path.isfile(self.query_path):
                 raise FileExistsError('QueryPathNotValid')
             else:
@@ -344,8 +347,8 @@ class QualityAssessmentObject(StandardData):
                 if not bamfilename in sorted_bamfile_list:
                     raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
             except FileNotFoundError:
-                return('A sample in the query could not be located in the directory with the alignment files.\n'
-                      'Make sure the query provided corresponds to the align_count_path directory')
+                return ('A sample in the query could not be located in the directory with the alignment files.\n'
+                        'Make sure the query provided corresponds to the align_count_path directory')
 
             output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
             utils.mkdirp(output_subdir)
@@ -355,7 +358,8 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (bamfilename_path, self.annotation_file, output_subdir)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (
+            bamfilename_path, self.annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
         for countfilename in pre_2015_countfilename_list:
@@ -375,7 +379,8 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (bamfilename_path, self.annotation_file, output_subdir)
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
+            bamfilename_path, self.annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
         with open(self.sbatch_script, 'w') as sbatch_file:

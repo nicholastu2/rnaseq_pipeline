@@ -61,7 +61,7 @@ def main(argv):
 
     print('...compiling alignment information')
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-    qual_assess_1_df = QualityAssessmentObject.compileData(qa.align_count_path, ["_novoalign.log", "_read_count.tsv"])
+    qual_assess_1_df = qa.compileData()
     # re_order columns
     column_order = ['LIBRARY_SIZE', 'TOTAL_ALIGNMENT', 'UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NO_MAP', 'HOMOPOLY_FILTER',
                     'READ_LENGTH_FILTER', 'NOT_ALIGNED_TOTAL', 'WITH_FEATURE', 'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE',
@@ -106,9 +106,9 @@ def main(argv):
             sbatch_file.write("ml bedtools\n\n")
             for sample in perturbed_sample_list:
                 sorted_alignment_file = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
-                sorted_alignment_path = os.path.join(qa.align_count_path, sorted_alignment_file)
+                sorted_alignment_path = os.path.join(qa.quality_assess_dir_path, sorted_alignment_file)
                 coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
-                coverage_output_path = os.path.join(qa.align_count_path, coverage_filename)
+                coverage_output_path = os.path.join(qa.quality_assess_dir_path, coverage_filename)
                 sbatch_file.write(
                     'bedtools genomecov -ibam %s -bga > %s\n' % (sorted_alignment_path, coverage_output_path))
         print('sbatch script to quantify per base coverage in perturbed samples at %s' % sbatch_job_script_path)
