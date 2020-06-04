@@ -54,7 +54,7 @@ class StandardData:
             self.config_file = self.default_config_path
         finally:
             if not os.path.isfile(self.config_file):
-                sys.exit('Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
+                sys.exit('Default path to the htcf config not valid. Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
             else:
                 utils.setAttributes(self, kwargs)
                 # load config file
