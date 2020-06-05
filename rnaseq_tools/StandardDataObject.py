@@ -47,17 +47,20 @@ class StandardData:
 
         # set config, either entered when creating StandardDataObject or child, or use default expected on cluster # TODO: possible? to containerize scripts calling this with a repo structure and have path always point there (align_counts eg)
         self.default_config_path = '/opt/apps/labs/mblab/software/rnaseq_pipeline/1.0/config/rnaseq_pipeline_config.ini'
-
+        # this is the default in scripts using StandardData. see qual_assess_1 for example
+        try:
+            if kwargs['config_file'] == '/see/standard/data/invalid/filepath/set/to/default':
+                kwargs['config_file'] = self.default_config_path
+        except KeyError:
+            pass
+        # set config file
         try:
             self.config_file = kwargs['config_file']
         except KeyError:
             self.config_file = self.default_config_path
         finally:
             if not os.path.isfile(self.config_file):
-                if self.config_file == '/see/standard/data/invalid/filepath/set/to/default': # this is the default in scripts using StandardData. see qual_assess_1 for example
-                    self.config_file = self.default_config_path
-                    if not os.path.isfile(self.config_file):
-                        sys.exit('Default path to the htcf config not valid. Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
+                sys.exit('Default path to the htcf config not valid. Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
             else:
                 utils.setAttributes(self, kwargs)
                 # load config file
