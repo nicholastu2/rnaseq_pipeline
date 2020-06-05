@@ -62,7 +62,7 @@ class SbatchWriter:
             f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
             f.write("mkdir -p {}\n".format(output_path))
 
-            f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -r All -c 8 -o SAM -d {0} " # TODO: ADD OPTION TO -r All TO KEEP ALL MULTIMAPS in sbatch writer object
+            f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -r All -c 8 -o SAM -d {0} "  # NOTE: ADDED -r all
                     "-f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log | samtools view -bS > "
                     "{1}/${{sample}}_aligned_reads.bam\n".format(genome_index_file, output_path))
 

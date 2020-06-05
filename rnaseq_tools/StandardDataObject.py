@@ -54,7 +54,10 @@ class StandardData:
             self.config_file = self.default_config_path
         finally:
             if not os.path.isfile(self.config_file):
-                sys.exit('Default path to the htcf config not valid. Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
+                if self.config_file == '/see/standard/data/invalid/filepath/set/to/default': # this is the default in scripts using StandardData. see qual_assess_1 for example
+                    self.config_file = self.default_config_path
+                    if not os.path.isfile(self.config_file):
+                        sys.exit('Default path to the htcf config not valid. Either specify, or check the path to, config_file = /path/to/config/file in your call to StandardDataObject or Child')
             else:
                 utils.setAttributes(self, kwargs)
                 # load config file
