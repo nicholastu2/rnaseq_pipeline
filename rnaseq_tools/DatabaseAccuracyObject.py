@@ -25,6 +25,8 @@ class DatabaseAccuracyObject(DatabaseObject):
         self._add_expected_attributes = []
         super(DatabaseAccuracyObject, self).__init__(self._add_expected_attributes, **kwargs)
         self.self_type = 'DatabaseAccuracyObject'
+        # set DatabaseAccuracyObjectLogger
+        utils.createStandardObjectChildLogger(self)
         # set the database dictionary ({subdirectory: [list, of, files]} --> see DatabaseObject)
         self.setDatabaseDict()
         # if full_report passed in constructor

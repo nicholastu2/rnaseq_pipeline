@@ -447,6 +447,18 @@ def createLogger(log_file_path, logger_name, logging_conf=None):
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
 
+def createStandardObjectChildLogger(StandardDataObjectChild):
+    """
+        create logger for StandardDataObjectChild
+        :raises: NotADirectoryError if logger_directory_path does not exist
+    """
+    logger_directory_path = dirPath(StandardDataObjectChild.log_file_path)
+    if os.path.isdir(logger_directory_path):
+        createLogger(StandardDataObjectChild.log_file_path, __name__)
+    else:
+        raise NotADirectoryError('LogDirectoryDoesNotExist')
+
+
 def createStdOutLogger(**kwargs):
     """
         create a logger that writes to stdout
@@ -485,3 +497,4 @@ def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO
         for suffix in list_of_file_suffixes_to_extract:
             file_paths += glob(dir_path + "/*." + suffix)
         return file_paths
+
