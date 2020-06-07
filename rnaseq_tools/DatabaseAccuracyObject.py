@@ -129,9 +129,13 @@ class DatabaseAccuracyObject(DatabaseObject):
             'fastqFiles': {'filename_regex': fastqFilename_filename_regex,
                               'column_specs_dict': fastqFilename_column_dict}}
         # set last_git_change
-        self.last_git_change = self.getLastGitChange(self.database_files)
+        try:
+            self.last_git_change = self.getLastGitChange()
+        except FileNotFoundError:
+            print('Cannot find .git/FETCH_HEAD in database_files. This likely means you aren\'t on the master branch. Switch to master and try again.')
+        except AttributeError:
+            print('.git/FETCH_HEAD is empty. Make a commit and try again.')
         # set accuracyCheckFilename (expecting to be overwritten by @property method below when needed)
-        time_stamp = str(self.year_month_day) + '_' + utils.hourMinuteSecond()
         self.accuracy_check_output_file = self.setAccuracyCheckFilename()
 
     def setAccuracyCheckFilename(self):
@@ -180,12 +184,11 @@ class DatabaseAccuracyObject(DatabaseObject):
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
             self.subdirectoryReport(subdirectory_name, self, subdirectory_path_list)
 
-    @staticmethod
-    def getLastGitChange(database_code_repo):
+    def getLastGitChange(self):
         """
 
         """
-        git_head_file = os.path.join(database_code_repo, '.git/FETCH_HEAD')
+        git_head_file = os.path.join(self.database_files, '.git/FETCH_HEAD')
         if not os.path.isfile(git_head_file):
             raise FileNotFoundError('GitHeadNotFound')
         stat_output = subprocess.run('stat -c %y {}'.format(git_head_file), stdout=subprocess.PIPE, shell=True)
