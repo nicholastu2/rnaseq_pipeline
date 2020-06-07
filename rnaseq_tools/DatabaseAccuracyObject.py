@@ -159,7 +159,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                 subdirectory_report.write('Checking %s:\n' % subdirectory_filepath)
                 # extract dictionaries of inconsistencies in column names and rows
                 col_inconsistencies_dict, row_inconsistencies_dict = dba.checkColumns(dba.specification_dict[subdirectory_name],
-                                                                                      subdirectory_filepath)
+                                                                                      subdirectory_filepath, dba.logger)
                 # check filename
                 filename_check = dba.checkFileName(dba.specification_dict[subdirectory_name]['filename_regex'],
                                                    subdirectory_filepath)
@@ -216,12 +216,13 @@ class DatabaseAccuracyObject(DatabaseObject):
             return True
 
     @staticmethod
-    def checkColumns(subdirectory_specs_dict, subdirectory_filepath):
+    def checkColumns(subdirectory_specs_dict, subdirectory_filepath, logger = None):
         """
             check column heading names and entries in each row/column for adherence to the specs at:
             https://github.com/BrentLab/database_files/wiki
             :param subdirectory_specs_dict: see constructor. In the case of bioSample, you would pass db.specification_dict['bioSample']
             :param subdirectory_filepath: path to a sheet in a given subdirectory (eg a bioSample .xslx)
+            :param logger: reference to a logger. Default is None
             :return: colname_inconsistencies_dict, a dict in structure {specification_heading: nearest_match_to_heading, ...}
                      row_inconsistencies_dict, a dict in structure {row_index: column_with_inconsistent_entry, ...}
         """
@@ -243,6 +244,8 @@ class DatabaseAccuracyObject(DatabaseObject):
                     column_specs_regex = subdirectory_specs_dict['column_specs_dict'][column_name]
                 except KeyError:
                     if column_name not in skip_columns:
+                        if logger:
+                            logger.info('Column name not found in specs: %s' %(column_name))
                         nearest_match = difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
                         colname_inconsistencies_dict.setdefault(nearest_match, column_name)
                         print('\tCannot check %s in %s. Either the format of the column is incorrect, or it is not in the specifications_dictionary.\n'
