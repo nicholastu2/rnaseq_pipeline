@@ -132,7 +132,7 @@ class DatabaseAccuracyObject(DatabaseObject):
         try:
             self.last_git_change = self.getLastGitChange()
         except FileNotFoundError:
-            print('Cannot find .git/FETCH_HEAD in database_files. This likely means you aren\'t on the master branch. Switch to master and try again.')
+            print('Cannot find .git/FETCH_HEAD in database_files. If this is a new, or newly cloned, directory, pull from the remote.')
         except AttributeError:
             print('.git/FETCH_HEAD is empty. Make a commit and try again.')
         # set accuracyCheckFilename (expecting to be overwritten by @property method below when needed)
