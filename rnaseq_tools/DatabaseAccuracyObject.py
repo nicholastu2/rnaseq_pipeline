@@ -80,7 +80,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                                     'rnaPreparer': name_format,
                                     'rnaSampleNumber': int_format,
                                     's1cDNADate': date_format,
-                                    's1cDNAPrepaper': name_format,
+                                    's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
                                     'PolyAIsolationProtocol': r"NEBNextPoly(A)E7490L",
                                     's1Protocol': r"E7420",
@@ -89,10 +89,10 @@ class DatabaseAccuracyObject(DatabaseObject):
 
         s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         s2cDNASample_column_dict = {'s1cDNADate': date_format,
-                                    's1cDNAPrepaper': name_format,
+                                    's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
                                     's2cDNADate': date_format,
-                                    's2cDNAPrepaper': name_format,
+                                    's2cDNAPreparer': name_format,
                                     's2cDNASampleNumber': int_format,
                                     's2cDNAProtocol': r"E7420L|SolexaPrep",
                                     'PooledSecondStrand': boolean_format,
@@ -100,7 +100,7 @@ class DatabaseAccuracyObject(DatabaseObject):
 
         library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         library_column_dict = {'s2cDNADate': date_format,
-                               's2cDNAPrepaper': name_format,
+                               's2cDNAPreparer': name_format,
                                's2cDNASampleNumber': int_format,
                                'libraryDate': date_format,
                                'libraryPreparer': name_format,
