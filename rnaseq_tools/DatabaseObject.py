@@ -33,7 +33,8 @@ class DatabaseObject(StandardData):
         self._add_expected_attributes = ['database_subdirectories', 'filter_json_path', 'database_df']
         super(DatabaseObject, self).__init__(self._add_expected_attributes, **kwargs)
         self.self_type = 'DatabaseObject'
-        self.logger = self.createStandardObjectChildLogger(self, __name__)
+        # set DatabaseObject logger
+        self.logger = utils.createStandardObjectChildLogger(self, __name__)
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
         try:
