@@ -82,7 +82,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                                     's1cDNADate': date_format,
                                     's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
-                                    'PolyAIsolationProtocol': r"NEBNextPoly(A)E7490L",
+                                    'polyAIsolationProtocol': r"NEBNextPoly(A)E7490L",
                                     's1Protocol': r"E7420",
                                     'roboticS1Prep': boolean_format,
                                     's1PrimerSeq': r"[ACGT]+|random"}
@@ -96,7 +96,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                                     's2cDNASampleNumber': int_format,
                                     's2cDNAProtocol': r"E7420L|SolexaPrep",
                                     'PooledSecondStrand': boolean_format,
-                                    'rotobics2Prep': boolean_format}
+                                    'roboticS2Prep': boolean_format}
 
         library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         library_column_dict = {'s2cDNADate': date_format,
