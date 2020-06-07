@@ -33,6 +33,7 @@ class DatabaseObject(StandardData):
         self._add_expected_attributes = ['database_subdirectories', 'filter_json_path', 'database_df']
         super(DatabaseObject, self).__init__(self._add_expected_attributes, **kwargs)
         self.self_type = 'DatabaseObject'
+        self.logger = self.createStandardObjectChildLogger(self, __name__)
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
         try:
@@ -134,6 +135,7 @@ class DatabaseObject(StandardData):
             for file in file_list[1:]:
                 # read in next file in list as next_sheet
                 next_sheet = utils.readInDataframe(file)
+                self.logger.warning('columns of %s are %s' %(file, next_sheet.columns))
                 self.concat_database_dict[subdirectory] = self.concat_database_dict[subdirectory].append(next_sheet)
             # reset index so it is sequential
             self.concat_database_dict[subdirectory].reset_index(inplace=True, drop=True)
