@@ -447,16 +447,20 @@ def createLogger(log_file_path, logger_name, logging_conf=None):
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
 
-def createStandardObjectChildLogger(StandardDataObjectChild):
+def createStandardObjectChildLogger(StandardDataObjectChild, name):
     """
         create logger for StandardDataObjectChild
+        param StandardDataObjectChild: a child of StandardData. If this is not called, the child's logger will be named "StandardDataObject"
+        :param name: probably passed with __name__. The name of the logger to display in the log file.
         :raises: NotADirectoryError if logger_directory_path does not exist
     """
     logger_directory_path = dirPath(StandardDataObjectChild.log_file_path)
     if os.path.isdir(logger_directory_path):
-        createLogger(StandardDataObjectChild.log_file_path, __name__)
+        logger = createLogger(StandardDataObjectChild.log_file_path, name)
     else:
         raise NotADirectoryError('LogDirectoryDoesNotExist')
+
+    return logger
 
 
 def createStdOutLogger(**kwargs):
