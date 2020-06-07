@@ -136,7 +136,7 @@ class DatabaseObject(StandardData):
             for file in file_list[1:]:
                 # read in next file in list as next_sheet
                 next_sheet = utils.readInDataframe(file)
-                self.logger.warning('columns of %s are %s' %(file, next_sheet.columns))
+                self.logger.debug('columns of %s are %s' %(file, next_sheet.columns))
                 self.concat_database_dict[subdirectory] = self.concat_database_dict[subdirectory].append(next_sheet)
             # reset index so it is sequential
             self.concat_database_dict[subdirectory].reset_index(inplace=True, drop=True)
