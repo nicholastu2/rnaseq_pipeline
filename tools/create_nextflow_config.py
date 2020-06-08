@@ -52,10 +52,10 @@ def main(argv):
         fastq_fullpath = os.path.join(db.lts_sequence, run_directory, fastq_filename)
         db.query_df.loc[index, 'fastqFileName'] = fastq_fullpath
     db.query_df['runDirectory'] = run_directory_list
-    print(db.query_df)
 
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
+    print(nextflow_fastqfile_df)
     # write out
     output_path = os.path.join(db.job_scripts, 'nextflow_fastqfile_list'+ '_' + db.year_month_day + '_' + utils.hourMinuteSecond()+'.csv')
     print('writing out to %s' %output_path)
