@@ -22,7 +22,7 @@ process make_scratch_directory {
 
         script:
         """
-        echo ${param.scratch_sequence}/${run_directory} >> /scratch/mblab/chasem/nextflow_output_tester.txt
+        echo ${scratch_sequence}/${run_directory} >> /scratch/mblab/chasem/nextflow_output_tester.txt
         """
 
 }
