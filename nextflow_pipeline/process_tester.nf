@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-params.fastq_file_list = 'fastq_file_list.csv' // this will need to be inputted by user
+params.fastq_file_list = '/scratch/mblab/chasem/rnaseq_pipeline/job_scripts/nextflow_fastqfile_list_20200608_164325.csv' // this will need to be inputted by user
 
 // split columns/rows of fastq_file_list for processing
 Channel
@@ -12,10 +12,11 @@ Channel
 
 process fastqc {
     input:
+        set run_directory, fastq_filepath, organism, strandedness from samples_channel
 
 
     script:
     """
-    echo "I\'m working!" >> /scratch/mblab/chasem/nextflow_output_tester.txt
+    echo $run_directory $fastq_filepath $organism $strandedness >> /scratch/mblab/chasem/nextflow_output_tester.txt
     """
 }
