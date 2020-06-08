@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.fastq_file_list = '/scratch/mblab/chasem/rnaseq_pipeline/job_scripts/nextflow_fastqfile_list_20200608_164325.csv' // this will need to be inputted by user
+params.scratch_sequence = ''/scratch/mblab/mblab.shared/scratch_sequence'
 
 // split columns/rows of fastq_file_list for processing
 Channel
@@ -10,13 +11,18 @@ Channel
     .groupTuple()
     .set { samples_channel }
 
-process fastqc {
+
+process lts_to_scratch {
+    cache = 'false'
+    executor = 'local'
+    beforeScript = 'ml rnaseq_pipeline'
+
     input:
         set run_directory, fastq_filepath, organism, strandedness from samples_channel
 
-
     script:
     """
-    echo $run_directory $fastq_filepath $organism $strandedness >> /scratch/mblab/chasem/nextflow_output_tester.txt
+    // extract parent directory from source, make directory of same name to deposit file in destination
+    echo "rsync -aHv --sample $fastq_file -d  param.scratch_sequence/${run_directory}"" //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
     """
 }
