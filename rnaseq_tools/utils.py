@@ -418,12 +418,13 @@ def userInputCorrectAttributeName(message, my_object, old_attribute_name, *args)
     return my_object
 
 
-def createLogger(log_file_path, logger_name, logging_conf=None):
+def createLogger(log_file_path, logger_name, logger_level, logging_conf=None):
     """
     create logger in filemode append and format name-levelname-message with package/module __name__ (best practice from logger tutorial)
     :param log_file_path: name of the file in which to log.
     :param logger_name: __name__ is recommended as a best practice in logger.config eg you can call this like so: createLogger(<your_filename>, __name__)
-                     (__name__ is a special variable in python)  
+                     (__name__ is a special variable in python)
+    :param logger_level: at what level to publish to log file see logger docs
     :param logging_conf: path to logging configuration file
     :returns: an instance of the configured logger
     """
@@ -442,7 +443,7 @@ def createLogger(log_file_path, logger_name, logging_conf=None):
             filemode='a',
             format='%(name)s-%(levelname)s-%(asctime)s-%(message)s',
             datefmt='%I:%M:%S %p',  # set 'datefmt' to hour-minute-second AM/PM
-            level='INFO'
+            level=logger_level
         )
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
@@ -450,13 +451,17 @@ def createLogger(log_file_path, logger_name, logging_conf=None):
 def createStandardObjectChildLogger(StandardDataObjectChild, name):
     """
         create logger for StandardDataObjectChild
-        param StandardDataObjectChild: a child of StandardData. If this is not called, the child's logger will be named "StandardDataObject"
+        :param StandardDataObjectChild: a child of StandardData. If this is not called, the child's logger will be named "StandardDataObject"
         :param name: probably passed with __name__. The name of the logger to display in the log file.
         :raises: NotADirectoryError if logger_directory_path does not exist
     """
     logger_directory_path = dirPath(StandardDataObjectChild.log_file_path)
     if os.path.isdir(logger_directory_path):
-        logger = createLogger(StandardDataObjectChild.log_file_path, name)
+        try:
+            logger = createLogger(StandardDataObjectChild.log_file_path, name, StandardDataObjectChild.logger_level)
+        except AttributeError:
+            print('StandardDataObject constructor not yet run -- logger_level attribute not set.\n'
+                  'Must run StandardDataObject constructor first (see another StandardDataObject constructor)')
     else:
         raise NotADirectoryError('LogDirectoryDoesNotExist')
 

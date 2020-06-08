@@ -64,6 +64,6 @@ class OrganismData(StandardData):
         """
         logger_directory_path = utils.dirPath(self.log_file_path)
         if os.path.isdir(logger_directory_path):
-            utils.createLogger(self.log_file_path, __name__)
+            utils.createStandardObjectChildLogger(self, __name__)
         else:
             raise NotADirectoryError('LogDirectoryDoesNotExist')

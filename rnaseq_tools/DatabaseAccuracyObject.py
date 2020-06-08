@@ -233,7 +233,7 @@ class metadataSpecificationObject:
                                     's1cDNADate': date_format,
                                     's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
-                                    'polyAIsolationProtocol': r"%r" %"NEBNextPoly(A)E7490L",
+                                    'polyAIsolationProtocol': r"NEBNextPoly(A)E7490L|NEBNextPoly\(A\)E7490L|NEBNextPoly(A)E7490L",
                                     's1Protocol': r"E7420",
                                     'roboticS1Prep': boolean_format,
                                     's1PrimerSeq': r"^[ACGT]+$|random"}
