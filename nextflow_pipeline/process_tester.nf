@@ -12,20 +12,17 @@ Channel
     .set { samples_channel }
 
 
-process lts_to_scratch {
+process make_scratch_directory {
     cache = 'false'
     executor = 'local'
     beforeScript = 'ml rnaseq_pipeline'
 
-    input:
-        set my_tup from samples_channel
+        input:
+        set run_directory, fastq_filepath, organism, strandedness from samples_channel
 
-    // extract parent directory from source, make directory of same name to deposit file in destination
-    script:
-    """
-    for tuple in ${my_tup}
-    do
-        echo ${tuple}
-    done
-    """
+        script:
+        """
+        echo param.scratch_sequence/${run_directory}
+        """
+
 }
