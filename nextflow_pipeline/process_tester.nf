@@ -23,7 +23,7 @@ process make_scratch_directory {
 
         script:
         """
-        echo ${scratch_sequence}/${run_directory} >> /scratch/mblab/chasem/nextflow_output_tester.txt
+        mkdir -p ${scratch_sequence}/${run_directory}
         """
 
 }
