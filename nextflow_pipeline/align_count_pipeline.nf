@@ -70,7 +70,10 @@ process novoalign {
     executor = 'slurm'
 
     input:
-    set sampleId, file(read1), file(read2) from samples_ch
+        fastq_file from scratch_fastq_file
+
+    output:
+
 
     script:
     if ($organism == 'KN99') //figure out how to redirect output
