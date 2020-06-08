@@ -35,110 +35,8 @@ class DatabaseAccuracyObject(DatabaseObject):
                 self.fullReport()  # Report output to report
         except KeyError:
             pass
-
-        date_format = r"\d\d\.\d\d\.\d\d"
-        name_format = r"[A-Z]\.[A-Z]+"
-        int_format = r"^[ 0-9-]+$"
-        boolean_format = r"True|False"
-        float_format = r"^\d+\.\d+$|^\d+$"
-        dna_alphabet_format = r"^[ACGT]+$"
-        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d]+$"
-        capital_underscore_digit_format = r"[A-Z_\d]+"
-        biosample_treatment = r"estradiol|mockEstradiol|conditionShift|glucoseTo2%|EtOH|Estradiol|PBS|" \
-                              r"DMEM.30C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|" \
-                              r"YPD.37C.CO2.cAMP|DMEM.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|YPD.30C.cAMP|" \
-                              r"YPD.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP"
-        rna_prep_method = r"DirectZol|RiboPure0.5x|RiboPure0.25x|RiboPure0.125x|ComboA|ComboB|TRIzol"
-
-        bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        bioSample_column_dict = {'harvestDate': date_format,
-                                 'harvester': name_format,
-                                 'bioSampleNumber': int_format,
-                                 'experimentDesign': r"[a-zA-Z_\d]+",
-                                 'experimentObservations': capital_lower_underscore_digit_format,
-                                 'strain': capital_lower_underscore_digit_format,  # TODO: LIST OF SPECIFIC POSSIBILITIES?
-                                 'genotype': capital_underscore_digit_format,
-                                 'floodmedia': r"SCGal",
-                                 'inductionDelay': int_format,
-                                 'treatment': biosample_treatment,
-                                 'timePoint': int_format,
-                                 'replicate': int_format}
-
-        rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        rnaSample_column_dict = {'harvestDate': date_format,
-                                 'harvester': name_format,
-                                 'bioSampleNumber': int_format,
-                                 'rnaDate': date_format,
-                                 'rnaPreparer': name_format,
-                                 'rnaSampleNumber': int_format,
-                                 'rnaPrepMethod': rna_prep_method, #TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
-                                 'roboticRNAPrep': boolean_format,
-                                 'RIBOSOMAL_BAND': boolean_format,
-                                 'RIBOSOMAL_BAND_SHAPE': r"straight|smile|NA",
-                                 'SMALL_RNA_BANDS': boolean_format,
-                                 'RIN': r"[1-9]|10"}
-
-        s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        s1cDNASample_column_dict = {'rnaDate': date_format,
-                                    'rnaPreparer': name_format,
-                                    'rnaSampleNumber': int_format,
-                                    's1cDNADate': date_format,
-                                    's1cDNAPreparer': name_format,
-                                    's1cDNASampleNumber': int_format,
-                                    'polyAIsolationProtocol': r"NEBNextPoly(A)E7490L",
-                                    's1Protocol': r"E7420",
-                                    'roboticS1Prep': boolean_format,
-                                    's1PrimerSeq': r"^[ACGT]+$|random"}
-
-        s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        s2cDNASample_column_dict = {'s1cDNADate': date_format,
-                                    's1cDNAPreparer': name_format,
-                                    's1cDNASampleNumber': int_format,
-                                    's2cDNADate': date_format,
-                                    's2cDNAPreparer': name_format,
-                                    's2cDNASampleNumber': int_format,
-                                    's2cDNAProtocol': r"E7420L|SolexaPrep",
-                                    'PooledSecondStrand': boolean_format,
-                                    'roboticS2Prep': boolean_format}
-
-        library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        library_column_dict = {'s2cDNADate': date_format,
-                               's2cDNAPreparer': name_format,
-                               's2cDNASampleNumber': int_format,
-                               'libraryDate': date_format,
-                               'libraryPreparer': name_format,
-                               'librarySampleNumber': int_format,
-                               'index1Name': int_format,
-                               'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"^SIC_Index_\d+$",
-                               'index2Sequence': dna_alphabet_format,
-                               'libraryProtocol': 'E7420',
-                               'roboticLibraryPrep': boolean_format}
-
-        fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        fastqFilename_column_dict = {'libraryDate': date_format,
-                                     'libraryPreparer': name_format,
-                                     'librarySampleNumber': int_format,
-                                     'runNumber': int_format,
-                                     'laneNumber': int_format,
-                                     'sequencerModel': r"NextSeq|MiSeq|MiniSeq",
-                                     'flowcellType': r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput",
-                                     'purpose': r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq",
-                                     'tapestationConc': float_format,
-                                     'volumePooled': float_format,
-                                     'readsObtained': int_format,
-                                     'fastqFileName': capital_lower_underscore_digit_format}
-        # collect above specs into dictionary
-        self.specification_dict = {
-            'bioSample': {'filename_regex': bioSample_regex, 'column_specs_dict': bioSample_column_dict},
-            'rnaSample': {'filename_regex': rnaSample_regex, 'column_specs_dict': rnaSample_column_dict},
-            's1cDNASample': {'filename_regex': s1cDNASample_filename_regex,
-                             'column_specs_dict': s1cDNASample_column_dict},
-            's2cDNASample': {'filename_regex': s2cDNASample_filename_regex,
-                             'column_specs_dict': s2cDNASample_column_dict},
-            'library': {'filename_regex': library_filename_regex, 'column_specs_dict': library_column_dict},
-            'fastqFiles': {'filename_regex': fastqFilename_filename_regex,
-                              'column_specs_dict': fastqFilename_column_dict}}
+        # create specification dict -- see class metadataSpecificationObject below this class
+        self.specification_dict = metadataSpecificationObject().specification_dict
         # set last_git_change
         try:
             self.last_git_change = self.getLastGitChange()
@@ -267,3 +165,125 @@ class DatabaseAccuracyObject(DatabaseObject):
                         row_inconsistencies_dict.setdefault(str(index), []).append(column_name)
 
         return colname_inconsistencies_dict, row_inconsistencies_dict
+
+
+class metadataSpecificationObject:
+    def __init__(self):
+        """
+            A dictionary to store the specifications of the Brentlab rnaseq metadata database. specs published at
+            https://github.com/BrentLab/database_files/wiki
+        """
+        date_format = r"^\d\d\.\d\d\.\d\d$"
+        name_format = r"^[A-Z]\.[A-Z]+$"
+        int_format = r"^[ 0-9-]+$"
+        one_through_ten_format = r"[1-9]|10"
+        float_format = r"^\d+\.\d+$|^\d+$"
+        boolean_format = r"True|False|0|1"
+        dna_alphabet_format = r"^[ACGT]+$"
+        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d]+$"
+        capital_underscore_digit_format = r"[A-Z_\d]+"
+
+        flood_media_options = r"None|PBS|SCGal|SCGlu"
+        biosample_treatment = r"estradiol|mockEstradiol|conditionShift|glucoseTo2%|EtOH|Estradiol|PBS|" \
+                              r"DMEM.30C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|" \
+                              r"YPD.37C.CO2.cAMP|DMEM.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|YPD.30C.cAMP|" \
+                              r"YPD.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP|RPMI.30C.CO2|RPMI.37C.CO2|YPD.30C.CO2|" \
+                              r"YPD.37C.CO2"
+        rna_prep_method = r"DirectZol|RiboPure0.5x|RiboPure0.25x|RiboPure0.125x|ComboA|ComboB|TRIzol"
+        ribosomal_band_shape_options = r"straight|smile|NA"
+        sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
+        flowcell_options = r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput"
+        purpose_options = r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq"
+        s2cDNA_options = r"E7420L|SolexaPrep"
+
+        bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        bioSample_column_dict = {'harvestDate': date_format,
+                                 'harvester': name_format,
+                                 'bioSampleNumber': int_format,
+                                 'experimentDesign': capital_lower_underscore_digit_format,
+                                 'experimentObservations': capital_lower_underscore_digit_format,
+                                 'strain': capital_lower_underscore_digit_format,
+                                 # TODO: LIST OF SPECIFIC POSSIBILITIES?
+                                 'genotype': capital_underscore_digit_format,
+                                 'floodmedia': flood_media_options,
+                                 'inductionDelay': int_format,
+                                 'treatment': biosample_treatment,
+                                 'timePoint': int_format,
+                                 'replicate': int_format}
+
+        rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        rnaSample_column_dict = {'harvestDate': date_format,
+                                 'harvester': name_format,
+                                 'bioSampleNumber': int_format,
+                                 'rnaDate': date_format,
+                                 'rnaPreparer': name_format,
+                                 'rnaSampleNumber': int_format,
+                                 'rnaPrepMethod': rna_prep_method,
+                                 # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
+                                 'roboticRNAPrep': boolean_format,
+                                 'RIBOSOMAL_BAND': boolean_format,
+                                 'RIBOSOMAL_BAND_SHAPE': ribosomal_band_shape_options,
+                                 'SMALL_RNA_BANDS': boolean_format,
+                                 'RIN': one_through_ten_format}
+
+        s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        s1cDNASample_column_dict = {'rnaDate': date_format,
+                                    'rnaPreparer': name_format,
+                                    'rnaSampleNumber': int_format,
+                                    's1cDNADate': date_format,
+                                    's1cDNAPreparer': name_format,
+                                    's1cDNASampleNumber': int_format,
+                                    'polyAIsolationProtocol': r"NEBNextPoly\(A\)E7490L",
+                                    's1Protocol': r"E7420",
+                                    'roboticS1Prep': boolean_format,
+                                    's1PrimerSeq': r"^[ACGT]+$|random"}
+
+        s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        s2cDNASample_column_dict = {'s1cDNADate': date_format,
+                                    's1cDNAPreparer': name_format,
+                                    's1cDNASampleNumber': int_format,
+                                    's2cDNADate': date_format,
+                                    's2cDNAPreparer': name_format,
+                                    's2cDNASampleNumber': int_format,
+                                    's2cDNAProtocol': s2cDNA_options,
+                                    'PooledSecondStrand': boolean_format,
+                                    'roboticS2Prep': boolean_format}
+
+        library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        library_column_dict = {'s2cDNADate': date_format,
+                               's2cDNAPreparer': name_format,
+                               's2cDNASampleNumber': int_format,
+                               'libraryDate': date_format,
+                               'libraryPreparer': name_format,
+                               'librarySampleNumber': int_format,
+                               'index1Name': int_format,
+                               'index1Sequence': dna_alphabet_format,
+                               'index2Name': r"^SIC_Index_\d+$",
+                               'index2Sequence': dna_alphabet_format,
+                               'libraryProtocol': 'E7420',
+                               'roboticLibraryPrep': boolean_format}
+
+        fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        fastqFilename_column_dict = {'libraryDate': date_format,
+                                     'libraryPreparer': name_format,
+                                     'librarySampleNumber': int_format,
+                                     'runNumber': int_format,
+                                     'laneNumber': int_format,
+                                     'sequencerModel': sequencer_model_options,
+                                     'flowcellType': flowcell_options,
+                                     'purpose': purpose_options,
+                                     'tapestationConc': float_format,
+                                     'volumePooled': float_format,
+                                     'readsObtained': int_format,
+                                     'fastqFileName': capital_lower_underscore_digit_format}
+        # collect above specs into dictionary
+        self.specification_dict = {
+            'bioSample': {'filename_regex': bioSample_regex, 'column_specs_dict': bioSample_column_dict},
+            'rnaSample': {'filename_regex': rnaSample_regex, 'column_specs_dict': rnaSample_column_dict},
+            's1cDNASample': {'filename_regex': s1cDNASample_filename_regex,
+                             'column_specs_dict': s1cDNASample_column_dict},
+            's2cDNASample': {'filename_regex': s2cDNASample_filename_regex,
+                             'column_specs_dict': s2cDNASample_column_dict},
+            'library': {'filename_regex': library_filename_regex, 'column_specs_dict': library_column_dict},
+            'fastqFiles': {'filename_regex': fastqFilename_filename_regex,
+                           'column_specs_dict': fastqFilename_column_dict}}

@@ -48,6 +48,9 @@ class MyTestCase(unittest.TestCase):
         dba = DatabaseAccuracyObject(config_file='/home/chase/code/brentlab/rnaseq_pipeline/config/test_rnaseq_pipeline_config.ini')
         dba.fullReport()
 
+    def test_metadataAccuracyObject(self):
+        raise NotImplementedError
+
 
 if __name__ == '__main__':
     unittest.main()
