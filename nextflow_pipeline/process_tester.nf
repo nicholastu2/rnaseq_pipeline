@@ -7,7 +7,7 @@ params.scratch_sequence = '/scratch/mblab/mblab.shared/scratch_sequence'
 Channel
     .fromPath(params.fastq_file_list)
     .splitCsv(header:true)
-    .map{ row-> tuple(row.runDirectory, row.runDirectory: row.fastqFileName, row.fastqFileName: row.organism, row.fastqFileName: row.strandedness) }
+    .map{ row-> tuple(row.runDirectory, row.fastqFileName, row.organism, row.strandedness) }
     .set { samples_channel }
 
 scratch_sequence = file(params.scratch_sequence)
