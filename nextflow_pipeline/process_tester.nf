@@ -18,14 +18,14 @@ process lts_to_scratch {
     beforeScript = 'ml rnaseq_pipeline'
 
     input:
-        set run_directory, fastq_filepath, organism, strandedness from samples_channel
+        set my_tup from samples_channel
 
     // extract parent directory from source, make directory of same name to deposit file in destination
     script:
     """
-    for fastqfile in ${fastq_filepath}
+    for tuple in ${my_tup}
     do
-        echo "rsync -aHv --sample ${fastqfile} -d  param.scratch_sequence/${run_directory}" >  /scratch/mblab/chasem/nextflow_output_tester.txt //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
+        echo ${tuple}
     done
     """
 }
