@@ -1,0 +1,4 @@
+# Add libraries that must be installed before tests can run
+   pandas=1.0.0
+   numpy=1.18.1
+   yaml=0.2.2

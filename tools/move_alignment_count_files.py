@@ -1,21 +1,24 @@
 #!/usr/bin/env python
+"""
+    move alignment_count files from user scratch space to long term storage (or anywhere else for that matter, but this is the intent)
+
+    from the directory structure created by StandardDataObject.standardDirectoryStructure()
+    usage: move_alignment_count_files.py -r reports/run_1234 -rn 1234 -d lts_align_expr
+"""
 import glob
-import re
 import os
 import sys
 import argparse
 import pandas as pd
-import shutil
-from shutil import copy2 as cp
 import time
+from rnaseq_tools import utils
+
+# TODO: use StandardData and incorporate logging
 
 def main(argv):
 
     # read in cmd line args
     args = parseArgs(argv)
-    # create log file path
-    log_name = 'run_{}_move_log.tsv'.format(args.run_number)
-    write_log_file = os.path.join(args.log, log_name )
 
     # get file_paths to alignment and count files
     alignment_files = getAlignmentFiles(args.reports)
@@ -23,13 +26,12 @@ def main(argv):
 
     # create destination directory
     dest_path_complete = os.path.join(args.destination_path, 'run_{}'.format(args.run_number))
-    # TODO: check if exists, especially in the event that adding another organism to already half processed run
-    os.system("mkdir -p {}".format(dest_path_complete))
+    utils.mkdirp(dest_path_complete)  # this will not overwrite directory if already exists
 
     # move the alignment files
-    moveFiles(alignment_files, args.destination_path, args.run_number, write_log_file)
+    moveFiles(alignment_files, args.destination_path, args.run_number)
     # move the log files
-    moveFiles(novo_log_files, args.destination_path, args.run_number, write_log_file)
+    moveFiles(novo_log_files, args.destination_path, args.run_number)
 
     # move the pipeline info directory. If a pipeline info directory already exists, append date time to pipeline_info dir in question
     pipeline_info = os.path.join(args.reports, 'pipeline_info')
@@ -49,9 +51,6 @@ def parseArgs(argv):
                         help = '[REQUIRED] The run number corresponding to the set of fastq files')
     parser.add_argument('-d', '--destination_path', required = True,
                         help = '[REQUIRED] Suggested usage: /lts/mblab/Crypto/rnaseq_data/lts_align_expr   path to destination directory')
-    parser.add_argument('-l', '--log', required = True,
-                        help = '[REQUIRED] suggested usage: ./log. You will need to mkdir log if it does not exist already. \
-                         This is a non essential report of the process. Useful in the event of an error. Not necessary to keep long term.')
 
     return parser.parse_args(argv[1:])
 
@@ -144,31 +143,32 @@ def getLogFiles(log_dir):
 
     return htseq_log_files
 
-def moveFiles(file_list, destination_dir,run_num, log_file):
-    # extract run number and index, cp the files to the destination dir and log the move
-    # Args: list of files to be moved (must have file paths from PWD, destination diretory and a log file (complete path including name of file)
-    # Return: dictionary of key (run_num + index) : values [list destination file names]
-    # Actions: Unless the dry-run flag is passed, this funciton copies src files to destination path
+def moveFiles(file_list, destination_dir, run_num):
+    """
+        extract run number and index, cp the files to the destination dir and log the move
+        :param file_list: list of files
+        :param destination_dir: destination directory
+        :param run_num: run number of file
+        :returns: dictionary of key (run_num + index) : values [list destination file names]
+        :actions: Unless the dry-run flag is passed, this funciton copies src files to destination path
+    """
 
-    move_dict={}
+    for file in file_list:
 
-    with open(log_file, 'a+') as cp_log:
-        for file in file_list:
+        # create destination_file_path. This will be in pattern inputted_dest_path/run_####/.*.bam etc
+        run_dir = 'run_{}'.format(run_num)
+        destination_dir = addForwardSlash(destination_dir)
+        destination_path_intermediate = os.path.join(destination_dir, run_dir)
+        destination_file_path = os.path.join(destination_path_intermediate, os.path.basename(file))
 
-            # create destination_file_path. This will be in pattern inputted_dest_path/run_####/.*.bam etc
-            run_dir = 'run_{}'.format(run_num)
-            destination_dir = addForwardSlash(destination_dir)
-            destination_path_intermediate = os.path.join(destination_dir, run_dir)
-            destination_file_path = os.path.join(destination_path_intermediate, os.path.basename(file))
+        # throw error/exit if file isn't found in src_dir
+        if not os.path.isfile(file):
+            print('{} cannot be found and therefore can not be moved. Please check cmd line inputs'.format(file))
+            sys.exit(1)
 
-            # throw error/exit if file isn't found in src_dir
-            if not os.path.isfile(file):
-                print('{} cannot be found and therefore can not be moved. Please check cmd line inputs'.format(file))
-                sys.exit(1)
-
-            print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
-            os.system('rsync -aHv {} {}'.format(file, destination_file_path))
-            cp_log.write('{}\t{}\t{}\n'.format(run_num, file, destination_file_path))
+        print('...moving {} to {}'.format(os.path.basename(file), destination_path_intermediate))
+        cmd = 'rsync -aHv {} {}'.format(file, destination_file_path)
+        utils.executeSubProcess(cmd)
 
 
 if __name__ == '__main__':
