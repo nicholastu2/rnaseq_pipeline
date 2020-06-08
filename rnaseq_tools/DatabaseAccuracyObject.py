@@ -38,23 +38,26 @@ class DatabaseAccuracyObject(DatabaseObject):
 
         date_format = r"\d\d\.\d\d\.\d\d"
         name_format = r"[A-Z]\.[A-Z]+"
-        int_format = r"\d+"
+        int_format = r"^[ 0-9-]+$"
         boolean_format = r"True|False"
+        float_format = r"^\d+\.\d+$|^\d+$"
+        dna_alphabet_format = r"^[ACGT]+$"
+        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d]+$"
+        capital_underscore_digit_format = r"[A-Z_\d]+"
         biosample_treatment = r"estradiol|mockEstradiol|conditionShift|glucoseTo2%|EtOH|Estradiol|PBS|" \
                               r"DMEM.30C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|" \
                               r"YPD.37C.CO2.cAMP|DMEM.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|YPD.30C.cAMP|" \
-                              r"YPD.37C.cAMP"
+                              r"YPD.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP"
         rna_prep_method = r"DirectZol|RiboPure0.5x|RiboPure0.25x|RiboPure0.125x|ComboA|ComboB|TRIzol"
-        dna_alphabet_format = r"[ACGT]+"
 
         bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         bioSample_column_dict = {'harvestDate': date_format,
                                  'harvester': name_format,
                                  'bioSampleNumber': int_format,
                                  'experimentDesign': r"[a-zA-Z_\d]+",
-                                 'experimentObservations': r"[a-zA-Z_\d]+",
-                                 'strain': r"[a-zA-Z_\d]+",  # TODO: LIST OF SPECIFIC POSSIBILITIES?
-                                 'genotype': r"[A-Z_\d]+",
+                                 'experimentObservations': capital_lower_underscore_digit_format,
+                                 'strain': capital_lower_underscore_digit_format,  # TODO: LIST OF SPECIFIC POSSIBILITIES?
+                                 'genotype': capital_underscore_digit_format,
                                  'floodmedia': r"SCGal",
                                  'inductionDelay': int_format,
                                  'treatment': biosample_treatment,
@@ -85,7 +88,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                                     'polyAIsolationProtocol': r"NEBNextPoly(A)E7490L",
                                     's1Protocol': r"E7420",
                                     'roboticS1Prep': boolean_format,
-                                    's1PrimerSeq': r"[ACGT]+|random"}
+                                    's1PrimerSeq': r"^[ACGT]+$|random"}
 
         s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         s2cDNASample_column_dict = {'s1cDNADate': date_format,
@@ -107,7 +110,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                                'librarySampleNumber': int_format,
                                'index1Name': int_format,
                                'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"SIC_Index_\d+",
+                               'index2Name': r"^SIC_Index_\d+$",
                                'index2Sequence': dna_alphabet_format,
                                'libraryProtocol': 'E7420',
                                'roboticLibraryPrep': boolean_format}
@@ -121,10 +124,10 @@ class DatabaseAccuracyObject(DatabaseObject):
                                      'sequencerModel': r"NextSeq|MiSeq|MiniSeq",
                                      'flowcellType': r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput",
                                      'purpose': r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq",
-                                     'tapestationConc': r"\d+\.\d+|\d+",
-                                     'volumePooled': r"\d+\.\d+|\d+",
+                                     'tapestationConc': float_format,
+                                     'volumePooled': float_format,
                                      'readsObtained': int_format,
-                                     'fastqFileName': r"[a-zA-Z_\d]+"}
+                                     'fastqFileName': capital_lower_underscore_digit_format}
         # collect above specs into dictionary
         self.specification_dict = {
             'bioSample': {'filename_regex': bioSample_regex, 'column_specs_dict': bioSample_column_dict},
