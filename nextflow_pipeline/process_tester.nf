@@ -10,7 +10,9 @@ Channel
     .map{ row-> tuple(row.runDirectory, row.fastqFileName, row.organism, row.strandedness) }
     .groupTuple()
     .set { samples_channel }
-
+Channel
+    .fromPath(params.scratch_sequence)
+    .set{ scratch_sequence_ch }
 
 process make_scratch_directory {
     cache = 'false'
@@ -19,6 +21,7 @@ process make_scratch_directory {
 
         input:
         set run_directory, fastq_filepath, organism, strandedness from samples_channel
+        file scratch_sequence from scratch_sequence_ch
 
         script:
         """
