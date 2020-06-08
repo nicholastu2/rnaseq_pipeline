@@ -183,6 +183,11 @@ def readInDataframe(path_to_csv_tsv_or_excel):
         :param path_to_csv_tsv_or_excel: path to a .csv, .tsv .xlsx
         :returns: a pandas dataframe
     """
+    if not (path_to_csv_tsv_or_excel.endswith('csv') or
+            path_to_csv_tsv_or_excel.endswith('tsv') or
+            path_to_csv_tsv_or_excel.endswith('xlsx')):
+        raise ValueError('UnrecognizedFileExtension')
+
     try:
         if checkCSV(path_to_csv_tsv_or_excel):
             return pd.read_csv(path_to_csv_tsv_or_excel)
@@ -272,7 +277,7 @@ def countsPerMillion(raw_count_path, output_FULL_path):
         :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R.
         eg <experiment_name>_log2_cpm.csv
     """
-    cmd = 'log2_cpm.R -r %s -o %s' %(raw_count_path, output_FULL_path)
+    cmd = 'log2_cpm.R -r %s -o %s' % (raw_count_path, output_FULL_path)
     executeSubProcess(cmd)
 
 
@@ -283,7 +288,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        raise IOError('%s failed to execute. check the code' %cmd)
+        raise IOError('%s failed to execute. check the code' % cmd)
 
 
 def configure(object_instance, config_file, config_header, prefix=''):
@@ -448,6 +453,7 @@ def createLogger(log_file_path, logger_name, logger_level, logging_conf=None):
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
 
+
 def createStandardObjectChildLogger(StandardDataObjectChild, name):
     """
         create logger for StandardDataObjectChild
@@ -489,7 +495,9 @@ def createStdOutLogger(**kwargs):
 
     return logger
 
-def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
+
+def getFileListFromDirectory(dir_path,
+                             list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
     """
     write fastq filepaths in a list stored as a .txt. Used in slurm job script
     :param dir_path: path to a diretory with files you wish to extract
@@ -500,10 +508,10 @@ def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO
         if not isinstance(list_of_file_suffixes_to_extract, list):
             raise TypeError('NotAList')
     except TypeError:
-        print('You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
+        print(
+            'You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
     else:
         file_paths = []
         for suffix in list_of_file_suffixes_to_extract:
             file_paths += glob(dir_path + "/*." + suffix)
         return file_paths
-

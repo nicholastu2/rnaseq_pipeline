@@ -56,14 +56,18 @@ class DatabaseObject(StandardData):
         except KeyError:
             self.database_df = None
 
+        # see filterDatabaseDataframe()
+        try:
+            self.filtered_database_df = kwargs['filtered_database_df']
+        except KeyError:
+            self.filtered_database_df = None
+
         # data_dir_dict will store {database_subdirectory: [list, of, filepaths, in, each, subdir], ... }. See self.setDatabaseDict()
         self.database_dict = {}
         # see setter setDatabaseDict()
         self.concat_database_dict = {}
         # see setter setKeyColumns()
         self.database_key_columns = []
-        # see filterDatabaseDataframe()
-        self.filtered_database_df = None
 
     def setDatabaseDict(self):
         """
