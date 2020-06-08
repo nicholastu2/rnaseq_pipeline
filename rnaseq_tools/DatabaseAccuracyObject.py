@@ -178,7 +178,7 @@ class metadataSpecificationObject:
         int_format = r"^[ 0-9-]+$"
         one_through_ten_format = r"[1-9]|10"
         float_format = r"^\d+\.\d+$|^\d+$"
-        boolean_format = r"True|False|0|1"
+        boolean_format = r"TRUE|FALSE|%r|%r|%i|%i" %(True, False, True, False)
         dna_alphabet_format = r"^[ACGT]+$"
         capital_lower_underscore_digit_format = r"^[a-zA-Z_\d]+$"
         capital_underscore_digit_format = r"[A-Z_\d]+"
@@ -233,7 +233,7 @@ class metadataSpecificationObject:
                                     's1cDNADate': date_format,
                                     's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
-                                    'polyAIsolationProtocol': r"NEBNextPoly\(A\)E7490L",
+                                    'polyAIsolationProtocol': r"%r" %"NEBNextPoly(A)E7490L",
                                     's1Protocol': r"E7420",
                                     'roboticS1Prep': boolean_format,
                                     's1PrimerSeq': r"^[ACGT]+$|random"}
