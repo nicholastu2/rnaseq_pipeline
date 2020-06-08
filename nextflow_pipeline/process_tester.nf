@@ -25,7 +25,7 @@ process lts_to_scratch {
     """
     for fastqfile in ${fastq_filepath}
     do
-        echo "rsync -aHv --sample $fastqfile -d  param.scratch_sequence/${run_directory}" >  /scratch/mblab/chasem/nextflow_output_tester.txt //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
+        echo "rsync -aHv --sample ${fastqfile} -d  param.scratch_sequence/${run_directory}" >  /scratch/mblab/chasem/nextflow_output_tester.txt //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
     done
     """
 }
