@@ -23,6 +23,6 @@ process lts_to_scratch {
     script:
     """
     // extract parent directory from source, make directory of same name to deposit file in destination
-    echo "rsync -aHv --sample $fastq_file -d  param.scratch_sequence/${run_directory}"" //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
+    echo "rsync -aHv --sample $fastq_file -d  param.scratch_sequence/${run_directory}" >  /scratch/mblab/chasem/nextflow_output_tester.txt //somehow this needs to go to a run_#### file in scratch sequence b/c fastqfilenames may not be unique
     """
 }
