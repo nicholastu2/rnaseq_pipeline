@@ -6,7 +6,7 @@ params.fastq_file_list = '/scratch/mblab/chasem/rnaseq_pipeline/job_scripts/next
 Channel
     .fromPath(params.fastq_file_list)
     .splitCsv(header:true)
-    .map{ row-> tuple(row.runDirectory, row.fastqFileName, row.organism, row.strandedness }
+    .map{ row-> tuple(row.runDirectory, row.fastqFileName, row.organism, row.strandedness) }
     .groupTuple()
     .set { samples_channel }
 
