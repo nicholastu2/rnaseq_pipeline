@@ -20,11 +20,11 @@ process make_scratch_directory {
     input:
         set run_directory, file(fastq_filepath), organism, strandedness from samples_channel
     output:
-        tuple ("${scratch_sequence}/${run_directory}", fastq_filepath, val(organism), val(strandedness), val(run_directory)) into scratch_run_directory_ch
+        tuple fastq_scratchpath, val(organism), val(strandedness), val(run_directory) into scratch_run_directory_ch
 
     script:
     fastq_basename = fastq_filepath.baseName
-    forward_slash = "/"
+    forward_slash = "\/"
     fastq_scratchpath = scratch_sequence + forward_slash + run_directory + forward_slash + fastq_basename
     """
     mkdir -p ${scratch_sequence}/${run_directory}
@@ -34,7 +34,7 @@ process make_scratch_directory {
 process rsync_from_lts {
 
     input:
-    set run_dir, fastq_sourcepath, organism, strandedness, run_directory from scratch_run_directory_ch
+    set fastq_scratchpath, organism, strandedness, run_directory from scratch_run_directory_ch
 
     script:
     """
