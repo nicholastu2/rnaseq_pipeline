@@ -24,7 +24,7 @@ process make_scratch_directory {
 
     script:
     fastq_basename = fastq_filepath.baseName
-    fastq_scratchpath = file(run_directory/fastq_basename)
+    fastq_scratchpath = run_directory/fastq_basename
     """
     mkdir -p ${scratch_sequence}/${run_directory}
     """
