@@ -25,7 +25,7 @@ process make_scratch_directory {
     script:
         """
         mkdir -p ${scratch_sequence}/${run_directory}
-        realpath ${scratch_sequence}/${run_directory}
+        echo ${realpath ${scratch_sequence}/${run_directory}}
         """
 }
 
@@ -36,7 +36,7 @@ process rsync_from_lts {
 
     script:
         """
-            echo ${scratch_run} > /scratch/mblab/chasem/nextflow_output_tester.txt
+            echo ${scratch_run} >> /scratch/mblab/chasem/nextflow_output_tester.txt
         """
 
 }
