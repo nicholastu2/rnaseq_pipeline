@@ -20,7 +20,7 @@ process make_scratch_directory {
     input:
         set run_directory, fastq_filepath, organism, strandedness from samples_channel
     output:
-        ${scratch_sequence}/${run_directory} into scratch_run_directory_ch
+        scratch_sequence/run_directory into scratch_run_directory_ch
 
     script:
         """
