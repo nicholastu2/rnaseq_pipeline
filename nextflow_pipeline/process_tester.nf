@@ -25,7 +25,7 @@ process make_scratch_directory {
     script:
         """
         mkdir -p ${scratch_sequence}/${run_directory}
-        echo $(realpath ${scratch_sequence}/${run_directory})
+        realpath ${scratch_sequence}/${run_directory}
         """
 }
 
