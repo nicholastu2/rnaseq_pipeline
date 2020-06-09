@@ -32,7 +32,7 @@ process novoalign {
     stageOutMode = 'rsync'
     beforeScript = 'module load novoalign'
     cache = 'false'
-    executor = 'sge'
+    executor = 'slurm'
     publishDir "/scratch/mblab/chasem/rnaseq_pipeline/reports", mode: 'copy'
 
     input:
