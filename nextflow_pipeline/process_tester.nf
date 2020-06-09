@@ -36,7 +36,7 @@ process rsync_from_lts {
 
     script:
         """
-            echo ${scratch_run2} >> /scratch/mblab/chasem/nextflow_output_tester.txt
+            echo ${scratch_run1} >> /scratch/mblab/chasem/nextflow_output_tester.txt
         """
 
 }
