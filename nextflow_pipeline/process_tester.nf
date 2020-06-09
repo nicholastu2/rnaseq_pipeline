@@ -33,7 +33,7 @@ process novoalign {
     beforeScript = 'module load novoalign'
     cache = 'false'
     executor = 'sge'
-    publishDir ${scratch_sequence}/${run_directory}, mode: 'copy'
+    publishDir scratch_sequence/run_directory, mode: 'copy'
 
     input:
         set run_directory, organism, strandedness, fastq_filepath from samples_channel_ch
