@@ -20,7 +20,7 @@ process make_scratch_directory {
     input:
         set run_directory, file(fastq_filepath), organism, strandedness from samples_channel
     output:
-        tuple(run_directory, organism, strandedness, fastq_filepath) into samples_channel
+        tuple(run_directory, organism, strandedness, fastq_filepath) into samples_channel_ch
 
     """
     mkdir -p ${scratch_sequence}/${run_directory}
