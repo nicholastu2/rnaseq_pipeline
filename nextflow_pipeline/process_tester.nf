@@ -13,7 +13,7 @@ Channel
 scratch_sequence = file(params.scratch_sequence)
 
 // this works
-process make_scratch_directory {
+process make_reports_directory {
     cache = 'false'
     executor = 'local'
 
@@ -27,3 +27,23 @@ process make_scratch_directory {
     """
 }
 
+process novoalign {
+    stageInMode = 'copy'
+    stageOutMode = 'rsync'
+    beforeScript = 'module load novoalign'
+    cache = 'false'
+    executor = 'sge'
+    publishDir ${scratch_sequence}/${run_directory}, mode: 'copy'
+
+    input:
+        set run_directory, organism, strandedness, fastq_filepath from samples_channel_ch
+    output:
+        tuple(novoalign_output, novoalign_log) into novoalign_ch
+
+    script:
+    """
+    echo "novoalign -r All -c 8 -o SAM -d param.KN99_genome_index -f ${fastq_filepath} 2> ${organism}_novoalign.log)" >> /scratch/mblab/chasem/nextflow_output_tester.txt
+
+    """
+}
+novoalign_ch.subscribe{ println + it.novoalign_log }
