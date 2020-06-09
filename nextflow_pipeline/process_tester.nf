@@ -32,7 +32,7 @@ process make_scratch_directory {
 process rsync_from_lts {
 
     input:
-        scratch_run from scratch_run_directory_ch
+        set scratch_run from scratch_run_directory_ch
 
     script:
         """
