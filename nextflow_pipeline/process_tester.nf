@@ -30,7 +30,7 @@ process make_reports_directory {
 process novoalign {
     stageInMode = 'copy'
     stageOutMode = 'rsync'
-    beforeScript = 'module load novoalign'
+    beforeScript = 'module load novoalign; module load samtools'
     cache = 'false'
     executor = 'slurm'
     publishDir "/scratch/mblab/chasem/rnaseq_pipeline/reports", mode: 'copy'
@@ -39,8 +39,10 @@ process novoalign {
         set run_directory, organism, strandedness, fastq_filepath from samples_channel_ch
 
     script:
+    fastq_simple_name = fastq_filepath.getSimpleName()
     """
-    echo "novoalign -r All -c 8 -o SAM -d param.KN99_genome_index -f ${fastq_filepath} 2> ${organism}_novoalign.log)" >> /scratch/mblab/chasem/nextflow_output_tester.txt
+    echo "novoalign -r All -c 8 -o SAM -d genome_files -r all -f ${fastq_simple_basename} 2> ${fastq_simple_name}_novoalign.log \
+    | samtools view -bS > ${fastq_simple_basename}_aligned_reads.bam" >> /scratch/mblab/chasem/nextflow_output_tester.txt
 
     """
 }
