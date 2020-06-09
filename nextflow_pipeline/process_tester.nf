@@ -20,7 +20,7 @@ process make_scratch_directory {
     input:
         set run_directory, file(fastq_filepath), organism, strandedness from samples_channel
     output:
-        tuple fastq_scratchpath, val(organism), val(strandedness), val(run_directory) into scratch_run_directory_ch
+        tuple file(fastq_scratchpath), val(organism), val(strandedness), val(run_directory) into scratch_run_directory_ch
 
     script:
     fastq_basename = fastq_filepath.baseName
