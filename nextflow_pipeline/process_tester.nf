@@ -7,7 +7,7 @@ params.scratch_sequence = '/scratch/mblab/mblab.shared/scratch_sequence'
 Channel
     .fromPath(params.fastq_file_list)
     .splitCsv(header:true)
-    .map{ row-> tuple(row.runDirectory, file(row.fastqFileName), row.organism, row.strandedness) }
+    .map{ row-> tuple(val(row.runDirectory), file(row.fastqFileName), val(row.organism), val(row.strandedness)) }
     .set { samples_channel }
 
 scratch_sequence = file(params.scratch_sequence)
@@ -20,26 +20,10 @@ process make_scratch_directory {
     input:
         set run_directory, file(fastq_filepath), organism, strandedness from samples_channel
     output:
-        tuple fastq_scratchpath, val(organism), val(strandedness), val(run_directory) into scratch_run_directory_ch
+        tuple(run_directory, organism, strandedness, fastq_filepath) into samples_channel
 
-    script:
-    fastq_basename = fastq_filepath.baseName
-    forward_slash =
-    fastq_scratchpath = "${scratch_sequence}/${forward_slash}/${run_directory}/${forward_slash}/${fastq_basename}"
     """
     mkdir -p ${scratch_sequence}/${run_directory}
     """
-}
-
-process rsync_from_lts {
-
-    input:
-    set fastq_scratchpath, organism, strandedness, run_directory from scratch_run_directory_ch
-
-    script:
-    """
-    echo "${fastq_scratchpath} ${organism} ${strandedness} ${run_directory}" >> /scratch/mblab/chasem/nextflow_output_tester.txt
-    """
-
 }
 

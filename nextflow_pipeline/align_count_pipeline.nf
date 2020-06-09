@@ -12,6 +12,37 @@ Channel
     .groupTuple()
     .set { samples_channel }
 
+
+process novoalign {
+    stageInMode = 'copy'
+    stageOutMode = 'rsync'
+    beforeScript = 'module load novoalign'
+    cache = 'false'
+    executor = 'sge'
+
+    input:
+        set run_directory, file(fastq_filepath), organism, strandedness from samples_channel
+    output:
+        tuple run_directory, val(organism), val(strandedness), val(run_directory) into scratch_run_directory_ch
+
+    script:
+    """
+    novoalign -r All -c 8 -o SAM -d param.KN99_genome_index -f ${{fastq_file}} 2> _novoalign.log)
+    """
+}
+
+process rsync_from_lts {
+
+    input:
+    set fastq_scratchpath, organism, strandedness, run_directory from scratch_run_directory_ch
+
+    script:
+    """
+    echo "${fastq_scratchpath} ${organism} ${strandedness} ${run_directory}" >> /scratch/mblab/chasem/nextflow_output_tester.txt
+    """
+
+}
+
 process fastqc {
     input:
         tuple val(containing_directory), file(fastq_list) from samples_channel
