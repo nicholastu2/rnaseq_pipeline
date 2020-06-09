@@ -24,6 +24,7 @@ process make_reports_directory {
 
     """
     mkdir -p ${scratch_sequence}/${run_directory}
+    echo $organism >> /scratch/mblab/chasem/nextflow_output_tester.txt
     """
 }
 
