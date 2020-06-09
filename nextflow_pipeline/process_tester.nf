@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-params.fastq_file_list = '/scratch/mblab/chasem/rnaseq_pipeline/job_scripts/nextflow_fastqfile_list_20200608_164325.csv' // this will need to be inputted by user
+params.fastq_file_list = '/scratch/mblab/chasem/rnaseq_pipeline/job_scripts/nextflow_fastqfile_list_20200608_164325_short.csv' // this will need to be inputted by user
 params.scratch_sequence = '/scratch/mblab/mblab.shared/scratch_sequence'
 
 // split columns/rows of fastq_file_list for processing
