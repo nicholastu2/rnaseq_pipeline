@@ -7,7 +7,7 @@ params.scratch_sequence = '/scratch/mblab/mblab.shared/scratch_sequence'
 Channel
     .fromPath(params.fastq_file_list)
     .splitCsv(header:true)
-    .map{ row-> tuple(row.runDirectory, row.fastqFileName, row.organism, row.strandedness) }
+    .map{ row-> tuple(row.runDirectory, file(row.fastqFileName), row.organism, row.strandedness) }
     .set { samples_channel }
 
 scratch_sequence = file(params.scratch_sequence)
@@ -24,7 +24,7 @@ process make_scratch_directory {
 
     script:
     fastq_basename = fastq_filepath.baseName
-    fastq_scratchpath = file(run_directory)/file(fastq_basename)
+    fastq_scratchpath = file(scratch_sequence) + '/' + file(run_directory) + '/' + file(fastq_basename)
     """
     mkdir -p ${scratch_sequence}/${run_directory}
     """
