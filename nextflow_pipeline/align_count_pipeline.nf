@@ -92,6 +92,8 @@ process novoalign {
     error "Invalid Organism"
 }
 
+novoalign -r All -c 8 -o SAM -d {0} -r all -f ${{fastq_file}} 2> {1}/${{sample}}_novoalign.log
+
 process convert sam_to_bam {
     // output from novoalign shunted into novosort
 
