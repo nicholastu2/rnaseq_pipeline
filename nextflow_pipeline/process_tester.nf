@@ -20,23 +20,22 @@ process make_scratch_directory {
     input:
         set run_directory, fastq_filepath, organism, strandedness from samples_channel
     output:
-        stdout into scratch_run_directory_ch
+        ${scratch_sequence}/${run_directory} into scratch_run_directory_ch
 
     script:
         """
-        mkdir -p ${scratch_sequence}/${run_directory} \
-        echo ${scratch_sequence}/${run_directory}
+        mkdir -p ${scratch_sequence}/${run_directory}
         """
 }
 
 process rsync_from_lts {
 
     input:
-        set scratch_run1, scratch_run2 from scratch_run_directory_ch
+        set scratch_run from scratch_run_directory_ch
 
     script:
         """
-            echo ${scratch_run1} >> /scratch/mblab/chasem/nextflow_output_tester.txt
+            echo ${scratch_run} >> /scratch/mblab/chasem/nextflow_output_tester.txt
         """
 
 }
