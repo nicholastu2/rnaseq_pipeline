@@ -42,8 +42,8 @@ process novoalign {
     script:
     fastq_simple_name = fastq_filepath.getSimpleName()
     """
-    echo "novoalign -r All -c 8 -o SAM -d genome_files -r all -f ${fastq_simple_basename} 2> ${fastq_simple_name}_novoalign.log \
-    | samtools view -bS > ${fastq_simple_basename}_aligned_reads.bam" >> /scratch/mblab/chasem/nextflow_output_tester.txt
+    echo "novoalign -r All -c 8 -o SAM -d genome_files -r all -f ${fastq_simple_name} 2> ${fastq_simple_name}_novoalign.log \
+    | samtools view -bS > ${fastq_simple_name}_aligned_reads.bam" >> /scratch/mblab/chasem/nextflow_output_tester.txt
 
     """
 }
