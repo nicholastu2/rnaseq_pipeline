@@ -20,7 +20,7 @@ process make_reports_directory {
     input:
         set run_directory, fastq_filepath, organism, strandedness from samples_channel
     output:
-        tuple(run_directory, organism, strandedness, fastq_filepath) into samples_channel_ch
+        tuple run_directory, organism, strandedness, fastq_filepath into samples_channel_ch
 
     """
     mkdir -p ${scratch_sequence}/${run_directory}
