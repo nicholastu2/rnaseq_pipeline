@@ -37,8 +37,6 @@ process novoalign {
 
     input:
         set run_directory, organism, strandedness, fastq_filepath from samples_channel_ch
-    output:
-        tuple(novoalign_output, novoalign_log) into novoalign_ch
 
     script:
     """
@@ -46,4 +44,3 @@ process novoalign {
 
     """
 }
-novoalign_ch.subscribe{ println + it.novoalign_log }
