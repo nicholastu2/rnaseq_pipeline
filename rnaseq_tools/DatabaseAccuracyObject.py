@@ -208,7 +208,7 @@ class metadataSpecificationObject:
         sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
         flowcell_options = r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput"
         purpose_options = r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq"
-        s2cDNA_options = r"E7420L|SolexaPrep"
+        s2cDNA_options = r"E7420L|SolexaPrep|E7420L_0.5X"
 
         bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         bioSample_column_dict = {'harvestDate': date_format,
@@ -274,7 +274,7 @@ class metadataSpecificationObject:
                                'index1Sequence': dna_alphabet_format,
                                'index2Name': r"^SIC_Index2_\d+$",
                                'index2Sequence': dna_alphabet_format,
-                               'libraryProtocol': 'E7420L',
+                               'libraryProtocol': 'E7420L|E7420L_\d.\d+X',
                                'roboticLibraryPrep': boolean_format}
 
         fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
