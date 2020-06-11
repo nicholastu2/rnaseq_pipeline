@@ -272,7 +272,7 @@ class metadataSpecificationObject:
                                'librarySampleNumber': int_format,
                                'index1Name': int_format,
                                'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"^SIC_Index2_\d+$",
+                               'index2Name': r"^SIC_Index2_[0\d]+$",
                                'index2Sequence': dna_alphabet_format,
                                'libraryProtocol': 'E7420L',
                                'roboticLibraryPrep': boolean_format}
