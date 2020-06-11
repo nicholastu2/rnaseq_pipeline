@@ -196,7 +196,8 @@ class metadataSpecificationObject:
         capital_underscore_digit_format = r"[A-Z_\d]+"
 
         flood_media_options = r"None|PBS|SCGal|SCGlu"
-        biosample_treatment = r"DMEM.30C|DMEM.37C|RPMI.30C|RPMI.37C|YPD.30C|YPD.37C|DMEM.30C.CO2|DMEM.37C.CO2|RPMI.30C.CO2|RPMI.37C.CO2|" \
+        biosample_treatment = r"EtOH|Estradiol|PBS|mockEstradiol|conditionShift|glucoseTo2%|DMEM.30C|DMEM.37C|RPMI.30C|" \
+                              r"RPMI.37C|YPD.30C|YPD.37C|DMEM.30C.CO2|DMEM.37C.CO2|RPMI.30C.CO2|RPMI.37C.CO2|" \
                               r"YPD.30C.CO2|YPD.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP|YPD.30C.cAMP|YPD.37C.cAMP|" \
                               r"DMEM.30C.CO2.cAMP|DMEM.37C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|YPD.37C.CO2.cAMP|" \
                               r"DMEM.30C.pH7|DMEM.37C.pH7|RPMI.30C.pH7|RPMI.37C.pH7|YPD.30C.pH7|YPD.37C.pH7|DMEM.30C.CO2.pH7|DMEM.37C.CO2.pH7|" \
