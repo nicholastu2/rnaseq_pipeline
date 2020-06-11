@@ -192,7 +192,7 @@ class metadataSpecificationObject:
         # capitalized string, python True/False, and 0/1
         boolean_format = r"TRUE|FALSE|%r|%r|%i|%i" % (True, False, True, False)
         dna_alphabet_format = r"^[ACGT]+$"
-        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d\.\-\/]+$"
+        atleast_one_non_space_format = r"^(?!\s*$).+"
         capital_underscore_digit_format = r"[A-Z_\d]+"
 
         flood_media_options = r"None|PBS|SCGal|SCGlu"
@@ -215,9 +215,9 @@ class metadataSpecificationObject:
         bioSample_column_dict = {'harvestDate': date_format,
                                  'harvester': name_format,
                                  'bioSampleNumber': int_format,
-                                 'experimentDesign': capital_lower_underscore_digit_format,
-                                 'experimentObservations': capital_lower_underscore_digit_format,
-                                 'strain': capital_lower_underscore_digit_format,
+                                 'experimentDesign': atleast_one_non_space_format,
+                                 'experimentObservations': atleast_one_non_space_format,
+                                 'strain': atleast_one_non_space_format,
                                  # TODO: LIST OF SPECIFIC POSSIBILITIES?
                                  'genotype': capital_underscore_digit_format,
                                  'floodmedia': flood_media_options,
@@ -290,7 +290,7 @@ class metadataSpecificationObject:
                                      'tapestationConc': float_format,
                                      'volumePooled': float_format,
                                      'readsObtained': int_format,
-                                     'fastqFileName': capital_lower_underscore_digit_format}
+                                     'fastqFileName': atleast_one_non_space_format}
         # collect above specs into dictionary
         self.specification_dict = {
             'bioSample': {'filename_regex': bioSample_regex, 'column_specs_dict': bioSample_column_dict},
