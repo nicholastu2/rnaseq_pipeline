@@ -192,7 +192,7 @@ class metadataSpecificationObject:
         # capitalized string, python True/False, and 0/1
         boolean_format = r"TRUE|FALSE|%r|%r|%i|%i" % (True, False, True, False)
         dna_alphabet_format = r"^[ACGT]+$"
-        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d\.-/]+$"
+        capital_lower_underscore_digit_format = r"^[a-zA-Z_\d\.\-\/]+$"
         capital_underscore_digit_format = r"[A-Z_\d]+"
 
         flood_media_options = r"None|PBS|SCGal|SCGlu"
