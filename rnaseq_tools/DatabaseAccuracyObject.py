@@ -41,7 +41,8 @@ class DatabaseAccuracyObject(DatabaseObject):
         try:
             self.last_git_change = self.getLastGitChange()
         except FileNotFoundError:
-            print('Cannot find .git/FETCH_HEAD in database_files. If this is a new, or newly cloned, directory, pull from the remote.')
+            print(
+                'Cannot find .git/FETCH_HEAD in database_files. If this is a new, or newly cloned, directory, pull from the remote.')
         except AttributeError:
             print('.git/FETCH_HEAD is empty. Make a commit and try again.')
         # set accuracyCheckFilename (expecting to be overwritten by @property method below when needed)
@@ -56,32 +57,39 @@ class DatabaseAccuracyObject(DatabaseObject):
         """
 
         """
-        print('Checking %s column name formatting and entries' %subdirectory_name)
+        print('Checking %s column name formatting and entries' % subdirectory_name)
         specs_website = 'https://github.com/BrentLab/database_files/wiki'
         dba = database_assessment_object
         dba.setAccuracyCheckFilename()
         with open(dba.accuracy_check_output_file, 'a') as subdirectory_report:
-            subdirectory_report.write('Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
+            subdirectory_report.write(
+                'Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
             subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % dba.last_git_change)
 
             for subdirectory_filepath in subdir_filepath_list:
                 subdirectory_report.write('Checking %s:\n' % subdirectory_filepath)
                 # extract dictionaries of inconsistencies in column names and rows
-                col_inconsistencies_dict, row_inconsistencies_dict = dba.checkColumns(dba.specification_dict[subdirectory_name],
-                                                                                      subdirectory_filepath, dba.logger)
+                col_inconsistencies_dict, row_inconsistencies_dict = dba.checkColumns(
+                    dba.specification_dict[subdirectory_name],
+                    subdirectory_filepath, dba.logger)
                 # check filename
                 filename_check = dba.checkFileName(dba.specification_dict[subdirectory_name]['filename_regex'],
                                                    subdirectory_filepath)
                 # check the format of the filename
                 if not isinstance(filename_check, bool):
-                    subdirectory_report.write('\tThe filename %s does not adhere to the specifications. Please correct.\n\n' % filename_check)
+                    subdirectory_report.write(
+                        '\tThe filename %s does not adhere to the specifications. Please correct.\n\n' % filename_check)
                 # check column headings
-                subdirectory_report.write('\tThe items below are column headings in a given sheet that do not match the specifications.\n')
+                subdirectory_report.write(
+                    '\tThe items below are column headings in a given sheet that do not match the specifications.\n')
                 for spec_column, sheet_column in col_inconsistencies_dict.items():
-                    subdirectory_report.write('\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
-                subdirectory_report.write('\n\tThe items below are numbered by row (eg 0: inductionDelay means a problem in row 0 (first row) in column inductionDelay):\n')
+                    subdirectory_report.write(
+                        '\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
+                subdirectory_report.write(
+                    '\n\tThe items below are numbered by row (eg 0: inductionDelay means a problem in row 0 (first row) in column inductionDelay):\n')
                 for row_index, column_heading in row_inconsistencies_dict.items():
-                    subdirectory_report.write('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
+                    subdirectory_report.write(
+                        '\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
                 subdirectory_report.write('\n\n')
             subdirectory_report.write('\n\n')
 
@@ -125,7 +133,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             return True
 
     @staticmethod
-    def checkColumns(subdirectory_specs_dict, subdirectory_filepath, logger = None):
+    def checkColumns(subdirectory_specs_dict, subdirectory_filepath, logger=None):
         """
             check column heading names and entries in each row/column for adherence to the specs at:
             https://github.com/BrentLab/database_files/wiki
@@ -154,11 +162,14 @@ class DatabaseAccuracyObject(DatabaseObject):
                 except KeyError:
                     if column_name not in skip_columns:
                         if logger:
-                            logger.info('Column name not found in specs: %s' %(column_name))
-                        nearest_match = difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
+                            logger.info('Column name not found in specs: %s' % (column_name))
+                        nearest_match = \
+                        difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
                         colname_inconsistencies_dict.setdefault(nearest_match, column_name)
-                        print('\tCannot check %s in %s. Either the format of the column is incorrect, or it is not in the specifications_dictionary.\n'
-                              '\tThe rest of this column could not be checked. Correct the column name, and re-run.' %(column_name, subdirectory_filepath))
+                        print(
+                            '\tCannot check %s in %s. Either the format of the column is incorrect, or it is not in the specifications_dictionary.\n'
+                            '\tThe rest of this column could not be checked. Correct the column name, and re-run.' % (
+                            column_name, subdirectory_filepath))
                         skip_columns.append(column_name)
                 else:
                     if not re.match(column_specs_regex, column_entry):
@@ -178,18 +189,21 @@ class metadataSpecificationObject:
         int_format = r"^[ 0-9-]+$"
         one_through_ten_format = r"[1-9]|10"
         float_format = r"^\d+\.\d+$|^\d+$"
-        boolean_format = r"TRUE|FALSE|%r|%r|%i|%i" %(True, False, True, False)
+        # capitalized string, python True/False, and 0/1
+        boolean_format = r"TRUE|FALSE|%r|%r|%i|%i" % (True, False, True, False)
         dna_alphabet_format = r"^[ACGT]+$"
         capital_lower_underscore_digit_format = r"^[a-zA-Z_\d]+$"
         capital_underscore_digit_format = r"[A-Z_\d]+"
 
         flood_media_options = r"None|PBS|SCGal|SCGlu"
-        biosample_treatment = r"estradiol|mockEstradiol|conditionShift|glucoseTo2%|EtOH|Estradiol|PBS|" \
-                              r"DMEM.30C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|" \
-                              r"YPD.37C.CO2.cAMP|DMEM.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|YPD.30C.cAMP|" \
-                              r"YPD.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP|RPMI.30C.CO2|RPMI.37C.CO2|YPD.30C.CO2|" \
-                              r"YPD.37C.CO2"
-        rna_prep_method = r"DirectZol|RiboPure0.5x|RiboPure0.25x|RiboPure0.125x|ComboA|ComboB|TRIzol"
+        biosample_treatment = r"DMEM.30C|DMEM.37C|RPMI.30C|RPMI.37C|YPD.30C|YPD.37C|DMEM.30C.CO2|DMEM.37C.CO2|RPMI.30C.CO2|RPMI.37C.CO2|" \
+                              r"YPD.30C.CO2|YPD.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP|YPD.30C.cAMP|YPD.37C.cAMP|" \
+                              r"DMEM.30C.CO2.cAMP|DMEM.37C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|YPD.37C.CO2.cAMP|" \
+                              r"DMEM.30C.pH7|DMEM.37C.pH7|RPMI.30C.pH7|RPMI.37C.pH7|YPD.30C.pH7|YPD.37C.pH7|DMEM.30C.CO2.pH7|DMEM.37C.CO2.pH7|" \
+                              r"RPMI.30C.CO2.pH7|RPMI.37C.CO2.pH7|YPD.30C.CO2.pH7|YPD.37C.CO2.pH7|DMEM.30C.cAMP.pH7|DMEM.37C.cAMP.pH7|" \
+                              r"RPMI.30C.cAMP.pH7|RPMI.37C.cAMP.pH7|YPD.30C.cAMP.pH7|YPD.37C.cAMP.pH7|DMEM.30C.CO2.cAMP.pH7|" \
+                              r"DMEM.37C.CO2.cAMP.pH7|RPMI.30C.CO2.cAMP.pH7|RPMI.37C.CO2.cAMP.pH7|YPD.30C.CO2.cAMP.pH7|YPD.37C.CO2.cAMP.pH7"
+        rna_prep_method = r"DirectZol|RiboPure0.5X|RiboPure0.25X|RiboPure0.125X|ComboA|ComboB|TRIzol"
         ribosomal_band_shape_options = r"straight|smile|NA"
         sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
         flowcell_options = r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput"
@@ -233,8 +247,8 @@ class metadataSpecificationObject:
                                     's1cDNADate': date_format,
                                     's1cDNAPreparer': name_format,
                                     's1cDNASampleNumber': int_format,
-                                    'polyAIsolationProtocol': r"NEBNextPoly(A)E7490L|NEBNextPoly\(A\)E7490L|NEBNextPoly(A)E7490L",
-                                    's1Protocol': r"E7420",
+                                    'polyAIsolationProtocol': r"E7490L|E7490L_\d+\.\d+X|catcher|None",
+                                    's1cDNAProtocol': r"E7420L|E7420L_\d+\.\d+X",
                                     'roboticS1Prep': boolean_format,
                                     's1PrimerSeq': r"^[ACGT]+$|random"}
 
@@ -258,9 +272,9 @@ class metadataSpecificationObject:
                                'librarySampleNumber': int_format,
                                'index1Name': int_format,
                                'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"^SIC_Index_\d+$",
+                               'index2Name': r"^SIC_Index2_\d+$",
                                'index2Sequence': dna_alphabet_format,
-                               'libraryProtocol': 'E7420',
+                               'libraryProtocol': 'E7420L',
                                'roboticLibraryPrep': boolean_format}
 
         fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
