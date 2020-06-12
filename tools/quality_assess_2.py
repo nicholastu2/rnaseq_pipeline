@@ -74,25 +74,25 @@ def main(argv):
         user_response = input()
         if user_response == 'n':
             sys.exit()
-        else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
-            norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
-                                                            od.experiment_conditions)
-            print('... Assessing reads mapping')
-            qual_assess_df = assessMappingQuality(qual_assess_df, od.experiment_dir)
-            print('... Assessing efficiency of gene mutation')
-            if parsed.descriptors_specific_fow:
-                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
-                                                         od.experiment_conditions)
-            else:
-                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
-            print('... Assessing insertion of resistance cassette')
-            qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
-            print('... Assessing concordance among replicates') # TODO: MAKE THIS AN OPTION IN PARSEARGS
-            qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
-            print('... Auto auditing')
-            qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
-            print('...writing summary to %s' % output_name)
-            saveDataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
+    else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
+        norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
+                                                        od.experiment_conditions)
+        print('... Assessing reads mapping')
+        qual_assess_df = assessMappingQuality(qual_assess_df, od.experiment_dir)
+        print('... Assessing efficiency of gene mutation')
+        if parsed.descriptors_specific_fow:
+            qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
+                                                     od.experiment_conditions)
+        else:
+            qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
+        print('... Assessing insertion of resistance cassette')
+        qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
+        print('... Assessing concordance among replicates') # TODO: MAKE THIS AN OPTION IN PARSEARGS
+        qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
+        print('... Auto auditing')
+        qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
+        print('...writing summary to %s' % output_name)
+        saveDataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
 
 
 def parse_args(argv):
