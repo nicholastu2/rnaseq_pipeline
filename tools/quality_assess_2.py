@@ -17,7 +17,7 @@ def main(argv):
                       experiment_dir=parsed.experiment_dir, norm_count_path=parsed.norm_count_path,
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
-                      experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True)  # TODO -- deal with multiple inputs better than this. point of weakness
+                      experiment_conditions=parsed.experimental_conditions.split(' '))  # TODO -- deal with multiple inputs better than this. point of weakness
     # create standardized_database_df from query_sheet_path
     query_df = utils.readInDataframe(od.query_sheet_path)
     od.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
