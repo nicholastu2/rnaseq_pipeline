@@ -50,7 +50,7 @@ def main(argv):
     od.setOrganismData()
     # create logger for this script if od logger is set
     if os.path.isfile(od.log_file_path):
-        logger = utils.createLogger(od.log_file_path, 'align_count.py')
+        logger = utils.createLogger(od.log_file_path, 'align_count.py', 'INFO')
     else:
         logger = utils.createStdOutLogger(name='align_count_logger')
 
