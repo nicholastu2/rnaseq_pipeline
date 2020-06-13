@@ -66,7 +66,7 @@ def main(argv):
     qual_assess_df, rep_max = initializeQualAssesDf(od.standardized_database_df, df_columns, od.experiment_conditions)
     if rep_max != od.max_replicates:
         print(
-            'The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
+            'The max number of replicates in the query sheet is {}. Continuing with correct replicate count. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
                 rep_max, rep_max))
     if rep_max > 7:
         print(
