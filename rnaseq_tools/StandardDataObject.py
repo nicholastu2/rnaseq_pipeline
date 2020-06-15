@@ -158,6 +158,7 @@ class StandardData:
             If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths
         """
+        no_file_organism_attributes = ['feature_type']
         for organism in self._configured_organisms_list:
             # check if directory exists
             organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
@@ -175,6 +176,9 @@ class StandardData:
                 organism_config_dict = configparser.ConfigParser()
                 organism_config_dict.read(organism_config_file_path)
                 for organism_attribute, filename in organism_config_dict['OrganismData'].items():
+                    # skip attributes that do not have a corresponding filename
+                    if organism_attribute in no_file_organism_attributes:
+                        continue
                     organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
                     if not os.path.isfile(organism_attribute_filepath):
                         self.logger.warning('%s not found in %s subdirectory of genome_files' % (organism_attribute, organism))
