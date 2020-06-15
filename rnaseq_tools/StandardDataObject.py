@@ -158,7 +158,8 @@ class StandardData:
             If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths
         """
-        no_file_organism_attributes = ['feature_type']
+        # rename organism_genome_file to organism_genome_file_subdir and change this
+        no_file_organism_attributes = ['organism_genome_file', 'feature_type']
         for organism in self._configured_organisms_list:
             # check if directory exists
             organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
