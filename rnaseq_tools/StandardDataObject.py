@@ -162,10 +162,12 @@ class StandardData:
             # check if directory exists
             organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
             if not os.path.isdir(organism_genome_files_subdir_path):
+                self.logger.warning('%s does not exist in genome_files' %organism_genome_files_subdir_path)
                 raise NotADirectoryError('ConfiguredOrganismSubdirectoryNotPresentInGenomeFiles')
             # check if the organism config file exists
             organism_config_file_path = os.path.join(organism_genome_files_subdir_path, 'OrganismData_config.ini')
             if not os.path.isfile(organism_config_file_path):
+                self.logger.warning('The OrganismData_config.ini file does not exist for %s' % organism)
                 raise FileNotFoundError('OrganismDataConfigFileNotFound')
             # if it does, read it in
             else:
@@ -175,6 +177,7 @@ class StandardData:
                 for organism_attribute, filename in organism_config_dict['OrganismData'].items():
                     organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
                     if not os.path.isfile(organism_attribute_filepath):
+                        self.logger.warning('%s not found in %s subdirectory of genome_files' % (organism_attribute, organism))
                         raise FileNotFoundError('OrganismFileNotFound')
 
     def createStandardDataLogger(self):
