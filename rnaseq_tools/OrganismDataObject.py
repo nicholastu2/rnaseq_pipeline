@@ -11,8 +11,6 @@ class OrganismData(StandardData):
         # TODO: This is a messy and repetitive way of adding expected attributes from children of OrganismData to add to StandardData
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
-        # set list of known organisms
-        self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(OrganismData, self).__init__(self._add_expected_attributes, **kwargs)

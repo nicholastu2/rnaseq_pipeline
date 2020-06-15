@@ -10,6 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 from rnaseq_tools.DatabaseObject import DatabaseObject
+from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import utils
 
 
@@ -53,14 +54,57 @@ def main(argv):
         db.query_df.loc[index, 'fastqFileName'] = fastq_fullpath
     db.query_df['runDirectory'] = run_directory_list
 
+    # use OrganismDataObject to get paths to novoalign_index and annotation files
+    kn99_organism_data = OrganismData(organism='KN99')
+    kn99_novoalign_index = kn99_organism_data.novoalign_index
+    kn99_annotation_file = kn99_organism_data.annotation_file
+    s288c_r64_organism_data = OrganismData(organism='S288C_R64')
+    s288c_r64_novoalign_index = s288c_r64_organism_data.novoalign_index
+    s288c_r64_annotation_file = s288c_r64_organism_data.annotation_file
+
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
     print(nextflow_fastqfile_df)
     # write out
-    output_path = os.path.join(db.job_scripts, 'nextflow_fastqfile_list'+ '_' + db.year_month_day + '_' + utils.hourMinuteSecond()+'.csv')
-    print('writing out to %s' %output_path)
-    nextflow_fastqfile_df.to_csv(output_path, index=False)
+    fastq_file_list_output_path = os.path.join(db.job_scripts,
+                                               'nextflow_fastqfile_list' + '_' + db.year_month_day + '_' + utils.hourMinuteSecond() + '.csv')
+    print('...writing out to %s' % fastq_file_list_output_path)
+    nextflow_fastqfile_df.to_csv(fastq_file_list_output_path, index=False)
 
+    # config_header goes at the top of the config -- includes date created and StandardObject instructions
+    config_header = "/*\n" \
+                    "* -------------------------------------------------\n" \
+                    "*  Brentlab nextflow rnaseq_pipeline configuration\n" \
+                    "* -------------------------------------------------\n" \
+                    "* created with create_nextflow_config.py on %s\n" \
+                    "* note: this is for a specific job for a specific user\n" \
+                    "* and not intended as a general config file. To re-create\n" \
+                    "* this job, you will need to run create_nextflow_config.py\n" \
+                    "* with the same query_sheet input\n" \
+                    "*/\n\n" % db.year_month_day
+    # params section has all relevant path parameters to run the pipeline
+    params_section = "// params necessary for the pipeline\n" \
+                     "params {\n" \
+                     "\tfastq_file_list = %s\n" \
+                     "\tlts_sequence = %s\n" \
+                     "\tscratch_sequence = %s\n" \
+                     "\tlts_align_expr = %s\n" \
+                     "\talign_count_results = %s\n" \
+                     "\tlog_dir = %s\n" \
+                     "\tKN99_novoalign_index = %s\n" \
+                     "\tKN99_annotation_file = %s\n" \
+                     "\tS288C_R64_novoalign_index = %s\n" \
+                     "\tS288C_R64_annotation_file = %s\n" \
+                     "}\n\n" % (fastq_file_list_output_path, db.lts_sequence, db.scratch_sequence,
+                                db.lts_align_expr, db.align_count_results, db.log_dir, kn99_novoalign_index,
+                                kn99_annotation_file, s288c_r64_novoalign_index, s288c_r64_annotation_file)
+
+    nextflow_config_path = os.path.join(db.job_scripts, args.name + '_nextflow.config')
+    print('...writing nextflow job config file to %s' % nextflow_config_path)
+    with open(nextflow_fastqfile_df, 'w') as nextflow_config_file:
+        nextflow_config_file.write(config_header, params_section)
+    print('Done. Run the job with:\n'
+          '\tnextflow -C %s run nextflow_align_count_pipeline.nf' % nextflow_config_path)
 
 
 def parseArgs(argv):
@@ -69,15 +113,19 @@ def parseArgs(argv):
     parser.add_argument("-qs", "--query_sheet", required=True,
                         help='[REQUIRED] A .csv subset of metadata database describing the set of files you wish to process.\n'
                              'These will be grouped by run number')
+    parser.add_argument("-n", "--name", required=True,
+                        help="[REQUIRED] the name of the nextflow job -- this will be used to output the job script config file in\n"
+                             "$USER/rnaseq_pipeline/jobs_scripts")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
-                             "Use this flag to replace that config file")
+                             "Use this flag to replace that config file. Note: this is for StandardData, not nextflow")
     parser.add_argument('--interactive', action='store_true',
                         help="[OPTIONAL] set this flag (only --interactive, no input necessary) to tell StandardDataObject not\n"
                              "to attempt to look in /lts if on a compute node on the cluster")
 
     args = parser.parse_args(argv[1:])
     return args
+
 
 if __name__ == "__main__":
     main(sys.argv)

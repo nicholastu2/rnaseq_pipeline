@@ -2,7 +2,7 @@ from rnaseq_tools import utils
 import os
 import sys
 import getpass  # see https://www.saltycrane.com/blog/2011/11/how-get-username-home-directory-and-hostname-python/
-
+import configparser
 
 class StandardData:
     """
@@ -27,14 +27,16 @@ class StandardData:
         self._attributes = ['lts_rnaseq_data', 'pipeline_version', 'mblab_scratch', 'scratch_database_files',
                             'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
                             'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
-                            'user_rnaseq_pipeline_directory',
-                            'genome_files', 'reports', 'sbatch_log', 'log_dir', 'log_file', 'job_scripts', 'rnaseq_tmp',
-                            'config_file', 'align_count_path']
+                            'user_rnaseq_pipeline_directory', 'genome_files', 'reports', 'align_count_results',
+                            'sbatch_log', 'log_dir', 'log_file', 'job_scripts', 'rnaseq_tmp', 'config_file']
 
         # these run numbers have leading zeros in either/or the database or lts_align_expr. See -lz in create_experiment.py input options
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674',
                                         684: '0684', 731: '0731', 748: '0748', 759: '0759', 769: '0769', 773: '0773',
                                         779: '0779'}
+
+        # list of organisms with configured subdirectory in genome_files
+        self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
 
         # set year_month_day
         self.year_month_day = utils.yearMonthDay()
@@ -99,7 +101,7 @@ class StandardData:
         utils.mkdirp(self.user_rnaseq_pipeline_directory)
 
         # create necessary subdirectories in rnaseq_pipeline
-        process_directories = ['reports', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
+        process_directories = ['reports', 'align_count_results', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
                                'rnaseq_tmp', 'experiments']  # TODO: MAKE SBATCH_LOG LIKE LOG WITH YEAR_MONTH_DAY SUBDIR
         for directory in process_directories:
             # store path
@@ -143,6 +145,37 @@ class StandardData:
                 genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
                 cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
                 utils.executeSubProcess(cmd)
+            # check that all files present in the OrganismDataConfig.ini file in the subdirectories of genome_files exist
+            try:
+                self.checkGenomeFiles()
+            except NotADirectoryError or FileNotFoundError:
+                print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child.\n'
+                      'To re-download genome_files. Note: this cannot be done from an interactive session on HTCF.')
+
+    def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function
+        """
+            read in OrganismDataConfig.ini from each expected subdir of genome_files and check if the path is valid.
+            If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
+            to re-download to update paths
+        """
+        for organism in self._configured_organisms_list:
+            # check if directory exists
+            organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
+            if not os.path.isdir(organism_genome_files_subdir_path):
+                raise NotADirectoryError('ConfiguredOrganismSubdirectoryNotPresentInGenomeFiles')
+            # check if the organism config file exists
+            organism_config_file_path = os.path.join(organism_genome_files_subdir_path, 'OrganismData_config.ini')
+            if not os.path.isfile(organism_config_file_path):
+                raise FileNotFoundError('OrganismDataConfigFileNotFound')
+            # if it does, read it in
+            else:
+                # read in config file, get list of paths
+                organism_config_dict = configparser.ConfigParser()
+                organism_config_dict.read(organism_config_file_path)
+            for organism_attribute, filename in organism_config_dict:
+                organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
+                if not os.path.join(organism_attribute_filepath):
+                    raise FileNotFoundError('OrganismFileNotFound')
 
     def createStandardDataLogger(self):
         """
