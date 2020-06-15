@@ -64,7 +64,7 @@ def main(argv):
 
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
-    print('nextflow fastq file .csv head:\n')
+    print('\nnextflow fastq file .csv head:\n')
     print(nextflow_fastqfile_df.head())
     print('\n')
     # write out
@@ -106,7 +106,7 @@ def main(argv):
     with open(nextflow_config_path, 'w') as nextflow_config_file:
         nextflow_config_file.write(config_header)
         nextflow_config_file.write(params_section)
-    print('Done. Run the job with:\n'
+    print('\nDone. Run the job with:\n'
           '\tnextflow -C %s run nextflow_align_count_pipeline.nf' % nextflow_config_path)
 
 
