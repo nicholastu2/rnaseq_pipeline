@@ -107,7 +107,7 @@ def main(argv):
         nextflow_config_file.write(config_header)
         nextflow_config_file.write(params_section)
     print('\nDone. Run the job with:\n'
-          '\tnextflow -C %s run nextflow_align_count_pipeline.nf' % nextflow_config_path)
+          '\tnextflow -C %s run nextflow_align_count_pipeline.nf\n' % nextflow_config_path)
 
 
 def parseArgs(argv):
