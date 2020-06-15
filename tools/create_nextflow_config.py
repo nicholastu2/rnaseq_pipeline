@@ -102,7 +102,8 @@ def main(argv):
     nextflow_config_path = os.path.join(db.job_scripts, args.name + '_nextflow.config')
     print('...writing nextflow job config file to %s' % nextflow_config_path)
     with open(nextflow_config_path, 'w') as nextflow_config_file:
-        nextflow_config_file.write(config_header, params_section)
+        nextflow_config_file.write(config_header)
+        nextflow_config_file.write(params_section)
     print('Done. Run the job with:\n'
           '\tnextflow -C %s run nextflow_align_count_pipeline.nf' % nextflow_config_path)
 
