@@ -64,10 +64,12 @@ def main(argv):
 
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
-    print(nextflow_fastqfile_df)
+    print('nextflow fastq file .csv head:\n')
+    print(nextflow_fastqfile_df.head())
+    print('\n')
     # write out
     fastq_file_list_output_path = os.path.join(db.job_scripts,
-                                               'nextflow_fastqfile_list' + '_' + db.year_month_day + '_' + utils.hourMinuteSecond() + '.csv')
+                                               'nextflow_fastqfile_list' + '_' + args.name + '.csv')
     print('...writing out to %s' % fastq_file_list_output_path)
     nextflow_fastqfile_df.to_csv(fastq_file_list_output_path, index=False)
 
