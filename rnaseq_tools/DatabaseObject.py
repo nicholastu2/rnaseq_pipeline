@@ -35,6 +35,10 @@ class DatabaseObject(StandardData):
         self.self_type = 'DatabaseObject'
         # set DatabaseObject logger
         self.logger = utils.createStandardObjectChildLogger(self, __name__)
+        try:
+            self.database_directory = kwargs['database_files']
+        except KeyError:
+            self.database_directory = self.database_files
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
         try:
@@ -77,7 +81,7 @@ class DatabaseObject(StandardData):
         # associate each key (relevant subdirectories of database) with a list of of files (absolute path) in each key directory
         for subdirectory in self.database_subdirectories:
             # create a path database_files/subdirectory
-            subdirectory_path = os.path.join(self.database_files, subdirectory)
+            subdirectory_path = os.path.join(self.database_directory, subdirectory)
             # extract list of files in subdirectory_path (not recursive -- will return subdirs, but not their contents)
             subdirectory_files = utils.extractTopmostFiles(subdirectory_path)
 

@@ -55,10 +55,10 @@ def main(argv):
     print('...compiling database')
     # create database object
     if args.not_cluster:  # see TODO at top regarding logger
-        database_object = DatabaseObject(database_path, filter_json_path=filter_json_path, stdout_logger=True)
+        database_object = DatabaseObject(database_path, filter_json_path=filter_json_path, stdout_logger=True, database_files = database_path)
     else:
         # create database object (see rnaseq_tools.DatabaseObject for description of all functions
-        database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path)
+        database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path, database_files = database_path)
         database_object.setDatabaseDataframe()
 
     # filter database and print to output_directory, if json is present
