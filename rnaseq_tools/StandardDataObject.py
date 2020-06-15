@@ -169,13 +169,13 @@ class StandardData:
                 raise FileNotFoundError('OrganismDataConfigFileNotFound')
             # if it does, read it in
             else:
-                # read in config file, get list of paths
+                # read in config file as dictionary {genome_file_attribute: filename, ...} eg {novoalign_index: KN99_novoalign.nix}
                 organism_config_dict = configparser.ConfigParser()
                 organism_config_dict.read(organism_config_file_path)
-            for organism_attribute, filename in organism_config_dict:
-                organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
-                if not os.path.join(organism_attribute_filepath):
-                    raise FileNotFoundError('OrganismFileNotFound')
+                for organism_attribute, filename in organism_config_dict.items():
+                    organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
+                    if not os.path.join(organism_attribute_filepath):
+                        raise FileNotFoundError('OrganismFileNotFound')
 
     def createStandardDataLogger(self):
         """
