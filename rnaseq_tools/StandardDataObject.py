@@ -174,7 +174,7 @@ class StandardData:
                 organism_config_dict.read(organism_config_file_path)
                 for organism_attribute, filename in organism_config_dict.items():
                     organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
-                    if not os.path.join(organism_attribute_filepath):
+                    if not os.path.isfile(organism_attribute_filepath):
                         raise FileNotFoundError('OrganismFileNotFound')
 
     def createStandardDataLogger(self):
