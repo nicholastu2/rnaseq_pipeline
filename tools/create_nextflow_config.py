@@ -87,16 +87,16 @@ def main(argv):
     # params section has all relevant path parameters to run the pipeline
     params_section = "// params necessary for the pipeline\n" \
                      "params {\n" \
-                     "\tfastq_file_list = %s\n" \
-                     "\tlts_sequence = %s\n" \
-                     "\tscratch_sequence = %s\n" \
-                     "\tlts_align_expr = %s\n" \
-                     "\talign_count_results = %s\n" \
-                     "\tlog_dir = %s\n" \
-                     "\tKN99_novoalign_index = %s\n" \
-                     "\tKN99_annotation_file = %s\n" \
-                     "\tS288C_R64_novoalign_index = %s\n" \
-                     "\tS288C_R64_annotation_file = %s\n" \
+                     "\tfastq_file_list = \"%s\"\n" \
+                     "\tlts_sequence = \"%s\"\n" \
+                     "\tscratch_sequence = \"%s\"\n" \
+                     "\tlts_align_expr = \"%s\"\n" \
+                     "\talign_count_results = \"%s\"\n" \
+                     "\tlog_dir = \"%s\"\n" \
+                     "\tKN99_novoalign_index = \"%s\"\n" \
+                     "\tKN99_annotation_file = \"%s\"\n" \
+                     "\tS288C_R64_novoalign_index = \"%s\"\n" \
+                     "\tS288C_R64_annotation_file = \"%s\"\n" \
                      "}\n\n" % (fastq_file_list_output_path, db.lts_sequence, db.scratch_sequence,
                                 db.lts_align_expr, db.align_count_results, db.log_dir, kn99_novoalign_index,
                                 kn99_annotation_file, s288c_r64_novoalign_index, s288c_r64_annotation_file)
