@@ -149,8 +149,8 @@ class StandardData:
             try:
                 self.checkGenomeFiles()
             except NotADirectoryError or FileNotFoundError:
-                print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child.\n'
-                      'To re-download genome_files. Note: this cannot be done from an interactive session on HTCF.')
+                print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
+                      'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
 
     def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function
         """
