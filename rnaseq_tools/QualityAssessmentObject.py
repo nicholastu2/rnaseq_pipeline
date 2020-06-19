@@ -293,9 +293,9 @@ class QualityAssessmentObject(StandardData):
                     bam_file = [bam_file for bam_file in bam_file_paths if fastq_simple_name in bam_file][0]
                 except IndexError:
                     self.logger.critical('bam file not found for %s' %fastq_simple_name)
-                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" %(genotype_1, genome, bam_file)
+                # cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" %(genotype_1, genome, bam_file)
                 # num_bases_in_cds = int(subprocess.getoutput(cmd))
-                # cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_1, genome, bam_file)
+                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_1, genome, bam_file)
                 # num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
                 # genotype_df.loc[index, 'genotype_1_coverage'] = num_bases_in_cds / float(num_bases_in_cds_with_one_or_more_read)
                 print(cmd)
