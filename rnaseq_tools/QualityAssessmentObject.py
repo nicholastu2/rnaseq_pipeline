@@ -277,34 +277,35 @@ class QualityAssessmentObject(StandardData):
         # create columns genotype_1_coverage and genotype_2_coverage
         genotype_df['genotype_1_coverage'] = None
         genotype_df['genotype_2_coverage'] = None
-        # # loop over rows, calculating coverage for each genotype (testing wither genotype2 is none and perturbation is _over
-        # for index, row in genotype_df.iterrows():
-        #     if not row['genotype_1'] == 'CNAG_00000':
-        #         # simple name is like this: run_673_s_4_withindex_sequence_TGAGGTT (no containing directories, no extention)
-        #         fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
-        #         genotype_1 = row['genotype_1']
-        #         genotype_2 = row['genotype_2']
-        #         if genotype_1.startswith('CNAG'):
-        #             genome = kn99_genome
-        #         else:
-        #             genome = s288c_r64_genome
-        #         try:
-        #             bam_file = [bam_file for bam_file in bam_file_paths if fastq_simple_name in bam_file][0]
-        #         except IndexError:
-        #             self.logger.critical('bam file not found for %s' %fastq_simple_name)
-        #         cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" %(genotype_1, genome, bam_file)
-        #         num_bases_in_cds = int(subprocess.getoutput(cmd))
-        #         cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_1, genome, bam_file)
-        #         num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
-        #         genotype_df.loc[index, 'genotype_1_coverage'] = num_bases_in_cds / float(num_bases_in_cds_with_one_or_more_read)
-        #         print(cmd)
-        #         if genotype_2 is not None:
-        #             cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" % (genotype_2, genome, bam_file)
-        #             num_bases_in_cds = int(subprocess.getoutput(cmd))
-        #             cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_2, genome, bam_file)
-        #             num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
-        #             genotype_df.loc[index, 'genotype_2_coverage'] = num_bases_in_cds / float(num_bases_in_cds_with_one_or_more_read)
-        #     # set as attribute self.coverage_check
+        # loop over rows, calculating coverage for each genotype (testing wither genotype2 is none and perturbation is _over
+        for index, row in genotype_df.iterrows():
+            if not row['genotype_1'] == 'CNAG_00000':
+                # simple name is like this: run_673_s_4_withindex_sequence_TGAGGTT (no containing directories, no extention)
+                print('...coverage check %s, %s' %(row['genotype_1'], row['genotype_2']))
+                fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
+                genotype_1 = row['genotype_1']
+                genotype_2 = row['genotype_2']
+                if genotype_1.startswith('CNAG'):
+                    genome = kn99_genome
+                else:
+                    genome = s288c_r64_genome
+                try:
+                    bam_file = [bam_file for bam_file in bam_file_paths if fastq_simple_name in bam_file][0]
+                except IndexError:
+                    self.logger.critical('bam file not found for %s' %fastq_simple_name)
+                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" %(genotype_1, genome, bam_file)
+                num_bases_in_cds = int(subprocess.getoutput(cmd))
+                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_1, genome, bam_file)
+                num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
+                genotype_df.loc[index, 'genotype_1_coverage'] = num_bases_in_cds / float(num_bases_in_cds_with_one_or_more_read)
+                print(cmd)
+                if genotype_2 is not None:
+                    cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" % (genotype_2, genome, bam_file)
+                    num_bases_in_cds = int(subprocess.getoutput(cmd))
+                    cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (genotype_2, genome, bam_file)
+                    num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
+                    genotype_df.loc[index, 'genotype_2_coverage'] = num_bases_in_cds / float(num_bases_in_cds_with_one_or_more_read)
+            # set as attribute self.coverage_check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
 
@@ -339,58 +340,6 @@ class QualityAssessmentObject(StandardData):
             # extract mean perturbed log2cpm expression and treatment_timepoint
             # if gene expression is less than 99% of wt in same treatment_timempoint, flag, create diagnostic dataframe and browser shot
 
-    # def coverageCheck(self):
-    #     """
-    #         check coverage of genebody
-    #     """
-    #     print('...extracting perturbed samples from query sheet for coverage check sbatch script')
-    #     # check if all necessary components are present
-    #     try:
-    #         if not hasattr(self, 'query_path'):
-    #             raise AttributeError('NoQueryPath')
-    #         if not hasattr(self, 'query_df'):
-    #             if not os.path.isfile(self.query_path):
-    #                 raise FileNotFoundError('QueryPathNotValid')
-    #             query_df = utils.readInDataframe(self.query_path)
-    #             self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
-    #     except AttributeError:
-    #         print('no standardized query df provided')
-    #     except FileNotFoundError:
-    #         print('query path not valid')
-    #     try:
-    #         if not hasattr(self, 'align_count_path'):
-    #             raise AttributeError('NoAlignCountsPath')
-    #     except AttributeError:
-    #         print('You must pass a path to a directory with alignment files\n'
-    #               '(typically either the output of align_counts.py or create_experiment.py')
-    #
-    #     # create filter (boolean column, used in following line)
-    #     df_wt_filter = self.standardized_database_df['GENOTYPE'] != 'CNAG_00000'
-    #     perturbed_sample_list = list(self.standardized_database_df[df_wt_filter]['COUNTFILENAME'])
-    #     # create path to new sbatch script
-    #     sbatch_job_script_path = os.path.join(self.job_scripts,
-    #                                           'coverage_%s_%s.sbatch' % (self.year_month_day, utils.hourMinuteSecond()))
-    #     # write sbatch script
-    #     print('...writing coverage check sbatch script')
-    #     with open(sbatch_job_script_path, 'w') as sbatch_file:
-    #         sbatch_file.write("#!/bin/bash\n")
-    #         sbatch_file.write("#SBATCH --mem=5G\n")
-    #         sbatch_file.write("#SBATCH -D %s\n" % self.user_rnaseq_pipeline_directory)
-    #         sbatch_file.write("#SBATCH -o sbatch_log/coverage_calculation_%A_%a.out\n")
-    #         sbatch_file.write("#SBATCH -e sbatch_log/coverage_calculation_%A_%a.err\n")
-    #         sbatch_file.write("#SBATCH -J coverage_calculation\n\n")
-    #         sbatch_file.write("ml bedtools\n\n")
-    #         for sample in perturbed_sample_list:
-    #             sorted_alignment_file = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
-    #             sorted_alignment_path = os.path.join(self.align_count_path, sorted_alignment_file)
-    #             coverage_filename = sample.replace('_read_count.tsv', '_coverage.tsv')
-    #             coverage_output_path = os.path.join(self.align_count_path, coverage_filename)
-    #             sbatch_file.write(
-    #                 'bedtools genomecov -ibam %s -bga > %s\n' % (sorted_alignment_path, coverage_output_path))
-    #     print('sbatch script to quantify per base coverage in perturbed samples at %s' % sbatch_job_script_path)
-    #     print('submitting sbatch job. Once this completes, use script quantify_perturbed_coverage.py')
-    #     cmd = 'sbatch %s' % sbatch_job_script_path
-    #     utils.executeSubProcess(cmd)
 
     def cryptoPertubationBrowserShot(self):
         """
