@@ -136,7 +136,7 @@ def checkCSV(file_path):
         :returns: True if .csv, false otherwise
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         # test whether a given file is a .csv or .xlsx
         if re.search('\.csv', file_path):
@@ -153,7 +153,7 @@ def checkTSV(file_path):
         :raises: FileNotFoundError
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         if re.search('\.tsv', file_path):
             return True
@@ -168,7 +168,7 @@ def checkExcel(file_path):
         :returns: True if .tsv, false otherwise
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         # test whether a given file is a .xlsx
         if re.search('\.xlsx', file_path):
@@ -187,7 +187,6 @@ def readInDataframe(path_to_csv_tsv_or_excel):
             path_to_csv_tsv_or_excel.endswith('tsv') or
             path_to_csv_tsv_or_excel.endswith('xlsx')):
         raise ValueError('UnrecognizedFileExtension')
-
     try:
         if checkCSV(path_to_csv_tsv_or_excel):
             return pd.read_csv(path_to_csv_tsv_or_excel)
@@ -195,9 +194,8 @@ def readInDataframe(path_to_csv_tsv_or_excel):
             return pd.read_csv(path_to_csv_tsv_or_excel, sep='\t')
         elif checkExcel(path_to_csv_tsv_or_excel):
             return pd.read_excel(path_to_csv_tsv_or_excel)
-
     except FileNotFoundError:
-        print('file %s does not exist' % path_to_csv_tsv_or_excel)
+        raise FileNotFoundError('PathToColumnarDataDNE')
 
 
 def fileBaseName(file_name):

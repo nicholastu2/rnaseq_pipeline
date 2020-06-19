@@ -84,6 +84,17 @@ def main(argv):
                     "* this job, you will need to run create_nextflow_config.py\n" \
                     "* with the same query_sheet input\n" \
                     "*/\n\n" % db.year_month_day
+
+    # # manifest section is metadata about the pipeline
+    # manifest
+    # {
+    #     homePage = 'http://foo.com'
+    # description = 'Pipeline does this and that'
+    # mainScript = 'foo.nf'
+    # version = '1.0.0'
+    # }
+
+
     # params section has all relevant path parameters to run the pipeline
     params_section = "// params necessary for the pipeline\n" \
                      "params {\n" \

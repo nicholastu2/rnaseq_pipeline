@@ -129,6 +129,7 @@ class StandardData:
                   "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
         if self.interactive:
             print('Remember you will not be able to access lts_align_expr or lts_sequence in an interactive session on htcf')
+            self.setGenomeFiles()
         else:
             # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
             lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
@@ -140,17 +141,23 @@ class StandardData:
                       'interactive=True in the constructor of a StandardData object when you are in an interactive session.' %lts_dirs_to_softlink)
             # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
             # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
-            setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
-            if not os.path.exists(self.genome_files):
-                genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
-                cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
-                utils.executeSubProcess(cmd)
+            self.setGenomeFiles()
             # check that all files present in the OrganismDataConfig.ini file in the subdirectories of genome_files exist
             try:
                 self.checkGenomeFiles()
             except NotADirectoryError or FileNotFoundError:
                 print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
                       'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
+
+    def setGenomeFiles(self):
+        """
+            set genome_files path and download, if genome_files or subdirectories DNE. Only set if interactive
+        """
+        setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
+        if not (self.interactive or os.path.exists(self.genome_files)):
+            genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
+            cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
+            utils.executeSubProcess(cmd)
 
     def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function
         """

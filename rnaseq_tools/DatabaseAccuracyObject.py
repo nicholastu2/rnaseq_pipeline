@@ -291,6 +291,7 @@ class metadataSpecificationObject:
                                      'volumePooled': float_format,
                                      'readsObtained': int_format,
                                      'fastqFileName': atleast_one_non_space_format}
+
         # collect above specs into dictionary
         self.specification_dict = {
             'bioSample': {'filename_regex': bioSample_regex, 'column_specs_dict': bioSample_column_dict},
