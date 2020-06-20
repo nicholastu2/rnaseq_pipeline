@@ -37,7 +37,7 @@ process fastqc {
     memory "12G"
     cpus 8
     beforeScript "ml fastqc"
-    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true
+    publishDir "$params.align_count_results/$run_number/fastqc", mode:"copy", overwite: true
 
     input:
         set run_number, reads from fastq_ch_tuples
