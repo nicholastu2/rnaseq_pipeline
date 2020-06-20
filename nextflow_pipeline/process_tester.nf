@@ -45,9 +45,6 @@ process fastqc {
     output:
         file "*_fastqc.{zip,html}" into fastqc_results
 
-    for runs in run_tuple{
-
-    }
     script:
       """
       fastqc --quiet --threads 8 ${run_reads_tuples[1]}
