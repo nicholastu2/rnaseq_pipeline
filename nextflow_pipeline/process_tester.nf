@@ -41,7 +41,8 @@ process novoalign {
     input:
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
-        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.sam"), file("${fastq_simple_name}_novoalign.log") into sam_align_ch
+        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.sam") into sam_align_ch
+        tuple val(run_directory), file("${fastq_simple_name}_novoalign.log") into novoalign_log_ch
 
     script:
         fastq_simple_name = fastq_file.getSimpleName()
@@ -55,45 +56,11 @@ process novoalign {
             """
 }
 
-processs splitAlignmentFilesByMappingType {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml samtools"
-  stageInMode "copy"
-  stageOutMode "move"
-  afterScript "rm ${alignment_sam}" // figure out how to actually delete these
-
-
-}
-
 // blast unmapped reads
 process blastUnmapped {
 // convert bam to fasta, blast, publish results immediately
 // use < bamToFasta into blast > blast_results.out
 
-}
-
-// combine this step with novosort
-// update to handle split output
-process convertSamToBam {
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml samtools"
-  stageInMode "copy"
-  stageOutMode "move"
-  afterScript "rm ${alignment_sam}" // fix this to handle split files
-
-  input:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam), file(novoalign_log) from sam_align_ch
-
-  output:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.bam"), file(novoalign_log) into bam_align_ch
-
-  script:
-     """
-     samtools view -bS ${alignment_sam}> ${fastq_simple_name}_aligned_reads.bam
-     """
 }
 
 process novosort {
@@ -137,7 +104,7 @@ process htseqCount {
     input:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(novoalign_log), file(sorted_alignment_bam), file(novosort_log) from sorted_bam_align_ch
     output:
-      tuple file(novoalign_log), file(novosort_log), file(sorted_alignment_bam), file("${fastq_simple_name}_read_count.tsv"), file("${fastq_simple_name}_htseq.log") into align_count_output_ch
+      tuple file(novoalign_log), file(novosort_log), file(${fastq_simple_name}_sorted_with_htseq_annote.bam), file("${fastq_simple_name}_read_count.tsv"), file("${fastq_simple_name}_htseq.log") into align_count_output_ch
       tuple val(run_directory), val(organism) into pipeline_info_ch
 
     script:
@@ -146,7 +113,11 @@ process htseqCount {
     // hence -t exon -i ID
       if (organism == 'KN99')
         """
-        htseq-count -f bam -s ${strandedness} -t exon -i Parent --additional-attr ID ${sorted_alignment_bam} ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+        // quantify
+        htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t exon -i Parent --additional-attr ID ${sorted_alignment_bam} ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+
+
+        samtools view ${sorted_alignment_bam}
         """
       else if (organism == 'S288C_R64')
         """
@@ -190,14 +161,11 @@ process qualAssess1 {
       // everything + quality assess
 
   script:
+      // overall quality check
       """
       #!/usr/bin/env python
 
-      import sys
-      import os
-      import argparse
       from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
-      from rnaseq_tools import utils
 
       # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
       column_order = ['LIBRARY_SIZE', 'TOTAL_ALIGNMENT', 'UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NO_MAP', 'HOMOPOLY_FILTER',
@@ -221,6 +189,15 @@ process qualAssess1 {
       # write out (name can be generic -- stored in unique work directory)
       qual_assess_1_df.to_csv('quality_assess_1.csv', index_label = 'FASTQFILENAME')
 
+      """
+      // multi map qc
+      """
+      #!/usr/bin/env python
+
+      from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
+      """
+      // send no maps to blast
+      """
       """
 }
 

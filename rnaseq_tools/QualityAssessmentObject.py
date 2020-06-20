@@ -308,6 +308,29 @@ class QualityAssessmentObject(StandardData):
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
 
+    def examineMultimaps(self):
+        """
+            input sorted bam files with htseq -o .sam column attached (this will be XF:Z:__alignment_not_unique for multimaps.
+            error check that XF:Z flag is present in alignment file
+
+            output a spreadsheet with FASTQFILENAME, NUMBER_UNIQUE_IDENTIFIERS, NUMBER_UNIQUE_SEQUENCES (**very important: collapse this on reverse complement.
+            NUMBER_UNIQUE_IDENTIFIERS is very different from NUMBER_UNIQUE_SEQUENCES, may be worth investigating), TWENTY_FIVE, MEDIAN, SEVENTY_FIVE (percentiles
+            of distribution of multimap reads), MOST_MULTIMAPPED_SEQ_ID, NUMBER_MOST_MULTIMAPPED
+        """
+        # TODO: MAKE THIS A FUNCTION AND SET AS ATTR
+        # get fastqfilenames
+        genotype_df = self.query_df[['fastqFileName']]
+        genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
+        # get bamfiles
+        # get bam filepaths
+        try:  # TODO: MAKE THIS INTO FUNCTION. clean this up. ugly method of testing whether a list of filepaths has been passed or not. this is for the nextflow pipeline
+            bam_file_paths = [bam_file for bam_file in self.nextflow_list_of_files if
+                              '_sorted_aligned_reads.bam' in bam_file]
+        except AttributeError:
+            # extract files in directory with given suffix
+            bam_file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, '_sorted_aligned_reads.bam'))
+
+
 
     def qortsPlots(self):
         """
