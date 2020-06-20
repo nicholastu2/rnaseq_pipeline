@@ -32,7 +32,7 @@ process toScratch {
 fastq_ch_tuples = fastqc_ch.collect().groupTuple()
 
 process fastqc {
-
+    echo true
     executor "slurm"
     memory "12G"
     cpus 8
@@ -40,14 +40,14 @@ process fastqc {
     publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true
 
     input:
-        val run_reads_tuples from fastq_ch_tuples
+        set run_number, reads from fastq_ch_tuples
 
     output:
         file "*_fastqc.{zip,html}" into fastqc_results
 
     script:
       """
-      fastqc --quiet --threads 8 ${run_reads_tuples[1]}
+      fastqc --quiet --threads 8 ${reads}
       """
 }
 
