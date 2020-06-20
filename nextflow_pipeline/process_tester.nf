@@ -95,7 +95,7 @@ process novosort {
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam) from sam_align_ch
     output:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into sorted_bam_align_ch
-      file ${fastq_simple_name}_novosort.log into novosort_ch
+      file "${fastq_simple_name}_novosort.log" into novosort_ch
 
     // check what happens with the --index option
     // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
