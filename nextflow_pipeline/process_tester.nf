@@ -40,7 +40,7 @@ process fastqc {
     publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true
 
     input:
-        run_reads_tuples from fastq_ch_tuples
+        val run_reads_tuples from fastq_ch_tuples
 
     output:
         file "*_fastqc.{zip,html}" into fastqc_results
