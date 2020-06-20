@@ -29,7 +29,7 @@ process toScratch {
         """
 }
 
-fastq_ch_tuples = fastqc_ch.collect().groupTuple(by: run_directory)
+fastq_ch_tuples = fastqc_ch.collect().groupTuple()
 
 process fastqc {
     echo true
@@ -37,17 +37,18 @@ process fastqc {
     memory "12G"
     cpus 8
     beforeScript "ml fastqc"
-    publishDir "$params.align_count_results/$run_number/fastqc", mode:"copy", overwite: true
+    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true
 
     input:
-        set run_number, reads from fastq_ch_tuples
+        set run_directory, reads from fastq_ch_tuples
 
     output:
         file "*_fastqc.{zip,html}" into fastqc_results
 
     script:
+      flat_read_list = $reads.flatten()
       """
-      fastqc --quiet --threads 8 ${reads}
+      fastqc --quiet --threads 8 ${flat_read_list}
       """
 }
 
