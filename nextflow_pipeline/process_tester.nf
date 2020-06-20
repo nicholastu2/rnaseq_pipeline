@@ -29,7 +29,7 @@ process toScratch {
         """
 }
 
-fastq_ch_tuples = fastqc_ch.collect().groupTuple()
+fastq_ch_tuples = fastqc_ch.collect().groupBy()
 
 process fastqc {
     echo true
