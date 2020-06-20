@@ -308,45 +308,6 @@ class QualityAssessmentObject(StandardData):
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
 
-    def cryptoPerturbationExpressionCheck(self):
-        """
-            check expression against wt expression as mean_log2_perturbed_treatment_timepoint / mean_wt_treatment_timepoint
-        """
-        # check if necessary paths are entered as attributes
-        if not hasattr(self, 'query_sheet_path'):
-            raise AttributeError('NoQuerySheetPath')
-        if not hasattr(self, 'log2_cpm_path'):
-            raise AttributeError('NoLog2CpmPath')
-        if not hasattr(self, 'experiment_columns'):
-            raise AttributeError('NoExperimentColumns')
-
-        # if standardized_database_df is not yet set, do so
-        # if align_count_path is present, this is for quality_assess_1 and the prefix should be set as such in column COUNTFILENAME
-        if hasattr(self, 'align_count_path') and not hasattr(self, 'standardized_database_df'):
-            self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path,
-                                                                                        self.align_count_path)
-        # else, no prefix in COUNTFILENAME (see DatabaseObject.StandardizeDatabaseDataframe)
-        elif not hasattr(self, 'standardized_database_df'):
-            self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(self.query_sheet_path)
-
-        for gene in self.ko_gene_list:
-            pass
-            # extract mean perturbed log2cpm expression and treatment_timepoint
-            # if gene expression is greater than 20% of wt in treatment_timempoint, flag, create diagnostic dataframe and browser shot
-
-        for gene in self.overexpress_gene_list:
-            pass
-            # extract mean perturbed log2cpm expression and treatment_timepoint
-            # if gene expression is less than 99% of wt in same treatment_timempoint, flag, create diagnostic dataframe and browser shot
-
-
-    def cryptoPertubationBrowserShot(self):
-        """
-            create IGV browser shot of perturbed gene
-        """
-
-    def updateStatusColumn(self):
-        pass
 
     def qortsPlots(self):
         """
