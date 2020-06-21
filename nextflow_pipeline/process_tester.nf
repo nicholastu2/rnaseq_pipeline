@@ -103,6 +103,6 @@ process novosort {
 
     script:
       """
-      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates --index 1>${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
       """
 }
