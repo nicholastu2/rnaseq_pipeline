@@ -102,9 +102,6 @@ process convertSamToBam {
      """
 }
 
-}
-
-
 process novosort {
   scratch true
   executor "slurm"
