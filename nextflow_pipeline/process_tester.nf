@@ -36,7 +36,7 @@ process fastqc {
     memory "12G"
     cpus 8
     beforeScript "ml fastqc"
-    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true,, pattern: "*_fastqc.{zip,html}"
+    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true, pattern: "*_fastqc.{zip,html}"
 
     input:
         set run_directory, reads from fastqc_ch.collect().groupBy()
