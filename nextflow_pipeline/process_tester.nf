@@ -46,7 +46,7 @@ process alignCount {
     input:
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
-        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into bam_align_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_ch
         tuple val(run_directory), file("${fastq_simple_name}_novoalign.log") into novoalign_log_ch
         file("${fastq_simple_name}_novosort.log") into novosort_log_ch
 
@@ -54,38 +54,56 @@ process alignCount {
         fastq_simple_name = fastq_file.getSimpleName()
         if (organism == 'S288C_R64')
             """
-            novoalign -r All -c 8 -o SAM -d ${params.S288C_R64_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \
-            samtools view -bS |
-            novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+            novoalign -r All -c 8 -o SAM -d ${params.S288C_R64_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | samtools view -bS | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
             htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t exon ${fastq_simple_name}_sorted_aligned_reads.bam ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'KN99')
             """
-            novoalign -r All -c 8 -o SAM -d ${params.KN99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \
-            samtools view -bS | \
-            novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+            novoalign -r All -c 8 -o SAM -d ${params.KN99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | samtools view -bS | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
             htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t gene -i ID ${fastq_simple_name}_sorted_aligned_reads.bam ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'H99')
             """
-            novoalign -r All -c 8 -o SAM -d ${params.H99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \
-            samtools view -bS | \
-            novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+            novoalign -r All -c 8 -o SAM -d ${params.H99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | samtools view -bS | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
             htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${fastq_simple_name}_sorted_aligned_reads.bam ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
+  }
+
+  process noMapBlast {
+
+      scratch true
+      executor "slurm"
+      cpus 8
+      memory "12G"
+      beforeScript "ml samtools blast-plus"
+      stageOutMode "move"
+      publishDir "$params.align_count_results/$run_directory/no_map_blast_results", mode:"copy", overwite: true, pattern: "*.tsv"
+
+
+      input:
+          tuple val(run_directory), val(fastq_simple_name), file(sorted_alignment_bam_with_annote) from bam_align_ch
+      output:
+          file("${fastq_simple_name}_no_map_blast.tsv") into blast_results_ch
+
+      //assumes /ref/nt_20200330/nt_20200330/ exists on htcf
+      script:
+        """
+        samtools view ${sorted_alignment_bam_with_annote} | grep __not_aligned | samtools fasta | blastn -query - -db /ref/nt_20200330/nt_20200330/nt -out ${fastq_simple_name}_no_map_blast.tsv -outfmt 6
+        """
+
   }
