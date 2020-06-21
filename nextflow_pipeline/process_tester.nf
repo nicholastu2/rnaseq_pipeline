@@ -44,7 +44,7 @@ process fastqc {
         tuple val(run_directory), values from fastqc_ch.collect().groupBy()
 
     output:
-        file "*_fastqc.{zip,html}" in fastqc_output
+        file "*_fastqc.{zip,html}" into fastqc_output
 
     script:
       flat_read_list = $values[0].flatten()
