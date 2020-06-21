@@ -53,6 +53,7 @@ process fastqc {
 
 // process files in work directory with slurm
 process novoalign {
+
     scratch true
     executor "slurm"
     cpus 8
@@ -101,7 +102,7 @@ process htseqCount {
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(sorted_alignment_bam) from bam_align_ch
 
     output:
-      tuple val(run_directory), file(${fastq_simple_name}_sorted_with_htseq_annote.bam), file("${fastq_simple_name}_read_count.tsv") into align_count_output_ch
+      tuple val(run_directory), file("${fastq_simple_name}_sorted_with_htseq_annote.bam"), file("${fastq_simple_name}_read_count.tsv") into align_count_output_ch
       file("${fastq_simple_name}_htseq.log") into htseq_log_ch
       file("${fastq_simple_name}_htseq_annote.sam") into htseq_sam_ch
 
