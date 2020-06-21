@@ -34,27 +34,27 @@ fastqc_ch
     .groupBy()
     .subscribe { println it }
 
-process fastqc {
+//process fastqc {
 
-    scratch true
-    executor "slurm"
-    memory "12G"
-    cpus 8
-    beforeScript "ml fastqc"
-    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true, pattern: "*_fastqc.{zip,html}"
+//    scratch true
+//    executor "slurm"
+//    memory "12G"
+//    cpus 8
+//    beforeScript "ml fastqc"
+//    publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true, pattern: "*_fastqc.{zip,html}"
 
-    input:
-        tuple run_directory, reads from fastqc_ch.collect().groupBy()
+//    input:
+//        tuple run_directory, reads from fastqc_ch.collect().groupBy()
 
-    output:
-        file "*_fastqc.{zip,html}"
+//    output:
+//        file "*_fastqc.{zip,html}"
 
-    script:
-      flat_read_list = $reads.flatten()
-      """
-      fastqc --quiet --threads 8 ${flat_read_list}
-      """
-}
+//    script:
+//      flat_read_list = $reads.flatten()
+//      """
+//      fastqc --quiet --threads 8 ${flat_read_list}
+//      """
+//}
 
 // process files in work directory with slurm
 process novoalign {
