@@ -29,7 +29,7 @@ process toScratch {
         """
 }
 
-fastq_filelist_ch.into { fastq_filelist_ch; fastqc }
+fastq_filelist_ch.into { fastq_filelist_ch; fastqc_ch }
 
 process fastqc {
 
