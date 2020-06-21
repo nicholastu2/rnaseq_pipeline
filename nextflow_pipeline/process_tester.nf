@@ -84,7 +84,7 @@ process alignCount {
 
             htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${fastq_simple_name}_sorted_aligned_reads.bam ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
-            sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
             samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
