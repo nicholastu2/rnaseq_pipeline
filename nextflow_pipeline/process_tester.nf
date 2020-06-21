@@ -86,8 +86,6 @@ process novosort {
   executor "slurm"
   memory "12G"
   cpus 8
-  stageInMode "copy"
-  stageOutMode "move"
   beforeScript "ml novoalign"
   beforeScript "ml samtools"
   publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novosort.log"
@@ -103,6 +101,6 @@ process novosort {
 
     script:
       """
-      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates --index 1>${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates --index -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
       """
 }
