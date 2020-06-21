@@ -6,6 +6,7 @@ from glob import glob
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
+from rnaseq_tools.IgvObject import IgvObject
 
 # turn off SettingWithCopyWarning
 pd.options.mode.chained_assignment = None
@@ -322,13 +323,28 @@ class QualityAssessmentObject(StandardData):
         genotype_df = self.query_df[['fastqFileName']]
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # get bamfiles
-        # get bam filepaths
         try:  # TODO: MAKE THIS INTO FUNCTION. clean this up. ugly method of testing whether a list of filepaths has been passed or not. this is for the nextflow pipeline
-            bam_file_paths = [bam_file for bam_file in self.nextflow_list_of_files if
-                              '_sorted_aligned_reads.bam' in bam_file]
+            bam_file_paths = self.annotated_bam_files
         except AttributeError:
             # extract files in directory with given suffix
-            bam_file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, '_sorted_aligned_reads.bam'))
+            bam_file_paths = glob("%s/align/*_sorted_aligned_reads_with_annote.bam" %self.quality_assess_dir_path)  # look in subdirectory align
+        bam_files_dict = {}
+        for bam_file in bam_file_paths:
+            cmd = "samtools view %s | grep ZR:Z:R > tmp.sam" %bam_file
+            utils.executeSubProcess(cmd)
+            get_unique_ids_cmd = 'cut -f1 tmp.sam | uniq| wc -l'
+            num_unique_ids = subprocess.getoutput(get_unique_ids_cmd)
+            bam_basename = utils.pathBaseName(bam_file)
+            bam_simple_name = bam_basename.replace('_sorted_aligned_reads_with_annote', '')
+            bam_files_dict.setdefault(bam_simple_name, {})
+            with open('./tmp.sam', 'r') as sam_file:
+
+    def ineffectivePerturbationIgvShot(self):
+        """
+            create IgvObject and create browser shots
+        """
+        # will need a single wildtype for comparison
+
 
 
 

@@ -152,12 +152,18 @@ class IgvObject(OrganismData):
         genotype_list = []
         wildtype_sample_list = []
         for sample in self.sample_list:
-            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            # TODO: clean this up -- remove .fastq.gz or _read_count.tsv to create the bamfile name
+            bamfile = sample.replace('_read_count.tsv', '')
+            bamfile = bamfile.replace('.fastq.gz', '')
+            bamfile = bamfile + '_sorted_aligned_reads.bam'
             bamfile_fullpath = os.path.join(self.scratch_alignment_source, bamfile)
-            if not os.path.exists(bamfile_fullpath):
-                print(
-                    'bamfile does not exist in scratch_alignment_source %s. Run moveAlignmentFiles first.' % self.scratch_alignment_source)
-                break
+            try:
+                if not os.path.exists(bamfile_fullpath):
+                    raise FileNotFoundError
+            except FileNotFoundError:
+                error_msg = 'bamfile does not exist in scratch_alignment_source %s. Run moveAlignmentFiles first.' % self.scratch_alignment_source
+                self.logger.critical(error_msg)
+                print(error_msg)
             genotype = DatabaseObject.extractValueFromStandardizedQuery(self.standardized_database_df,
                                                                         'COUNTFILENAME', sample, 'GENOTYPE')
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
