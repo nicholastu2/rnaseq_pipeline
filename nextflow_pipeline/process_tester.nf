@@ -32,7 +32,8 @@ process toScratch {
 fastq_ch_tuples = fastqc_ch.collect().groupBy()
 
 process fastqc {
-    echo true
+
+    scratch true
     executor "slurm"
     memory "12G"
     cpus 8
@@ -88,13 +89,16 @@ process novosort {
   cpus 8
   beforeScript "ml novoalign"
   beforeScript "ml samtools"
+  stageInMode "copy"
   publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novosort.log"
+  publishDir "$params.align_count_results/$run_directory/align", mode:"move", overwite: true, pattern: "*_reads.bam.bai"
 
     input:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam) from sam_align_ch
     output:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into sorted_bam_align_ch
       file "${fastq_simple_name}_novosort.log" into novosort_ch
+      file "${fastq_simple_name}_sorted_aligned_reads.bam.bai" into align_index_ch
 
     // check what happens with the --index option
     // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
