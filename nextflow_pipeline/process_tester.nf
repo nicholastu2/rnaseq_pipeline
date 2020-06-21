@@ -40,13 +40,15 @@ process alignCount {
     // afterScript "rm ${fastq_file}" // figure out how to actually delete these
     publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*.log"
     publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
-    publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*sorted_aligned_reads_reads_with_annote.bam.*"
+    publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_sorted_aligned_reads_reads_with_annote.*"
 
 
     input:
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
-        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam")  into bam_align_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam.bai") into bam_index_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into count_ch
         tuple val(run_directory), file("${fastq_simple_name}_novoalign.log") into novoalign_log_ch
         file("${fastq_simple_name}_novosort.log") into novosort_log_ch
 
@@ -103,7 +105,7 @@ process alignCount {
       //assumes /ref/nt_20200330/nt_20200330/ exists on htcf
       script:
         """
-        samtools view ${sorted_alignment_bam_with_annote} | grep __not_aligned | samtools fasta | blastn -query - -db /ref/nt_20200330/nt_20200330/nt -out ${fastq_simple_name}_no_map_blast.tsv -outfmt 6
+        samtools view ${sorted_alignment_bam_with_annote} | grep __not_aligned | samtools fasta | blastn -num_threads 8 -query - -db /ref/nt_20200330/nt_20200330/nt -out ${fastq_simple_name}_no_map_blast.tsv -outfmt 6
         """
 
   }
