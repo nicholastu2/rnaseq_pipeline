@@ -31,13 +31,11 @@ process toScratch {
 // process files in work directory with slurm
 process alignCount {
 
-    scratch true
     executor "slurm"
     cpus 8
     memory "12G"
     beforeScript "ml novoalign samtools htseq"
     stageOutMode "move"
-    // afterScript "rm ${fastq_file}" // figure out how to actually delete these
     publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*.log"
     publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
     publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_sorted_aligned_reads_reads_with_annote.*"
@@ -46,10 +44,11 @@ process alignCount {
     input:
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
-        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam")  into bam_align_ch
-        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam.bai") into bam_index_ch
-        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into count_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_ch
+        file("${fastq_simple_name}_sorted_aligned_reads.bam.bai") into novoindex_ch
         tuple val(run_directory), file("${fastq_simple_name}_novoalign.log"), file("${fastq_simple_name}_novosort.log") into novoalign_log_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into htseq_count_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
 
     script:
         fastq_simple_name = fastq_file.getSimpleName()
