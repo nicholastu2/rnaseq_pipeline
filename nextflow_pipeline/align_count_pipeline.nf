@@ -391,3 +391,51 @@ process failedPerturbedGeneBrowserShot{
 
 
 }
+
+///////////////////////////////////////////////////////////////////////////////
+process convertSamToBam {
+  executor "slurm"
+  memory "12G"
+  beforeScript "ml samtools"
+  stageInMode "copy"
+  stageOutMode "move"
+
+  input:
+    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam) from sam_align_ch
+
+  output:
+    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.bam") into bam_align_ch
+
+  script:
+     """
+     samtools view -bS ${alignment_sam}> ${fastq_simple_name}_aligned_reads.bam
+     """
+}
+
+process novosort {
+  scratch true
+  executor "slurm"
+  memory "12G"
+  cpus 8
+  beforeScript "ml samtools  novoalign"
+  publishDir "$params.align_count_results/$run_directory/align", mode:"move", overwite: true, pattern: "${fastq_simple_name}_sorted_aligned_reads.bam"
+  publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novosort.log"
+  publishDir "$params.align_count_results/$run_directory/align", mode:"move", overwite: true, pattern: "*_reads.bam.bai"
+
+    input:
+      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_bam) from bam_align_ch
+
+    output:
+      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into sorted_bam_align_ch
+      file "${fastq_simple_name}_novosort.log" into novosort_ch
+      //file "${fastq_simple_name}_sorted_aligned_reads.bam.bai" into align_index_ch
+
+    // check what happens with the --index option
+    // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
+
+    script:
+      // --threads 8 --markDuplicates --index
+      """
+      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      """
+}
