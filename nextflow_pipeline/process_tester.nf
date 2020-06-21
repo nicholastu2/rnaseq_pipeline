@@ -44,7 +44,7 @@ process fastqc {
         tuple val(run_directory), values from fastqc_ch.collect().groupBy()
 
     output:
-        file "*_fastqc.{zip,html}"
+        file "*_fastqc.{zip,html}" in fastqc_output
 
     script:
       flat_read_list = $values[0].flatten()
@@ -52,6 +52,8 @@ process fastqc {
       fastqc --quiet --threads 8 ${flat_read_list}
       """
 }
+
+fastqc_output.subscribe.println( it)
 
 // process files in work directory with slurm
 process novoalign {
