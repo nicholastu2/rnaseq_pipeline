@@ -59,9 +59,7 @@ process novoalign {
     cpus 8
     memory "12G"
     beforeScript "ml novoalign"
-    stageInMode "copy"
-    stageOutMode "move"
-    afterScript "rm ${fastq_file}" // figure out how to actually delete these
+    // afterScript "rm ${fastq_file}" // figure out how to actually delete these
 
 
     input:
@@ -90,6 +88,7 @@ process novosort {
   stageInMode "copy"
   stageOutMode "move"
   beforeScript "ml novoalign"
+  beforeScript "ml samtools"
   publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novosort.log"
 
     input:
@@ -103,6 +102,6 @@ process novosort {
 
     script:
       """
-      samtools view -bS ${alignment_sam} | novosort --threads 8 --markDuplicates --index --output - ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      samtools view -bS ${alignment_sam} | novosort --threads 8 --markDuplicates --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
       """
 }
