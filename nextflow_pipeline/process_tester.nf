@@ -39,7 +39,7 @@ process fastqc {
     publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true
 
     input:
-        set run_directory, reads from fastq_ch.collect().groupBy()
+        set run_directory, reads from fastqc_ch.collect().groupBy()
 
     output:
         file "*_fastqc.{zip,html}" into fastqc_results
