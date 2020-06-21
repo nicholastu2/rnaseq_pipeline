@@ -62,7 +62,7 @@ process alignCount {
 
             sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'KN99')
             """
@@ -70,11 +70,11 @@ process alignCount {
             samtools view -bS | \
             novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
-            htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t gene -i ID ${sorted_alignment_bam} ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+            htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t gene -i ID ${fastq_simple_name}_sorted_aligned_reads.bam ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'H99')
             """
@@ -82,10 +82,10 @@ process alignCount {
             samtools view -bS | \
             novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
-            htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${sorted_alignment_bam} ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+            htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${fastq_simple_name}_sorted_aligned_reads.bam ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
   }
