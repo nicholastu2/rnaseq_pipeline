@@ -60,6 +60,7 @@ process novoalign {
     memory "12G"
     beforeScript "ml novoalign"
     // afterScript "rm ${fastq_file}" // figure out how to actually delete these
+    publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novoalign.log"
 
 
     input:
@@ -89,7 +90,7 @@ process novosort {
   stageOutMode "move"
   beforeScript "ml novoalign"
   beforeScript "ml samtools"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novosort.log"
+  publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novosort.log"
 
     input:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam) from sam_align_ch
@@ -102,6 +103,6 @@ process novosort {
 
     script:
       """
-      samtools view -bS ${alignment_sam} | novosort --threads 8 --markDuplicates --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
       """
 }
