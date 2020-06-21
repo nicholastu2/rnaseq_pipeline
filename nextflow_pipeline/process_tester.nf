@@ -21,13 +21,15 @@ process toScratch {
     input:
         tuple val(run_directory), file(fastq_filepath), val(organism), val(strandedness) from fastq_filelist
     output:
-        tuple val(run_directory), file(fastq_filepath), val(organism), val(strandedness) into { fastq_filelist_ch; fastqc_ch }
+        tuple val(run_directory), file(fastq_filepath), val(organism), val(strandedness) into fastq_filelist_ch
         //tuple val(run_directory), file(fastq_filepath) into fastqc_ch
 
     script:
         """
         """
 }
+
+fastq_filelist_ch.into { fastq_filelist_ch; fastqc }
 
 process fastqc {
 
