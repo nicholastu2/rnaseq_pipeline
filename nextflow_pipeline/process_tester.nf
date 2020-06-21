@@ -77,13 +77,13 @@ process novoalign {
         if (organism == 'S288C_R64')
             """
             novoalign -r All -c 8 -o SAM -d ${params.S288C_R64_novoalign_index} -f 2> ${fastq_simple_name}_novoalign.log | \
-            samtools view -bS ${alignment_sam} | \
+            samtools view -bS | \
             novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
             """
         else if (organism == 'KN99')
             """
             novoalign -r All -c 8 -o SAM -d ${params.KN99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \
-            samtools view -bS ${alignment_sam} | \
+            samtools view -bS | \
             novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
             """
 }
