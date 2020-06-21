@@ -60,7 +60,7 @@ process alignCount {
 
             htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t exon ${fastq_simple_name}_sorted_aligned_reads.bam ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
-            sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
             samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
@@ -72,7 +72,7 @@ process alignCount {
 
             htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t gene -i ID ${fastq_simple_name}_sorted_aligned_reads.bam ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
-            sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
             samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
