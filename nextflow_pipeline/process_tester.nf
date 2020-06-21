@@ -127,6 +127,6 @@ process novosort {
     script:
       // --threads 8 --markDuplicates --index
       """
-      novosort ${alignment_bam} -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+      novosort --threads 8 ${alignment_bam} 1>${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
       """
 }
