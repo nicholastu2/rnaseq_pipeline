@@ -53,7 +53,7 @@ process fastqc {
       """
 }
 
-fastqc_output.subscribe.println( it)
+fastqc_output.subscribe { println "value: $it" }
 
 // process files in work directory with slurm
 process novoalign {
