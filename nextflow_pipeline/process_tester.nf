@@ -45,7 +45,6 @@ process alignCount {
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_ch
-        file("${fastq_simple_name}_sorted_aligned_reads.bam.bai") into alignment_index_ch
         tuple val(run_directory), file("${fastq_simple_name}_novoalign.log"), file("${fastq_simple_name}_novosort.log") into novoalign_log_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into htseq_count_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
@@ -80,7 +79,6 @@ process alignCount {
             paste - ${fastq_simple_name}_no_tab_sam.sam | \\
             samtools view -bS -T ${params.S288C_R64_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
 
-            samtools index ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'KN99')
             """
@@ -110,7 +108,6 @@ process alignCount {
             paste - ${fastq_simple_name}_no_tab_sam.sam | \\
             samtools view -bS -T ${params.KN99_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
 
-            samtools index ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'H99')
             """
@@ -138,7 +135,6 @@ process alignCount {
             paste - ${fastq_simple_name}_no_tab_sam.sam | \\
             samtools view -bS -T ${params.H99_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
 
-            samtools index ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
   }
 
