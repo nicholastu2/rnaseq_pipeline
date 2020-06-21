@@ -62,7 +62,7 @@ process alignCount {
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'KN99')
             """
@@ -74,7 +74,7 @@ process alignCount {
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
         else if (organism == 'H99')
             """
@@ -86,6 +86,6 @@ process alignCount {
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
 
-            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+            samtools view ${fastq_simple_name}_sorted_aligned_reads.bam | paste -b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
             """
   }
