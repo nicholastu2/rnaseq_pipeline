@@ -29,6 +29,11 @@ process toScratch {
         """
 }
 
+fastqc_ch
+    .collect()
+    .groupBy()
+    .subscribe { println it }
+
 process fastqc {
 
     scratch true
@@ -39,7 +44,7 @@ process fastqc {
     publishDir "$params.align_count_results/$run_directory/fastqc", mode:"copy", overwite: true, pattern: "*_fastqc.{zip,html}"
 
     input:
-        set run_directory, reads from fastqc_ch.collect().groupBy()
+        tuple run_directory, reads from fastqc_ch.collect().groupBy()
 
     output:
         file "*_fastqc.{zip,html}"
@@ -92,13 +97,12 @@ process htseqCount {
   beforeScript "ml htseq"
   publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
   publishDir "$params.align_count_results/$run_directory/log", mode:"copy", overwite: true, pattern: "*_htseq.log"
-  publishDir "$params.align_count_results/$run_directory/log", mode:"copy", overwite: true, pattern: "*_htseq.log"
 
     input:
       tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(sorted_alignment_bam) from bam_align_ch
 
     output:
-      tuple val(run_directory), file("${fastq_simple_name}_sorted_with_htseq_annote.bam"), file("${fastq_simple_name}_read_count.tsv") into align_count_output_ch
+      tuple val(run_directory), file(sorted_alignment_bam), file("${fastq_simple_name}_read_count.tsv") into align_count_output_ch
       file("${fastq_simple_name}_htseq.log") into htseq_log_ch
       file("${fastq_simple_name}_htseq_annote.sam") into htseq_sam_ch
 
