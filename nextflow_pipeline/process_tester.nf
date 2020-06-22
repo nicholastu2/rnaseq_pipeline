@@ -31,6 +31,7 @@ process toScratch {
 // process files in work directory with slurm
 process alignCount {
 
+    scratch true
     executor "slurm"
     cpus 8
     memory "12G"
@@ -38,7 +39,7 @@ process alignCount {
     stageOutMode "move"
     publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*.log"
     publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
-    publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_sorted_aligned_reads_reads_with_annote.*"
+    publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_sorted_aligned_reads_with_annote.bam"
 
 
     input:
