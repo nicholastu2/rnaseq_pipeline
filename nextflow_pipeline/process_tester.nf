@@ -138,3 +138,27 @@ process alignCount {
 
             """
   }
+
+  process noMapBlast {
+
+      scratch true
+      executor "slurm"
+      cpus 8
+      memory "12G"
+      beforeScript "ml samtools blast-plus"
+      stageOutMode "move"
+      publishDir "$params.align_count_results/$run_directory/no_map_blast_results", mode:"copy", overwite: true, pattern: "*.tsv"
+
+
+      input:
+          tuple val(run_directory), val(fastq_simple_name), file(sorted_alignment_bam_with_annote) from bam_align_ch
+      output:
+          file("${fastq_simple_name}_no_map_blast.tsv") into blast_results_ch
+
+      //assumes /ref/nt_20200330/nt_20200330/ exists on htcf
+      script:
+        """
+        samtools view ${sorted_alignment_bam_with_annote} | grep __not_aligned | samtools fasta | blastn -num_threads 8 -query - -db /ref/nt_20200330/nt_20200330/nt -out ${fastq_simple_name}_no_map_blast.tsv -outfmt 6
+        """
+
+  }
