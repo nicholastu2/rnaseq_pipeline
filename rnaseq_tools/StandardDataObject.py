@@ -163,7 +163,7 @@ class StandardData:
             utils.executeSubProcess(cmd)
 
     def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function
-        """                      # TODO: currently error for genome files incomplete not caught -- prints FileNotFound(OrganismDataNotFound) but doesn't print message in exception. added extra except line rather tahn using or with previous, haven't pushed and tested yet
+        """
             read in OrganismDataConfig.ini from each expected subdir of genome_files and check if the path is valid.
             If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths

@@ -163,6 +163,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                     if column_name not in skip_columns:
                         if logger:
                             logger.info('Column name not found in specs: %s' % (column_name))
+                            logger.info('row for offending column is: %s'%row)
                         nearest_match = \
                         difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
                         colname_inconsistencies_dict.setdefault(nearest_match, column_name)

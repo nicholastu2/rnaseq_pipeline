@@ -64,6 +64,7 @@ def main(argv):
                                      coverage_check_flag=True,
                                      query_path = args.query_sheet_path,
                                      config_file=args.config_file,
+                                     ncRNA_no_rRNA_annote = args.ncRNA_no_rRNA_annote,
                                      interactive=interactive_flag)
         column_order.extend(['GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE'])
     else:
@@ -80,7 +81,7 @@ def main(argv):
     qual_assess_1_df = qa.compileData()
 
     # re_order columns
-    qual_assess_1_df = qual_assess_1_df[column_order]
+    #qual_assess_1_df = qual_assess_1_df[column_order]
 
     print('writing output to %s' % output_path)
     qual_assess_1_df.to_csv(output_path, index_label="FASTQFILENAME")
@@ -96,6 +97,8 @@ def parseArgs(argv):
                         help="[OPTIONAL] For Crypto experiments. Set this flag to add a column to the output dataframe with percent gene coverage")
     parser.add_argument("-qs", "--query_sheet_path",
                         help="[OPTIONAL] But required with -cc is set. Path to query sheet filtered for the files contained in the path passed to -r")
+    parser.add_argument("-nc", "--ncRNA_no_rRNA_annote",
+                        help="[OPTIONAL] path to ncRNA without rRNA annotations included")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file")
