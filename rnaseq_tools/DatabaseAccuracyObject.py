@@ -272,9 +272,9 @@ class metadataSpecificationObject:
                                'libraryDate': date_format,
                                'libraryPreparer': name_format,
                                'librarySampleNumber': int_format,
-                               'index1Name': int_format,
+                               'index1Name': r"Index\d_\d+",
                                'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"^SIC_Index2_\d+$",
+                               'index2Name': r"^SIC_Index2_\d+$|universal|Universal",
                                'index2Sequence': dna_alphabet_format,
                                'libraryProtocol': 'E7420L|E7420L_\d.\d+X',
                                'roboticLibraryPrep': boolean_format}
@@ -288,9 +288,9 @@ class metadataSpecificationObject:
                                      'sequencerModel': sequencer_model_options,
                                      'flowcellType': flowcell_options,
                                      'purpose': purpose_options,
-                                     'tapestationConc': float_format,
-                                     'volumePooled': float_format,
-                                     'readsObtained': int_format,
+                                     'tapestationConc': float_format or None,
+                                     'volumePooled': float_format or None,
+                                     'readsObtained': int_format or None,
                                      'fastqFileName': atleast_one_non_space_format}
 
         # collect above specs into dictionary
