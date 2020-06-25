@@ -27,18 +27,16 @@ def main(argv):
     # read in cmd line args
     args = parseArgs(argv)
     print('...parsing arguments')
-    # if not cluster is passed, create logger in PWD
-    if args.not_cluster:  # TODO: this won't be necessary if the config is set up to create a log directory in an rnaseq_pipeline directory on any machine
-        logger = utils.createStdOutLogger(name='queryDB.py')
-    # if -nc is not passed, assume on HTCF and call StandardData to check/load rnaseq_pipeline file structure and data
-    else:
-        sd = StandardData()
-        sd.standardDirectoryStructure()
-        sd.createStandardDataLogger()
-        logger_path = sd.log_file_path
-        logger = utils.createLogger(logger_path, __name__, sd.logger_level)
-        print('queryDB log can be found at: %s' % logger_path)
-    logger.debug('cmd line arguments are: %s' % args)
+    # store interactive flag
+    try:
+        interactive_flag = args.interactive
+    except AttributeError:
+        interactive_flag = False
+
+    sd = StandardData(config_file=args.config_file, interactive=interactive_flag)
+    sd.standardDirectoryStructure()
+    print('queryDB log can be found at: %s' % sd.log_file_path)
+    sd.logger.debug('cmd line arguments are: %s' % args)
 
     # read in and check cmd line arguments
     database_path = args.database
@@ -53,13 +51,8 @@ def main(argv):
     if output_directory is not None and not os.path.exists(output_directory):
         raise FileNotFoundError('OutputDirectoryDoesNotExist')
     print('...compiling database')
-    # create database object
-    if args.not_cluster:  # see TODO at top regarding logger
-        database_object = DatabaseObject(database_path, filter_json_path=filter_json_path, stdout_logger=True, database_files = database_path)
-    else:
-        # create database object (see rnaseq_tools.DatabaseObject for description of all functions
-        database_object = DatabaseObject(database_path, logger_path=logger_path, filter_json_path=filter_json_path, database_files = database_path)
-        database_object.setDatabaseDataframe()
+    database_object = DatabaseObject(database_path, filter_json_path=filter_json_path, database_files = database_path, config_file=args.config_file, interactive=interactive_flag)
+    database_object.setDatabaseDataframe()
 
     # filter database and print to output_directory, if json is present
     if database_object.filter_json_path is not None:
@@ -82,8 +75,6 @@ def parseArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output_directory', required=True,
                         help='[REQUIRED] Filepath to directory to intended queryDB output')
-    parser.add_argument('-nc', '--not_cluster', action='store_true',
-                        help='[OPTIONAL] Set flag (no input) to use off HTCF')
     parser.add_argument('-d', '--database', default=None,
                         help='[OPTIONAL] Default is database_files in /scratch/mblab/user/rnaseq_pipeline. '
                              'If entered, use topmost directory of metadata database. On cluster, /scratch/mblab/database-files.')
@@ -92,6 +83,12 @@ def parseArgs(argv):
     parser.add_argument('-pf', '--print_full', action='store_true',
                         help='[OPTIONAL] Use this in the absence of -j to print out the full metadata database. The name will be combined_df_[date].csv. \
                          Use it in addition to -j to print out both the query and the full database. Note: simply add -pf. No value is necessary')
+    parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
+                        help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
+                             "Use this flag to replace that config file")
+    parser.add_argument('--interactive', action='store_true',
+                        help="[OPTIONAL] set this flag (only --interactive, no input necessary) to tell StandardDataObject not\n"
+                             "to attempt to look in /lts if on a compute node on the cluster")
 
     return parser.parse_args(argv[1:])
 
