@@ -58,9 +58,11 @@ def main(argv):
     kn99_organism_data = OrganismData(organism='KN99')
     kn99_novoalign_index = kn99_organism_data.novoalign_index
     kn99_annotation_file = kn99_organism_data.annotation_file
+    kn99_genome = kn99_organism_data.genome
     s288c_r64_organism_data = OrganismData(organism='S288C_R64')
     s288c_r64_novoalign_index = s288c_r64_organism_data.novoalign_index
     s288c_r64_annotation_file = s288c_r64_organism_data.annotation_file
+    s288c_r64_genome = s288c_r64_organism_data.genome
 
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
@@ -106,11 +108,14 @@ def main(argv):
                      "\tlog_dir = \"%s\"\n" \
                      "\tKN99_novoalign_index = \"%s\"\n" \
                      "\tKN99_annotation_file = \"%s\"\n" \
+                     "\tKN99_genome = \"%s\"\n" \
                      "\tS288C_R64_novoalign_index = \"%s\"\n" \
                      "\tS288C_R64_annotation_file = \"%s\"\n" \
+                     "\tS288C_R64_genome = \"%s\"\n" \
                      "}\n\n" % (fastq_file_list_output_path, db.lts_sequence, db.scratch_sequence,
                                 db.lts_align_expr, db.align_count_results, db.log_dir, kn99_novoalign_index,
-                                kn99_annotation_file, s288c_r64_novoalign_index, s288c_r64_annotation_file)
+                                kn99_annotation_file, kn99_genome, s288c_r64_novoalign_index, s288c_r64_annotation_file,
+                                s288c_r64_genome)
 
     nextflow_config_path = os.path.join(db.job_scripts, args.name + '_nextflow.config')
     print('...writing nextflow job config file to %s' % nextflow_config_path)
