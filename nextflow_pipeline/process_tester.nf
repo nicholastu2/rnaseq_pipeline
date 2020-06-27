@@ -12,8 +12,7 @@ scratch_sequence = file(params.scratch_sequence)
 
 // move files out of /lts into scratch work directory (make available for slurm)
 process toScratch {
-    // errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    // disk
+
     executor "local"
     stageInMode "copy"
     stageOutMode "move"
@@ -26,21 +25,6 @@ process toScratch {
     script:
         """
         """
-}
-
-process align {
-
-
-}
-
-process filterAlignmentsForNonCoding {
-
-
-}
-
-process htseq-count {
-
-
 }
 
 // process files in work directory with slurm
