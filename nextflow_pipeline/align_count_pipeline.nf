@@ -13,450 +13,8 @@ scratch_sequence = file(params.scratch_sequence)
 // move files out of /lts into scratch work directory (make available for slurm)
 process toScratch {
     // errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    executor "local"
-    stageInMode "copy"
-    stageOutMode "move"
-
-    input:
-        tuple val(run_directory), file(fastq_filepath), val(organism), val(strandedness) from fastq_filelist
-    output:
-        tuple val(run_directory), file(fastq_filepath), val(organism), val(strandedness) into fastq_filelist_ch
-    script:
-        """
-        """
-}
-
-// process files in work directory with slurm
-process novoalign {
-    scratch true
-    executor "slurm"
-    cpus 8
-    memory "12G"
-    beforeScript "ml novoalign"
-    stageInMode "copy"
-    stageOutMode "move"
-    afterScript "rm ${fastq_file}" // figure out how to actually delete these
-
-
-    input:
-        tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
-    output:
-        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.sam"), file("${fastq_simple_name}_novoalign.log") into sam_align_ch
-
-    script:
-        fastq_simple_name = fastq_file.getSimpleName()
-        if (organism == 'S288C_R64')
-            """
-            novoalign -r All -c 8 -o SAM -d ${params.S288C_R64_novoalign_index} -f ${fastq_file} 1> ${fastq_simple_name}_aligned_reads.sam 2> ${fastq_simple_name}_novoalign.log
-            """
-        else if (organism == 'KN99')
-            """
-            novoalign -r All -c 8 -o SAM -d ${params.KN99_novoalign_index} -f ${fastq_file} 1> ${fastq_simple_name}_aligned_reads.sam 2> ${fastq_simple_name}_novoalign.log
-            """
-}
-
-processs splitAlignmentFilesByMappingType {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml samtools"
-  stageInMode "copy"
-  stageOutMode "move"
-  afterScript "rm ${alignment_sam}" // figure out how to actually delete these
-
-
-}
-
-// blast unmapped reads
-process blastUnmapped {
-// convert bam to fasta, blast, publish results immediately
-// use < bamToFasta into blast > blast_results.out
-
-}
-
-// combine this step with novosort
-// update to handle split output
-process convertSamToBam {
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml samtools"
-  stageInMode "copy"
-  stageOutMode "move"
-  afterScript "rm ${alignment_sam}" // fix this to handle split files
-
-  input:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam), file(novoalign_log) from sam_align_ch
-
-  output:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.bam"), file(novoalign_log) into bam_align_ch
-
-  script:
-     """
-     samtools view -bS ${alignment_sam}> ${fastq_simple_name}_aligned_reads.bam
-     """
-}
-
-process novosort {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  cpus 8
-  stageInMode "copy"
-  stageOutMode "move"
-  beforeScript "ml novoalign"
-
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_bam), file(novoalign_log) from bam_align_ch
-    output:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(novoalign_log), file("${fastq_simple_name}_sorted_aligned_reads.bam"), file("${fastq_simple_name}_novosort.log") into sorted_bam_align_ch
-
-    // check what happens with the --index option
-    // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
-
-    script:
-      """
-      novosort --threads 8 --markDuplicates ${alignment_bam} --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-      """
-}
-
-// needs to be updated to output the --out bam info
-process htseqCount {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  stageInMode "copy"
-  stageOutMode "move"
-  beforeScript "ml htseq"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novoalign.log"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novosort.log"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_sorted_aligned_reads.bam"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_read_count.tsv"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_htseq.log"
-
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(novoalign_log), file(sorted_alignment_bam), file(novosort_log) from sorted_bam_align_ch
-    output:
-      tuple file(novoalign_log), file(novosort_log), file(sorted_alignment_bam), file("${fastq_simple_name}_read_count.tsv"), file("${fastq_simple_name}_htseq.log") into align_count_output_ch
-      tuple val(run_directory), val(organism) into pipeline_info_ch
-
-    script:
-    // note: this is set for gff3 format. eg: (tab delimited)
-    // CP022321.1	EuPathDB	exon	1767728	1768158	.	+	.	ID=exon_CKF44_00681-E1;Parent=CKF44_00681-t42_2,CKF44_00681-t42_1
-    // hence -t exon -i ID
-      if (organism == 'KN99')
-        """
-        htseq-count -f bam -s ${strandedness} -t exon -i Parent --additional-attr ID ${sorted_alignment_bam} ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        """
-      else if (organism == 'S288C_R64')
-        """
-        htseq-count -f bam -s $strandedness -t gene -i ID ${sorted_alignment_bam} ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        """
-      else if (organism == 'H99')
-        """
-        htseq-count -f bam -s $strandedness -t exon -i gene_id ${sorted_alignment_bam} ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        """
-      else
-        error "Invalid Organism"
-
-}
-
-process perturbedCDSCoverage{
-// input runNumber, fastq simple name, genotype
-// create bed file
-// calculate coverage
-// how output?
-
-}
-
-process qualityAssessBrowserShots{
-// triggered by coverage
-}
-
-process featureToBam{
-//input tracer data + sorted bam
-// output tracer data + sorted_bam_plus_features
-
-}
-
-// need novoalign_log here
-process qualityAssess1 {
-
-// input novoalign_log, htseq_count output and with_feature_aligned_bam
-
-}
-
-process writePipelineInfo {
-
-// mod file, genome, nextflow info
-
-   executor "local"
-   publishDir "$params.align_count_results/$run_directory/${organism}_pipeline_info", mode:"move", overwite: true
-
-  input:
-    tuple val(run_directory), val(organism) from pipeline_info_ch
-  output:
-    file "*"
-
-  //      echo 'pipeline_info_goes_here' > pipeline_info.txt
-
-  script:
-      """
-      mkdir ${params.align_count_results}/${run_directory}/${organism}_pipeline_info
-      """
-}
-
-
-process fastqc {
-    input:
-        tuple val(containing_directory), file(fastq_list) from samples_channel
-
-    script:
-    """
-    echo your_command --sample $sampleId --reads $read1 $read2
-    """
-}
-
-process multi_qc {
-    input:
-    set sampleId, file(read1), file(read2) from samples_channel
-
-    script:
-    """
-    echo your_command --sample $sampleId --reads $read1 $read2
-    """
-}
-
-process qualimap {
-    input:
-    set sampleId, file(read1), file(read2) from samples_channel
-
-    script:
-    """
-    echo your_command --sample $sampleId --reads $read1 $read2
-    """
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-
-// blast unmapped reads
-process blastUnmapped {
-// convert bam to fasta, blast, publish results immediately
-// use < bamToFasta into blast > blast_results.out
-
-}
-
-process novosort {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  cpus 8
-  stageInMode "copy"
-  stageOutMode "move"
-  beforeScript "ml novoalign"
-  //publishDir --> just publish novosort_log now
-
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam), file(novoalign_log) from sam_align_ch
-    output:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(novoalign_log), file("${fastq_simple_name}_sorted_aligned_reads.bam"), file("${fastq_simple_name}_novosort.log") into sorted_bam_align_ch
-
-    // check what happens with the --index option
-    // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
-
-    script:
-      """
-      samtools view -bS ${alignment_sam} | novosort --threads 8 --markDuplicates --index --output ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-      """
-}
-
-// needs to be updated to output the --out bam info
-process htseqCount {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  stageInMode "copy"
-  stageOutMode "move"
-  beforeScript "ml htseq"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novoalign.log"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_novosort.log"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_sorted_aligned_reads.bam"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_read_count.tsv"
-  publishDir "$params.align_count_results/$run_directory", mode:"move", overwite: true, pattern: "*_htseq.log"
-
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(novoalign_log), file(sorted_alignment_bam), file(novosort_log) from sorted_bam_align_ch
-    output:
-      tuple file(novoalign_log), file(novosort_log), file(${fastq_simple_name}_sorted_with_htseq_annote.bam), file("${fastq_simple_name}_read_count.tsv"), file("${fastq_simple_name}_htseq.log") into align_count_output_ch
-      tuple val(run_directory), val(organism) into pipeline_info_ch
-
-    script:
-    // note: this is set for gff3 format. eg: (tab delimited)
-    // CP022321.1	EuPathDB	exon	1767728	1768158	.	+	.	ID=exon_CKF44_00681-E1;Parent=CKF44_00681-t42_2,CKF44_00681-t42_1
-    // hence -t exon -i ID
-      if (organism == 'KN99')
-        """
-        // quantify
-        htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t exon -i Parent --additional-attr ID ${sorted_alignment_bam} ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-
-
-        samtools view ${sorted_alignment_bam}
-        """
-      else if (organism == 'S288C_R64')
-        """
-        htseq-count -f bam -s ${strandedness} -t gene -i ID ${sorted_alignment_bam} ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        """
-      else if (organism == 'H99')
-        """
-        htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${sorted_alignment_bam} ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        """
-      else
-        error "Invalid Organism"
-
-}
-
-process featureToBam{
-//input tracer data + sorted bam
-// output tracer data + sorted_bam_plus_features
-
-}
-
-// collapse parent to gene eg CKF44_00681
-process KN99TranscriptToGene {
-
-}
-
-process qualAssess1 {
-
-  scratch true
-  executor "slurm"
-  memory "12G"
-  stageInMode "copy"
-  stageOutMode "move"
-  executor "slurm"
-  beforeScript "ml rnaseq_pipeline"
-  // write everything out
-
-  input:
-     // collect logs, alignment, htseq output gather by run runNumber from input_ch.collect().groupTuple()
-
-  output:
-      // everything + quality assess
-
-  script:
-      // overall quality check
-      """
-      #!/usr/bin/env python
-
-      from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
-
-      # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-      column_order = ['LIBRARY_SIZE', 'TOTAL_ALIGNMENT', 'UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NO_MAP', 'HOMOPOLY_FILTER',
-                      'READ_LENGTH_FILTER', 'NOT_ALIGNED_TOTAL', 'WITH_FEATURE', 'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE',
-                      'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']
-
-      # create QualityAssessmentObject (see rnaseq_tools in rnaseq_pipeline repo)
-      qa = QualityAssessmentObject(nextflow_list_of_files=${bam_files} + ${log_files} + {htseq_counts},
-                                   log_suffix_list=["_novoalign.log", "_read_count.tsv"],
-                                   coverage_check_flag=True,
-                                   query_path = ${query_path},
-                                   interactive=True)
-                                   print('...compiling alignment information')
-
-      # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-      qual_assess_1_df = qa.compileData()
-
-      # re_order columns
-      qual_assess_1_df = qual_assess_1_df[column_order]
-
-      # write out (name can be generic -- stored in unique work directory)
-      qual_assess_1_df.to_csv('quality_assess_1.csv', index_label = 'FASTQFILENAME')
-
-      """
-      // multi map qc
-      """
-      #!/usr/bin/env python
-
-      from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
-      """
-      // send no maps to blast
-      """
-      """
-}
-
-
-process failedPerturbedGeneBrowserShot{
-
-
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-process convertSamToBam {
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml samtools"
-  stageInMode "copy"
-  stageOutMode "move"
-
-  input:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_sam) from sam_align_ch
-
-  output:
-    tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_aligned_reads.bam") into bam_align_ch
-
-  script:
-     """
-     samtools view -bS ${alignment_sam}> ${fastq_simple_name}_aligned_reads.bam
-     """
-}
-
-process novosort {
-  scratch true
-  executor "slurm"
-  memory "12G"
-  cpus 8
-  beforeScript "ml samtools  novoalign"
-  publishDir "$params.align_count_results/$run_directory/align", mode:"move", overwite: true, pattern: "${fastq_simple_name}_sorted_aligned_reads.bam"
-  publishDir "$params.align_count_results/$run_directory/logs", mode:"move", overwite: true, pattern: "*_novosort.log"
-  publishDir "$params.align_count_results/$run_directory/align", mode:"move", overwite: true, pattern: "*_reads.bam.bai"
-
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(alignment_bam) from bam_align_ch
-
-    output:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into sorted_bam_align_ch
-      file "${fastq_simple_name}_novosort.log" into novosort_ch
-      //file "${fastq_simple_name}_sorted_aligned_reads.bam.bai" into align_index_ch
-
-    // check what happens with the --index option
-    // see http://www.novocraft.com/documentation/novosort-2/ for novosort options
-
-    script:
-      // --threads 8 --markDuplicates --index
-      """
-      samtools view -bS ${alignment_sam} | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-      """
-}
-
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#!/usr/bin/env nextflow
-
-// split columns/rows of fastq_file_list for processing
-Channel
-    .fromPath(params.fastq_file_list)
-    .splitCsv(header:true)
-    .map{row-> tuple(row.runDirectory, file(row.fastqFileName), row.organism, row.strandedness) }
-    .set { fastq_filelist }
-
-
-scratch_sequence = file(params.scratch_sequence)
-
-// move files out of /lts into scratch work directory (make available for slurm)
-process toScratch {
-    // errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     // disk
+    scratch true
     executor "local"
     stageInMode "copy"
     stageOutMode "move"
@@ -472,78 +30,136 @@ process toScratch {
 }
 
 // process files in work directory with slurm
-process novoalign {
+process alignCount {
 
     scratch true
     executor "slurm"
     cpus 8
     memory "12G"
-    beforeScript "ml novoalign samtools"
+    beforeScript "ml novoalign samtools htseq"
     stageOutMode "move"
-    // afterScript "rm ${fastq_file}" // figure out how to actually delete these
-    publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*_novo*.log"
+    publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*.log"
+    publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
+    publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_sorted_aligned_reads_with_annote.bam"
 
 
     input:
         tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist_ch
     output:
-        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into bam_align_ch
-        tuple val(run_directory), file("${fastq_simple_name}_novoalign.log") into novoalign_log_ch
-        file("${fastq_simple_name}_novosort.log") into novosort_log_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_ch
+        tuple val(run_directory), file("${fastq_simple_name}_novoalign.log"), file("${fastq_simple_name}_novosort.log") into novoalign_log_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into htseq_count_ch
+        tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
 
     script:
         fastq_simple_name = fastq_file.getSimpleName()
         if (organism == 'S288C_R64')
             """
-            novoalign -r All -c 8 -o SAM -d ${params.S288C_R64_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | samtools view -bS | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+            novoalign -r All \\
+                      -c 8 \\
+                      -o SAM \\
+                      -d ${params.S288C_R64_novoalign_index} \\
+                      -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \\
+            samtools view -bS | \\
+            novosort - \\
+                     --threads 8 \\
+                     --markDuplicates \\
+                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+
+            htseq-count -f bam \\
+                        -o ${fastq_simple_name}_htseq_annote.sam \\
+                        -s ${strandedness} \\
+                        -t gene \\
+                        -i ID \\
+                        ${fastq_simple_name}_sorted_aligned_reads.bam \\
+                        ${params.S288C_R64_annotation_file} \\
+                        1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_no_tab_sam.sam
+
+            samtools view --threads 8 ${fastq_simple_name}_sorted_aligned_reads.bam | \\
+            paste - ${fastq_simple_name}_no_tab_sam.sam | \\
+            samtools view --threads 8 -bS -T ${params.S288C_R64_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+
             """
         else if (organism == 'KN99')
             """
-            novoalign -r All -c 8 -o SAM -d ${params.KN99_novoalign_index} -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | samtools view -bS | novosort - --threads 8 --markDuplicates -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+            novoalign -r All \\
+                      -c 8 \\
+                      -o SAM \\
+                      -d ${params.KN99_novoalign_index} \\
+                      -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \\
+            samtools view -bS | \\
+            novosort - \\
+                     --threads 8 \\
+                     --markDuplicates \\
+                     --index \\
+                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+
+            htseq-count -f bam \\
+                        -o ${fastq_simple_name}_htseq_annote.sam \\
+                        -s ${strandedness} \\
+                        -t exon \\
+                        ${fastq_simple_name}_sorted_aligned_reads.bam \\
+                        ${params.KN99_annotation_file} \\
+                        1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_no_tab_sam.sam
+
+            samtools view --threads 8 ${fastq_simple_name}_sorted_aligned_reads.bam | \\
+            paste - ${fastq_simple_name}_no_tab_sam.sam | \\
+            samtools view --threads 8 -bS -T ${params.KN99_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+
             """
-}
+        else if (organism == 'H99')
+            """
+            novoalign -r All \\
+                      -c 8 \\
+                      -o SAM \\
+                      -d ${params.H99_novoalign_index} \\
+                      -f ${fastq_file} \\
+                      2> ${fastq_simple_name}_novoalign.log | \\
+            samtools view -bS | \\
+            novosort - \\
+                     --threads 8 \\
+                     --markDuplicates \\
+                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
 
-process htseqCount {
+            htseq-count -f bam \\
+                        -s ${strandedness} \\
+                        -t exon \\
+                        ${fastq_simple_name}_sorted_aligned_reads.bam ${params.H99_annotation_file} \\
+                        1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
-  scratch true
-  executor "slurm"
-  memory "12G"
-  beforeScript "ml htseq"
-  publishDir "$params.align_count_results/$run_directory/count", mode:"copy", overwite: true, pattern: "*_read_count.tsv"
-  publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*_htseq.log"
-  publishDir "$params.align_count_results/$run_directory/align", mode:"copy", overwite: true, pattern: "*_reads.bam.*"
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_no_tab_sam.sam
 
-    input:
-      tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file(sorted_alignment_bam) from bam_align_ch
+            samtools view --threads 8 ${fastq_simple_name}_sorted_aligned_reads.bam | \\
+            paste - ${fastq_simple_name}_no_tab_sam.sam | \\
+            samtools view --threads 8 -bS -T ${params.H99_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
 
-    output:
-      tuple val(run_directory), file(sorted_alignment_bam), file("${fastq_simple_name}_read_count.tsv") into align_count_output_ch
-      file("${fastq_simple_name}_htseq.log") into htseq_log_ch
-      file("${fastq_simple_name}_htseq_annote.sam") into htseq_sam_ch
+            """
+  }
 
-    script:
-    // note: this is set for gff3 format. eg: (tab delimited)
-    // CP022321.1	EuPathDB	exon	1767728	1768158	.	+	.	ID=exon_CKF44_00681-E1;Parent=CKF44_00681-t42_2,CKF44_00681-t42_1
-    // hence -t exon -i ID
-      if (organism == 'KN99')
-        """
-        htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t exon ${sorted_alignment_bam} ${params.KN99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
-        samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
-        """
-      else if (organism == 'S288C_R64')
-        """
-        htseq-count -f bam -o ${fastq_simple_name}_htseq_annote.sam -s ${strandedness} -t gene -i ID ${sorted_alignment_bam} ${params.S288C_R64_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
-        samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
-        """
-      else if (organism == 'H99')
-        """
-        htseq-count -f bam -s ${strandedness} -t exon -i gene_id ${sorted_alignment_bam} ${params.H99_annotation_file} 1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
-        sed '/\t//' ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_htseq_annote.sam
-        samtools view ${sorted_alignment_bam} | paste - b > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
-        """
-      else
-        error "Invalid Organism"
+  process noMapBlast {
 
-}
+      scratch true
+      executor "slurm"
+      cpus 8
+      memory "12G"
+      beforeScript "ml samtools blast-plus"
+      stageOutMode "move"
+      publishDir "$params.align_count_results/$run_directory/no_map_blast_results", mode:"copy", overwite: true, pattern: "*.tsv"
+
+
+      input:
+          tuple val(run_directory), val(fastq_simple_name), file(sorted_alignment_bam_with_annote) from bam_align_ch
+      output:
+          file("${fastq_simple_name}_no_map_blast.tsv") into blast_results_ch
+
+      //assumes /ref/nt_20200330/nt_20200330/ exists on htcf
+      script:
+        """
+        samtools view ${sorted_alignment_bam_with_annote} | grep __not_aligned | samtools fasta | blastn -num_threads 8 -query - -db /ref/nt_20200330/nt_20200330/nt -out ${fastq_simple_name}_no_map_blast.tsv -outfmt 6
+        """
+
+  }

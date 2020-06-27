@@ -33,7 +33,7 @@ class StandardData:
         # these run numbers have leading zeros in either/or the database or lts_align_expr. See -lz in create_experiment.py input options
         self._run_numbers_with_zeros = {641: '0641', 647: '0647', 648: '0648', 659: '0659', 673: '0673', 674: '0674',
                                         684: '0684', 731: '0731', 748: '0748', 759: '0759', 769: '0769', 773: '0773',
-                                        779: '0779'}
+                                        779: '0779', 711: '0711_5_0718_7', 718: '0711_5_0718_7'}
 
         # list of organisms with configured subdirectory in genome_files
         self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
@@ -204,3 +204,11 @@ class StandardData:
         except NameError:
             print('cannot set logger without specifying log_file_path in StandardDataObject/child and self.standardDirectoryStructure()')
             exit(1)
+
+    @staticmethod
+    def returnRunNumber(run_number):
+        """
+            input run number. if it si in the _run_numbers_with_leading_zero dict, then return a string with the leading
+            zero
+        """
+        raise NotImplementedError

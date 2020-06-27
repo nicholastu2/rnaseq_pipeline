@@ -175,7 +175,11 @@ class DatabaseObject(StandardData):
         else:
             try:
                 self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
-            except FileNotFoundError or ValueError:
+            except FileNotFoundError:
+                print('problem with json')
+                self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
+            except ValueError:
+                print('problem with json')
                 self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
 
     def dropRowsIfEmptyFastqFilename(self):
