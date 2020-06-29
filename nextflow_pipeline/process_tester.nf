@@ -30,10 +30,9 @@ process toScratch {
 // process files in work directory with slurm
 process alignCount {
 
-    scratch true
     executor "slurm"
     cpus 8
-    memory "12G"
+    memory "20G"
     beforeScript "ml novoalign samtools htseq"
     stageInMode "copy"
     stageOutMode "move"
@@ -99,6 +98,7 @@ process alignCount {
                         -o ${fastq_simple_name}_htseq_annote.sam \\
                         -s ${strandedness} \\
                         -t exon \\
+                        -i gene \\
                         ${fastq_simple_name}_sorted_aligned_reads.bam \\
                         ${params.KN99_annotation_file} \\
                         1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
