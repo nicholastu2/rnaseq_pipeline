@@ -57,8 +57,6 @@ process novoalign {
                      --markDuplicates \\
                      --index \\
                      -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-
-            """
             """
         else if (organism == 'H99')
             """
