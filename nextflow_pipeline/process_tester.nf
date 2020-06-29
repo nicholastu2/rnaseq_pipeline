@@ -30,6 +30,7 @@ process toScratch {
 // process files in work directory with slurm
 process alignCount {
 
+    scratch true
     executor "slurm"
     cpus 8
     memory "20G"
