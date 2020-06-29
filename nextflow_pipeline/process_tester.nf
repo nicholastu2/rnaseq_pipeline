@@ -97,7 +97,6 @@ process htseq_count {
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
 
     script:
-        fastq_simple_name = fastq_file.getSimpleName()
         if (organism == 'S288C_R64')
             """
             htseq-count -f bam \\
