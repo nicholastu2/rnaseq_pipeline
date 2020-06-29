@@ -35,22 +35,32 @@ def main(argv):
     db = DatabaseObject(query_sheet_path=query_sheet_path, config_file=args.config_file, interactive=interactive_flag)
     # read in dataframe
     db.query_df = utils.readInDataframe(db.query_sheet_path)
+    # add column organism which identifies either KN99 or S288C_R64 depending on whether genotype starts with CNAG
+    # TODO: this is point of weakness -- need to keep an eye here
     db.query_df['organism'] = np.where(db.query_df['genotype'].str.startswith('CNAG'), 'KN99', 'S288C_R64')
+    # cast libraryDate to datetime format
     db.query_df['libraryDate'] = pd.to_datetime(db.query_df['libraryDate'])
+    # create strandedness column based on libraryDate. May change to prep protocol at some point, but for now this is best
     db.query_df['strandedness'] = np.where(db.query_df['libraryDate'] > '2015-10-25', 'reverse', 'no')
     # add leading zero to runNumber, if necessary
     db.query_df['runNumber'] = db.query_df['runNumber'].astype(str)
     # new dictionary to store run_directory in dataframe
     run_directory_list = []
     for index, row in db.query_df.iterrows():
+        # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
+        # this step adds the zero and casts the row to str
         if int(row['runNumber']) in (db._run_numbers_with_zeros):
             run_number = str(db._run_numbers_with_zeros[int(row['runNumber'])])
         else:
             run_number = str(row['runNumber'])
+        # create run directory name, eg run_1234_samples
         run_directory = 'run_' + run_number + '_samples'
+        # add to list
         run_directory_list.append(run_directory)
+        # create fastqfilename path
         fastq_filename = os.path.basename(row['fastqFileName'])
         fastq_scratch_path = os.path.join(db.scratch_sequence, run_directory, fastq_filename)
+        # move fastq file to scratch if it is not already tehre
         if not os.path.exists(fastq_scratch_path):
             fastq_lts_path = os.path.join(db.lts_sequence, run_directory, fastq_filename)
             scratch_run_directory_path = os.path.join(db.scratch_sequence, run_directory)
@@ -58,13 +68,18 @@ def main(argv):
             print('...moving %s to %s' %(fastq_lts_path, scratch_run_directory_path))
             rsync_cmd = 'rsync -aHv %s %s' %(fastq_lts_path, scratch_run_directory_path)
             utils.executeSubProcess(rsync_cmd)
+        # update fastqFileName in query_df
         db.query_df.loc[index, 'fastqFileName'] = fastq_scratch_path
+    # add column runDirectory from run_directory_list
     db.query_df['runDirectory'] = run_directory_list
 
     # use OrganismDataObject to get paths to novoalign_index and annotation files
     kn99_organism_data = OrganismData(organism='KN99')
     kn99_novoalign_index = kn99_organism_data.novoalign_index
+    # this is annotations + nc, t, r RNA with nc,t,r RNA annotations overlapping with protein coding ON SAME STRAND removed. rRNA retained
     kn99_annotation_file = kn99_organism_data.annotation_file
+    # this is annotations + nc, t, r RNA with nc,t,r RNA annotations overlapping protein coding removed regardless of strand. rRNA retained
+    kn99_annotation_file_no_strand = kn99_organism_data.annotation_file_no_strand
     kn99_genome = kn99_organism_data.genome
     s288c_r64_organism_data = OrganismData(organism='S288C_R64')
     s288c_r64_novoalign_index = s288c_r64_organism_data.novoalign_index
@@ -121,13 +136,14 @@ def main(argv):
                      "\tlog_dir = \"%s\"\n" \
                      "\tKN99_novoalign_index = \"%s\"\n" \
                      "\tKN99_annotation_file = \"%s\"\n" \
+                     "\tKN99_annotation_file_no_strand = \"%s\"\n" \
                      "\tKN99_genome = \"%s\"\n" \
                      "\tS288C_R64_novoalign_index = \"%s\"\n" \
                      "\tS288C_R64_annotation_file = \"%s\"\n" \
                      "\tS288C_R64_genome = \"%s\"\n" \
                      "}\n\n" % (fastq_file_list_output_path, db.lts_sequence, db.scratch_sequence,
                                 db.lts_align_expr, db.align_count_results, db.log_dir, kn99_novoalign_index,
-                                kn99_annotation_file, kn99_genome, s288c_r64_novoalign_index, s288c_r64_annotation_file,
+                                kn99_annotation_file, kn99_annotation_file_no_strand, kn99_genome, s288c_r64_novoalign_index, s288c_r64_annotation_file,
                                 s288c_r64_genome)
 
     nextflow_config_path = os.path.join(db.job_scripts, args.name + '_nextflow.config')

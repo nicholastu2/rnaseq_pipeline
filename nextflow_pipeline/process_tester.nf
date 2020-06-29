@@ -80,7 +80,7 @@ process alignCount {
             samtools view --threads 8 -bS -T ${params.S288C_R64_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
 
             """
-        else if (organism == 'KN99')
+        else if (organism == 'KN99' && strandedness == 'reverse')
             """
             novoalign -r All \\
                       -c 8 \\
@@ -101,6 +101,36 @@ process alignCount {
                         -i gene \\
                         ${fastq_simple_name}_sorted_aligned_reads.bam \\
                         ${params.KN99_annotation_file} \\
+                        1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
+
+            sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_no_tab_sam.sam
+
+            samtools view --threads 8 ${fastq_simple_name}_sorted_aligned_reads.bam | \\
+            paste - ${fastq_simple_name}_no_tab_sam.sam | \\
+            samtools view --threads 8 -bS -T ${params.KN99_genome} > ${fastq_simple_name}_sorted_aligned_reads_with_annote.bam
+
+            """
+        else if (organism == 'KN99' && strandedness == 'no')
+            """
+            novoalign -r All \\
+                      -c 8 \\
+                      -o SAM \\
+                      -d ${params.KN99_novoalign_index} \\
+                      -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \\
+            samtools view -bS | \\
+            novosort - \\
+                     --threads 8 \\
+                     --markDuplicates \\
+                     --index \\
+                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
+
+            htseq-count -f bam \\
+                        -o ${fastq_simple_name}_htseq_annote.sam \\
+                        -s ${strandedness} \\
+                        -t exon \\
+                        -i gene \\
+                        ${fastq_simple_name}_sorted_aligned_reads.bam \\
+                        ${params.KN99_annotation_file_no_strand} \\
                         1> ${fastq_simple_name}_read_count.tsv 2> ${fastq_simple_name}_htseq.log
 
             sed "s/\t//" ${fastq_simple_name}_htseq_annote.sam > ${fastq_simple_name}_no_tab_sam.sam
