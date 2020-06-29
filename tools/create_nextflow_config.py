@@ -50,9 +50,15 @@ def main(argv):
         run_directory = 'run_' + run_number + '_samples'
         run_directory_list.append(run_directory)
         fastq_filename = os.path.basename(row['fastqFileName'])
-        fastq_fullpath = os.path.join(db.lts_sequence, run_directory, fastq_filename)
-        db.query_df.loc[index, 'fastqFileName'] = fastq_fullpath
-    db.query_df['runDirectory'] = run_directory_list
+        fastq_scratch_path = os.path.join(db.scratch_sequence, run_directory, fastq_filename)
+        if not os.path.exists(fastq_scratch_path):
+            fastq_lts_path = fastq_fullpath = os.path.join(db.lts_sequence, run_directory, fastq_filename)
+            scratch_run_directory_path = os.path.join(db.scratch_sequence, run_directory)
+            utils.mkdirp(scratch_run_directory_path)
+            print('...moving %s to %s' %(fastq_lts_path, scratch_run_directory_path))
+            rsync_cmd = 'rsync -aHv %s %s' %(fastq_lts_path, scratch_run_directory_path)
+            utils.executeSubProcess(rsync_cmd)
+        db.query_df.loc[index, 'fastqFileName'] = fastq_scratch_path
 
     # use OrganismDataObject to get paths to novoalign_index and annotation files
     kn99_organism_data = OrganismData(organism='KN99')
@@ -66,6 +72,12 @@ def main(argv):
 
     # filter
     nextflow_fastqfile_df = db.query_df[['runDirectory', 'fastqFileName', 'organism', 'strandedness']]
+    for index, row in nextflow_fastqfile_df.iterrows():
+        try:
+            if not os.path.isfile(row['fastqFileName']):
+                raise FileNotFoundError('fastqFileNotFoundInScratch')
+        except FileNotFoundError:
+            print('file %s was not successfully moved from lts to scratch' %row['fastqFileName'])
     print('\nnextflow fastq file .csv head:\n')
     print(nextflow_fastqfile_df.head())
     print('\n')

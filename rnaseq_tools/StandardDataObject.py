@@ -139,6 +139,8 @@ class StandardData:
             except FileNotFoundError:
                 print('WARNING: The source of %s does not exist and are not accessible. In the future, it is better to include the flag\n'
                       'interactive=True in the constructor of a StandardData object when you are in an interactive session.' %lts_dirs_to_softlink)
+                setattr(self, 'lts_align_expr', os.path.join(self.user_rnaseq_pipeline_directory, 'lts_align_expr'))
+                setattr(self, 'lts_sequence', os.path.join(self.user_rnaseq_pipeline_directory, 'lts_sequence'))
             # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
             # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
             self.setGenomeFiles()
