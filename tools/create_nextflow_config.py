@@ -52,13 +52,14 @@ def main(argv):
         fastq_filename = os.path.basename(row['fastqFileName'])
         fastq_scratch_path = os.path.join(db.scratch_sequence, run_directory, fastq_filename)
         if not os.path.exists(fastq_scratch_path):
-            fastq_lts_path = fastq_fullpath = os.path.join(db.lts_sequence, run_directory, fastq_filename)
+            fastq_lts_path = os.path.join(db.lts_sequence, run_directory, fastq_filename)
             scratch_run_directory_path = os.path.join(db.scratch_sequence, run_directory)
             utils.mkdirp(scratch_run_directory_path)
             print('...moving %s to %s' %(fastq_lts_path, scratch_run_directory_path))
             rsync_cmd = 'rsync -aHv %s %s' %(fastq_lts_path, scratch_run_directory_path)
             utils.executeSubProcess(rsync_cmd)
         db.query_df.loc[index, 'fastqFileName'] = fastq_scratch_path
+    db.query_df['runDirectory'] = run_directory_list
 
     # use OrganismDataObject to get paths to novoalign_index and annotation files
     kn99_organism_data = OrganismData(organism='KN99')
