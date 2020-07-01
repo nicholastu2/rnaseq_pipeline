@@ -153,7 +153,7 @@ def main(argv):
         nextflow_config_file.write(params_section)
     print('\nDone. To align/count these files, first enter an interactive session by entering:\n\tinteractive')
     print('\nNext, Run the job with:\n'
-          '\tnextflow -C %s run align_count_pipeline.nf\n' % nextflow_config_path)
+          '\tnextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n' % nextflow_config_path)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
