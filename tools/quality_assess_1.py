@@ -5,6 +5,7 @@ import argparse
 from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
 from rnaseq_tools import utils
 
+
 def main(argv):
     # parse cmd line arguments
     print('...parsing cmd line input')
@@ -44,47 +45,53 @@ def main(argv):
     except AttributeError:
         interactive_flag = False
 
-    # TODO: ERROR CHECKING FOR GENOTYPE CHECK
+    # TODO: move this into qual_assess_1? Provide optional options to enter bam file, count file and log file patterns?
+    # extract bam file names
+    bam_list = utils.extractFiles(align_count_path, '.bam')
+    # extract novoalign logs
+    novoalign_logs = utils.extractFiles(align_count_path, 'novoalign.log')
+    # extract count file list
+    count_list = utils.extractFiles(align_count_path, 'read_count.tsv')
+    if len(bam_list) != len(count_list) or len(bam_list) != len(novoalign_logs):
+        sys.exit('The number of bam_files, count_files and/or log_files does not match. Check file contents')
 
     # create filename
     quality_assessment_filename = "run_{}_quality_summary.csv".format(run_number)
     output_path = os.path.join(output_directory, quality_assessment_filename)
 
     # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-    column_order = ['LIBRARY_SIZE', 'TOTAL_ALIGNMENT', 'UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NO_MAP', 'HOMOPOLY_FILTER',
-                    'READ_LENGTH_FILTER', 'NOT_ALIGNED_TOTAL', 'WITH_FEATURE', 'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE',
-                    'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL']
+    column_order = ['TOTAL_LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NOT_ALIGNED_TOTAL',
+                    'HOMOPOLY_FILTER', 'READ_LENGTH_FILTER', 'WITH_FEATURE', 'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE',
+                    'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL', 'INTERGENIC_COVERAGE']
     # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
     if args.coverage_check:
-        qa = QualityAssessmentObject(quality_assess_dir_path=align_count_path,
-                                     log_suffix_list=["_novoalign.log", "_read_count.tsv"],
-                                     run_number=run_number,
-                                     output_dir=args.output_dir,
-                                     quality_assessment_filename=quality_assessment_filename,
+        qa = QualityAssessmentObject(bam_file_list=bam_list,
+                                     count_file_list=count_list,
+                                     novoalign_log_list=novoalign_logs,
                                      coverage_check_flag=True,
-                                     query_path = args.query_sheet_path,
+                                     query_path=args.query_sheet_path,
                                      config_file=args.config_file,
-                                     ncRNA_no_rRNA_annote = args.ncRNA_no_rRNA_annote,
                                      interactive=interactive_flag)
+        # add coverage columns to column_order
         column_order.extend(['GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE'])
     else:
-        qa = QualityAssessmentObject(quality_assess_dir_path=align_count_path,
-                                     log_suffix_list=["_novoalign.log", "_read_count.tsv"],
-                                     run_number=run_number,
+        qa = QualityAssessmentObject(bam_file_list=bam_list,
+                                     count_file_list=count_list,
+                                     novoalign_log_list=novoalign_logs,
                                      output_dir=args.output_dir,
-                                     quality_assessment_filename=quality_assessment_filename,
                                      config_file=args.config_file,
                                      interactive=interactive_flag)  # note: config_file is error checked in StandardDataObject. not necessary in this script
 
     print('...compiling alignment information')
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-    qual_assess_1_df = qa.compileData()
+    qual_assess_1_df = qa.compileAlignCountMetadata()
 
     # re_order columns
-    #qual_assess_1_df = qual_assess_1_df[column_order]
+    # qual_assess_1_df = qual_assess_1_df[column_order]
 
     print('writing output to %s' % output_path)
     qual_assess_1_df.to_csv(output_path, index_label="FASTQFILENAME")
+
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
@@ -97,8 +104,6 @@ def parseArgs(argv):
                         help="[OPTIONAL] For Crypto experiments. Set this flag to add a column to the output dataframe with percent gene coverage")
     parser.add_argument("-qs", "--query_sheet_path",
                         help="[OPTIONAL] But required with -cc is set. Path to query sheet filtered for the files contained in the path passed to -r")
-    parser.add_argument("-nc", "--ncRNA_no_rRNA_annote",
-                        help="[OPTIONAL] path to ncRNA without rRNA annotations included")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file")

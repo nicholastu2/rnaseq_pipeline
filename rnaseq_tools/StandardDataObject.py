@@ -12,6 +12,9 @@ class StandardData:
        only that they exist.
        loads rnaseq_pipeline package level configuration (both main config as well as logger config in $USER/rnaseq_pipeline/config
            Recall that OrganismData, a child of StandardData, loads the .ini config files in each organism in $USER/rnaseq_pipeline/genome_files/
+
+    In the config file, if using locally, you can include genome_files = https://... path to genome files in /lts. See this:
+        https://htcfdocs.readthedocs.io/en/latest/storage/#publishing-files
     """
 
     def __init__(self, expected_attributes=None, *args, **kwargs):
@@ -156,9 +159,25 @@ class StandardData:
 
     def setGenomeFiles(self):
         """
-            set genome_files path and download, if genome_files or subdirectories DNE. Only set if interactive
+            set genome_files path and download, if genome_files  DNE. If config_file has genome_files = https://...
+            Then the zip file will be downloaded from that path
+            TODO: error checking if the config_file https path doesn't work
         """
+        # if genome_files is set in config file as a downloadable hosted link to the genome_files.zip in /lts
+        if hasattr(self, 'genome_files'):
+            # if the config_file has an entry genome_files = 'https://...'
+            if self.genome_files.startswith('https'):
+                # and the file genome_files DNE in user_rnaseq_pipeline_directory, download from path
+                if not os.path.isdir(os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files')):
+                    zipped_genome_files_path = os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files.zip')
+                    download_genome_files_cmd = 'wget -O %s %s' %(zipped_genome_files_path, self.genome_files)
+                    utils.executeSubProcess(download_genome_files_cmd)
+                    unzip_genome_files_cmd = 'unzip %s -d %s && rm %s' %(zipped_genome_files_path, self.user_rnaseq_pipeline_directory,
+                                                                         zipped_genome_files_path)
+                    utils.executeSubProcess(unzip_genome_files_cmd)
+        # set path to genome_files in user_rnaseq_pipeline directory as attribute
         setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
+        # if the file DNE and not interactive flag (interactive session on  htcf) is False, then download from /lts
         if not (self.interactive or os.path.exists(self.genome_files)):
             genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
             cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)

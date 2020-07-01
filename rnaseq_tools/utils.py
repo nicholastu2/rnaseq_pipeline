@@ -494,8 +494,7 @@ def createStdOutLogger(**kwargs):
     return logger
 
 
-def getFileListFromDirectory(dir_path,
-                             list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
+def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
     """
     write fastq filepaths in a list stored as a .txt. Used in slurm job script
     :param dir_path: path to a diretory with files you wish to extract
@@ -513,3 +512,32 @@ def getFileListFromDirectory(dir_path,
         for suffix in list_of_file_suffixes_to_extract:
             file_paths += glob(dir_path + "/*." + suffix)
         return file_paths
+
+def extractFiles(containing_directory, file_pattern):
+    """
+        extract a list of files, expected to be non-empty, from containing_directory. NOTE: this is recursive, so be
+        specific in your pattern or risk returning everyting in a given containing_directory that matches
+        :params containing_directory: a path to the directory expected to contain the files with a given pattern
+        :params file_pattern: a pattern to search the containing directory for
+        :raises: UserWarning if file_pattern starts with astrisk, NotADirectoryError if containig_directory dne, FileNotFoundError if list is length zero
+        :returns: a list of files matching the file_pattern in the containing_directory
+    """
+    try:
+        if file_pattern.startswith('*'):
+            raise UserWarning('DoNotStartPatternWithAstrisk')
+    except UserWarning:
+        print('When using utils.extractFiles, the argument file_pattern should not start with an astrisk. That is added in the method.')
+
+    try:
+        if os.path.isdir(containing_directory):
+            file_list = glob('%s/**/*%s' %(containing_directory, file_pattern), recursive=True)
+        else:
+            raise NotADirectoryError('AlignDirectoryDoesNotExist')
+        if len(file_list) == 0:
+            raise FileNotFoundError('NoFileFoundMatchingPatternInContainingDirectory')
+    except NotADirectoryError:
+        print('Directory %s does not exist' %containing_directory)
+    except FileNotFoundError:
+        print('No Files found matching the pattern %s in containing directory %s' %(file_pattern, containing_directory))
+    else:
+        return file_list

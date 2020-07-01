@@ -6,9 +6,10 @@ from glob import glob
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
-#from rnaseq_tools.IgvObject import IgvObject
 
-# turn off SettingWithCopyWarning
+# from rnaseq_tools.IgvObject import IgvObject
+
+# turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
 
@@ -16,7 +17,8 @@ class QualityAssessmentObject(StandardData):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
-        self._add_expected_attributes = ['quality_assessment_filename', 'nextflow_list_of_files', 'coverage_check_flag']
+        self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_file_list',
+                                         'coverage_check_flag']
         # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
@@ -40,7 +42,15 @@ class QualityAssessmentObject(StandardData):
         except KeyError:
             pass
         try:
-            self.nextflow_list_of_files = kwargs['nextflow_list_of_files']
+            self.bam_file_list = kwargs['bam_file_list']
+        except KeyError:
+            pass
+        try:
+            self.count_file_list = kwargs['count_file_list']
+        except KeyError:
+            pass
+        try:
+            self.novoalign_log_list = kwargs['novoalign_log_list']
         except KeyError:
             pass
         try:
@@ -73,92 +83,50 @@ class QualityAssessmentObject(StandardData):
         except KeyError:
             pass
 
-    def compileData(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
         """
         get a list of the filenames in the run_#### file that correspond to a given type
-        :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
-        :param suffix_list: the type of file either novoalign or _read_count (htseq count output) currently set
         :returns: a dataframe containing the files according to their suffix
         """
         # instantiate dataframe
         align_df = pd.DataFrame()
         htseq_count_df = pd.DataFrame()
-        # assemble qual_assess_df dataframe
-        for suffix in self.log_suffix_list:  # TODO: error checking: alignment must come before read_count
-            try:  # TODO: clean this up. ugly method of testing whether a list of filepaths has been passed or not. this is for the nextflow pipeline
-                file_paths = self.nextflow_list_of_files
-            except AttributeError:
-                # extract files in directory with given suffix
-                file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, suffix))
-            for file_path in file_paths:
-                # extract fastq filename
-                fastq_basename = re.findall(r'(.+?)%s' % suffix, os.path.basename(file_path))[0]
-                # set sample name in library_metadata_dict
-                library_metadata_dict = {"FASTQFILENAME": fastq_basename}
-                if "novoalign" in suffix:
-                    print('...extracting information from novoalign log for %s' %(fastq_basename))
-                    library_metadata_dict.update(QualityAssessmentObject.parseAlignmentLog(file_path))
-                    align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-                elif "read_count" in suffix:
-                    print('...extracting count information from novoalign log for %s' % (fastq_basename))
-                    library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(file_path))
-                    htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+
+        # extract metadata from novoalign log files
+        for log_file in self.novoalign_log_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(log_file).replace('_novoalign', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting information from novoalign log for %s' % fastq_basename)
+            library_metadata_dict.update(QualityAssessmentObject.parseAlignmentLog(log_file))
+            align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing novoalign logs\n')
+
+        # extract metadata from count files
+        for count_file in self.count_file_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(count_file).replace('_read_count', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting count information from count file for %s' % fastq_basename)
+            library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(count_file))
+            htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing count files\n')
+
         # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
         qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
 
-        num_reads_to_ncRNA_dict = {}
-        # set threshold to determine strandedness. note that there is an email from holly to yiming mentioning 10.25.2015. That is the best record we have, if htis message remains
-        strandedness_date_threshold = pd.to_datetime('10.01.2015')
-        if hasattr(self, 'query_df'):
-            for index, row in self.query_df.iterrows():
-                if row['genotype'].startswith('CNAG'):
-                    # extract fastq_filename without any preceeding path or file extension
-                    simple_fastq_filename = utils.pathBaseName(row['fastqFileName'])
-                    print('...evaluating ncRNA in %s, %s' %(row['runNumber'], simple_fastq_filename))
-                    # use this to extract bam_path
-                    bam_path = os.path.join(self.quality_assess_dir_path, simple_fastq_filename + "_sorted_aligned_reads_with_annote.bam")
-                    try:
-                        if not os.path.isfile(bam_path):
-                            raise FileNotFoundError
-                    except FileNotFoundError:
-                        self.logger.error('bam file not found %s'%bam_path)
-                        print('bam file not found: %s'%bam_path)
-                    row_date_time = pd.to_datetime(row['libraryDate'])
-                    strandedness = 'no' if row_date_time < strandedness_date_threshold else 'reverse'
-                    total_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
-                    total_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, self.ncRNA_no_rRNA_annote, strandedness)
-                    num_reads_to_ncRNA_dict.setdefault(simple_fastq_filename, {'total_rRNA': total_rRNA, 'total_tRNA_ncRNA': total_tRNA_ncRNA})
-        ncRNA_df = pd.DataFrame.from_dict(num_reads_to_ncRNA_dict, orient='index').reset_index()
-        ncRNA_df.columns = ['FASTQFILENAME', 'TOTAL_rRNA', 'TOTAL_tRNA_ncRNA']
+        print('Quantifying noncoding rRNA (rRNA, tRNA and ncRNA)')
+        # extract rRNA, tRNA and ncRNA quantification for crypto from bam files -- this takes a long time
+        ncRNA_df = self.quantifyNonCodingRna()
+        # merge this into the qual_assess_df
         qual_assess_df = pd.merge(qual_assess_df, ncRNA_df, on='FASTQFILENAME')
 
-        # reformat qual_assess_1 columns
-        if "_novoalign.log" in self.log_suffix_list and "_read_count.tsv" in self.log_suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
-            # store library size column
-            library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
-            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
-                'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
-            # unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float') # removed -- see unique align no ncRNA
+        # format the qual_assess_df dataframe
+        qual_assess_df = self.formatQualAssess1DataFrame(qual_assess_df)
 
-            # calculate percent of library made up of rRNA reads
-            qual_assess_df['PERCENT_rRNA'] = qual_assess_df['TOTAL_rRNA'] / library_size_column
-            qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['TOTAL_tRNA_ncRNA'])
-            qual_assess_df['WITH_FEATURE_vs_NO_ncRNA_UNIQUE_ALIGN'] = with_feature_column / qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'].astype('float')
-            qual_assess_df['tRNA_ncRNA_TO_mRNA'] = qual_assess_df['TOTAL_tRNA_ncRNA'] / with_feature_column
-
-            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
-            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
-            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
-            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
-
-            # convert htseq count columns to percent of aligned reads
-            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / library_size_column
-            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-
+        # if coverage_check_flag true, check coverage of perturbed genes
         try:
             if self.coverage_check_flag:
                 coverage_df = self.coverageCheck()
@@ -167,6 +135,80 @@ class QualityAssessmentObject(StandardData):
             self.logger.info('query_df or coverage_check_flag not present -- no coverage check')
 
         return qual_assess_df.set_index("FASTQFILENAME")
+
+    def quantifyNonCodingRna(self):
+        """
+
+        """
+        num_reads_to_ncRNA_dict = {}
+        # set threshold to determine strandedness. note that there is an email from holly to yiming mentioning 10.25.2015. That is the best record we have, if htis message remains
+        strandedness_date_threshold = pd.to_datetime('10.01.2015')
+        kn99_tRNA_ncRNA_annotations = os.path.join(self.genome_files, 'KN99', 'ncRNA_tRNA_no_rRNA.gff')
+        if hasattr(self, 'query_df'):
+            for index, row in self.query_df.iterrows():
+                if row['genotype'].startswith('CNAG'):
+                    # extract fastq_filename without any preceeding path or file extension
+                    fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
+                    print('...evaluating ncRNA in %s, %s' % (row['runNumber'], fastq_simple_name))
+                    # use this to extract bam_path
+                    try:
+                        bam_path = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
+                    except IndexError:
+                        self.logger.info('%s not in bam_file_list' % fastq_simple_name)
+                        continue
+                    try:
+                        if not os.path.isfile(bam_path):
+                            raise FileNotFoundError
+                    except FileNotFoundError:
+                        self.logger.error('bam file not found %s' % bam_path)
+                        print('bam file not found: %s' % bam_path)
+                    row_date_time = pd.to_datetime(row['libraryDate'])
+                    strandedness = 'no' if row_date_time < strandedness_date_threshold else 'reverse'
+                    total_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
+                    total_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, kn99_tRNA_ncRNA_annotations, strandedness)
+                    num_reads_to_ncRNA_dict.setdefault(fastq_simple_name,
+                                                       {'total_rRNA': total_rRNA, 'total_tRNA_ncRNA': total_tRNA_ncRNA})
+        ncRNA_df = pd.DataFrame.from_dict(num_reads_to_ncRNA_dict, orient='index').reset_index()
+        ncRNA_df.columns = ['FASTQFILENAME', 'TOTAL_rRNA', 'TOTAL_tRNA_ncRNA']
+        return ncRNA_df
+
+    def formatQualAssess1DataFrame(self, qual_assess_df):
+        """
+
+        """
+        # reformat qual_assess_1 columns
+        # store library size column
+        library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
+        # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
+        with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
+            'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
+        # unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float') # removed -- see unique align no ncRNA
+
+        # calculate percent of library made up of rRNA reads
+        qual_assess_df['PERCENT_rRNA'] = qual_assess_df['TOTAL_rRNA'] / library_size_column
+        qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (
+                    qual_assess_df['TOTAL_rRNA'] + qual_assess_df['TOTAL_tRNA_ncRNA'])
+        qual_assess_df['WITH_FEATURE_vs_NO_ncRNA_UNIQUE_ALIGN'] = with_feature_column / qual_assess_df[
+            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype('float')
+        qual_assess_df['tRNA_ncRNA_TO_mRNA'] = qual_assess_df['TOTAL_tRNA_ncRNA'] / with_feature_column
+
+        qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
+        qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
+        qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
+        qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
+
+        # convert htseq count columns to percent of aligned reads
+        qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / library_size_column
+        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df[
+            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
+        qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / qual_assess_df[
+            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df[
+            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df[
+            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
+
+        return qual_assess_df
 
     @staticmethod
     def parseAlignmentLog(alignment_log_file_path):
@@ -252,18 +294,20 @@ class QualityAssessmentObject(StandardData):
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
         if strandedness == 'reverse':
             # -F 16 excludes reverse strand reads
-            cmd_non_primary_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' %(bam_path, rRNA_region)
+            cmd_primary_multi_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
+            bam_path, rRNA_region)
         else:
             # grep -v excludes reads with a digit after the 1 (there is a prettier way to do this, im sure)
-            cmd_non_primary_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' %(bam_path, rRNA_region)
-        num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_non_primary_alignment_rRNA))
+            cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
+            bam_path, rRNA_region)
+        num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
 
         # extract number of unique alignments to rRNA
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
         if strandedness == 'reverse':
-            cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' %(bam_path, rRNA_region)
+            cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
         else:
-            cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' %(bam_path, rRNA_region)
+            cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
         unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
 
         # add for total rRNA
@@ -271,7 +315,8 @@ class QualityAssessmentObject(StandardData):
 
         return total_rRNA
 
-    @ staticmethod
+    @staticmethod
+    # TODO: CURRENTLY DOES NOT INCLUDE PRIMARY ALIGNMENT OF MULTI MAPS -- SHOULD IT?
     def totaltRNAncRNA(bam_path, trna_ncrna_annotation_gff, strandedness):
         """
             count reads that align to provided gff if the annotation overlaps at least 90% of the read
@@ -283,10 +328,12 @@ class QualityAssessmentObject(StandardData):
         # construct command based on strandedness of library
         if strandedness == 'reverse':
             # note: look up bedtools intersect --help for flags. grep -v returns all lines except those matching the pattern, in this case signifying multimaps
-            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' %(bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
+            bam_path, trna_ncrna_annotation_gff)
         else:
             # no -s means this will count intersects regardless of strand
-            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
+            bam_path, trna_ncrna_annotation_gff)
 
         return int(subprocess.getoutput(bedtools_cmd))
 
@@ -321,11 +368,21 @@ class QualityAssessmentObject(StandardData):
            calculate gene coverage of genes in the 'genotype' column of the query_df that do not have suffix _over
            split genotype into two columns, genotype1, genotype2 to address double KO
         """
+        # error check if bam_file_list is set
+        try:
+            if not hasattr(self, 'bam_file_list'):
+                raise AttributeError('NoBamFileList')
+        except AttributeError:
+            print('QualityAssessmentObject does not have attribute bam file list')
+        # log which run numbers are present
+        self.logger.info('\nThe run numbers in the sheet are: %s' % self.query_df['runNumber'].unique())
+        # create genotype_df from query_df[['fastqFileName' and 'genotype']]
         genotype_df = self.query_df[['fastqFileName', 'genotype']]
+        # reduce fastqFileName to only simple basename (eg /path/to/some_fastq_R1_001.fastq.gz --> some_fastq_R1_001
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # new column perturbation, if _over in genotype, put 'over' otherwise 'ko'
-        genotype_df['pertubation'] = ['over' if '_over' in genotype_column
-                                      else 'ko' for genotype_column in genotype_df['genotype']]
+        genotype_df['pertubation'] = ['over' if '_over' in genotype_column else 'ko' for genotype_column in
+                                      genotype_df['genotype']]
         # remove _over from genotype
         genotype_df['genotype'] = genotype_df['genotype'].str.replace('_over', '')
         # split genotype on period. rename column 2 genotype2 if exists. if not, add genotype_2 with values None
@@ -338,19 +395,13 @@ class QualityAssessmentObject(StandardData):
         # bind genotype_df to genotype_columns
         genotype_df.drop(columns=['genotype'], inplace=True)
         genotype_df = pd.concat([genotype_df, genotype_columns], axis=1)
-        # get bam filepaths
-        try:  # TODO: clean this up. ugly method of testing whether a list of filepaths has been passed or not. this is for the nextflow pipeline
-            bam_file_paths = [bam_file for bam_file in self.nextflow_list_of_files if
-                              '_sorted_aligned_reads.bam' in bam_file]
-        except AttributeError:
-            # extract files in directory with given suffix
-            bam_file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, '*sorted_aligned_reads_*.bam'))
-        # set genomes
+
+        # set genomes (this is directly from OrganismData_config.ini in each genome_files subdir)
         s288c_r64_genome = os.path.join(self.genome_files, 'S288C_R64', 'S288C_R64.gff')
         if not os.path.isfile(s288c_r64_genome):
             self.logger.critical('S288C_R64 genome path not valid: %s' % s288c_r64_genome)
             raise FileNotFoundError
-        kn99_genome = '/home/chase/Desktop/KN99/FungiDB-46_CneoformansKN99.gff'
+        kn99_genome = os.path.join(self.genome_files, 'KN99', 'KN99_stranded_annotations_fungidb_augment.gff')
         if not os.path.isfile(kn99_genome):
             self.logger.critical('S288C_R64 genome path not valid: %s' % kn99_genome)
             raise FileNotFoundError
@@ -358,6 +409,7 @@ class QualityAssessmentObject(StandardData):
         if not os.path.isfile(h99_genome):
             self.logger.critical('S288C_R64 genome path not valid: %s' % h99_genome)
             raise FileNotFoundError
+
         # create columns genotype_1_coverage and genotype_2_coverage
         genotype_df['genotype_1_coverage'] = None
         genotype_df['genotype_2_coverage'] = None
@@ -365,39 +417,50 @@ class QualityAssessmentObject(StandardData):
         for index, row in genotype_df.iterrows():
             if not row['genotype_1'] == 'CNAG_00000':
                 # simple name is like this: run_673_s_4_withindex_sequence_TGAGGTT (no containing directories, no extention)
-                print('...coverage check %s, %s' % (row['genotype_1'], row['genotype_2']))
                 fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
                 genotype_1 = row['genotype_1']
                 genotype_2 = row['genotype_2']
+                # determine which genome to use -- if CNAG, use kn99
                 if genotype_1.startswith('CNAG'):
                     genome = kn99_genome
+                    # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
                     genotype_1 = genotype_1.replace('CNAG', 'CKF44')
                     if genotype_2 is not None and genotype_2.startswith('CNAG'):
                         genotype_2 = genotype_2.replace('CNAG', 'CKF44')
+                # for now, if the gene does not start with CNAG, assume it is yeast. TODO: This needs to be changes
                 else:
                     genome = s288c_r64_genome
+                # get bam files which correspond to query_df fastqFileNames
                 try:
-                    bam_file = [bam_file for bam_file in bam_file_paths if fastq_simple_name in bam_file][0]
+                    bam_file = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
                 except IndexError:
-                    self.logger.critical('bam file not found for %s' % fastq_simple_name)
-                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" % (
+                    self.logger.info('bam file not found for %s' % fastq_simple_name)  # TODO: improve this logging
+                    continue
+                print('...checking coverage of %s %s' % (genotype_1, genotype_2))
+                # extract number of bases in CDS of given gene. Credit: https://www.biostars.org/p/68283/#390427
+                num_bases_in_cds_cmd = "grep %s %s | grep CDS | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
+                genotype_1, genome)
+                num_bases_in_cds = int(subprocess.getoutput(num_bases_in_cds_cmd))
+                # extract number of bases with depth != 0
+                num_bases_depth_not_zero_cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
                 genotype_1, genome, bam_file)
-                num_bases_in_cds = int(subprocess.getoutput(cmd))
-                cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (
-                genotype_1, genome, bam_file)
-                num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
+                num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
+
+                # coverage of gene with depth > 1 == (num bases in cds with one or more read) / (number of bases in CDS)
                 genotype_df.loc[index, 'genotype_1_coverage'] = num_bases_in_cds_with_one_or_more_read / float(
                     num_bases_in_cds)
+                # do the same for genotype_2 if it exists
                 if genotype_2 is not None:
-                    cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | wc -l" % (
+                    num_bases_in_cds_cmd = "grep %s %s | grep CDS | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
+                    genotype_2, genome)
+                    num_bases_in_cds = int(subprocess.getoutput(num_bases_in_cds_cmd))
+                    num_bases_depth_not_zero_cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
                     genotype_2, genome, bam_file)
-                    num_bases_in_cds = int(subprocess.getoutput(cmd))
-                    cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | grep -v 0 | wc -l" % (
-                    genotype_2, genome, bam_file)
-                    num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(cmd))
+                    num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
                     genotype_df.loc[index, 'genotype_2_coverage'] = num_bases_in_cds_with_one_or_more_read / float(
                         num_bases_in_cds)
-            # set as attribute self.coverage_check
+
+        # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
 

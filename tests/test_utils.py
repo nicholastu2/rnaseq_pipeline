@@ -121,6 +121,10 @@ class UtilsTester(unittest.TestCase):
     def test_getStdOutLogger(self):
         pass
 
+    def test_extractFiles(self):
+        x = utils.extractFiles('/home/chase/code/brentlab/rnaseq_pipeline/tests/test_data/htcf_lts/lts_sequence/run_0673_samples', 'fastq.gz')
+        self.assertEqual(len(x), 19)
+
     def tearDown(self):
         self.patcher.stop()
 
