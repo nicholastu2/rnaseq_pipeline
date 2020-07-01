@@ -306,23 +306,27 @@ class QualityAssessmentObject(StandardData):
             # -F 16 excludes reverse strand reads
             cmd_primary_multi_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
             bam_path, rRNA_region)
-            print(cmd_primary_multi_alignment_rRNA)
         else:
             # grep -v excludes reads with a digit after the 1 (there is a prettier way to do this, im sure)
             cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
             bam_path, rRNA_region)
-            print(cmd_primary_multi_alignment_rRNA)
-        num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
+
+        try:
+            num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
+        except ValueError:
+            print('You must first index the alignment files with samtools index')
 
         # extract number of unique alignments to rRNA
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
         if strandedness == 'reverse':
             cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
-            print(cmd_unique_rRNA)
         else:
             cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
-            print(cmd_unique_rRNA)
-        unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
+
+        try:
+            unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
+        except ValueError:
+            print('You must first index the alignment files with samtools index')
 
         # add for total rRNA
         total_rRNA = num_primary_alignment_rRNA + unique_rRNA
@@ -343,14 +347,15 @@ class QualityAssessmentObject(StandardData):
         if strandedness == 'reverse':
             # note: look up bedtools intersect --help for flags. grep -v returns all lines except those matching the pattern, in this case signifying multimaps
             bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
-            print(bedtools_cmd)
         else:
             # no -s means this will count intersects regardless of strand
             bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
-            print(bedtools_cmd)
 
         # extract unique_alignments to nc and t RNA
-        unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
+        try:
+            unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
+        except ValueError:
+            print('You must first index the alignment files with samtools index')
 
         return unique_align_tRNA_ncRNA
 
