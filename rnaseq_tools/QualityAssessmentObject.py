@@ -306,18 +306,22 @@ class QualityAssessmentObject(StandardData):
             # -F 16 excludes reverse strand reads
             cmd_primary_multi_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
             bam_path, rRNA_region)
+            print(cmd_primary_multi_alignment_rRNA)
         else:
             # grep -v excludes reads with a digit after the 1 (there is a prettier way to do this, im sure)
             cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
             bam_path, rRNA_region)
+            print(cmd_primary_multi_alignment_rRNA)
         num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
 
         # extract number of unique alignments to rRNA
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
         if strandedness == 'reverse':
             cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
+            print(cmd_unique_rRNA)
         else:
             cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
+            print(cmd_unique_rRNA)
         unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
 
         # add for total rRNA
@@ -339,9 +343,11 @@ class QualityAssessmentObject(StandardData):
         if strandedness == 'reverse':
             # note: look up bedtools intersect --help for flags. grep -v returns all lines except those matching the pattern, in this case signifying multimaps
             bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
+            print(bedtools_cmd)
         else:
             # no -s means this will count intersects regardless of strand
             bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
+            print(bedtools_cmd)
 
         # extract unique_alignments to nc and t RNA
         unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
@@ -403,7 +409,7 @@ class QualityAssessmentObject(StandardData):
                 try:
                     bam_file = [bam_file for bam_file in self.bam_file_list if str(row['FASTQFILENAME']) in bam_file][0]
                 except IndexError:
-                    self.logger.info('bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
+                    self.logger.debug('bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
                 intergenic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' %(intergenic_region_bed_path, bam_file)
                 num_intergenic_bases_covered = int(subprocess.getoutput(intergenic_bases_covered_cmd))
                 qual_assess_df.loc[index, 'INTERGENIC_COVERAGE'] = num_intergenic_bases_covered / float(total_intergenic_bases)
