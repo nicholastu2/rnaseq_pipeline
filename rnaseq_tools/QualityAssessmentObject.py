@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import configparser
 from glob import glob
+import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
@@ -315,6 +316,7 @@ class QualityAssessmentObject(StandardData):
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
         except ValueError:
             print('You must first index the alignment files with samtools index')
+            sys.exit()
 
         # extract number of unique alignments to rRNA
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
