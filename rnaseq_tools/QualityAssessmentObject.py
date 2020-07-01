@@ -315,8 +315,7 @@ class QualityAssessmentObject(StandardData):
         try:
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
         except ValueError:
-            print('You must first index the alignment files with samtools index')
-            sys.exit()
+            sys.exit('You must first index the alignment files with samtools index')
 
         # extract number of unique alignments to rRNA
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
