@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import pandas as pd
+import configparser
 from glob import glob
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
@@ -123,8 +124,8 @@ class QualityAssessmentObject(StandardData):
         # merge this into the qual_assess_df
         qual_assess_df = pd.merge(qual_assess_df, ncRNA_df, on='FASTQFILENAME')
 
-        # format the qual_assess_df dataframe
-        qual_assess_df = self.formatQualAssess1DataFrame(qual_assess_df)
+        print('Quantifying intergenic coverage')
+        qual_assess_df = self.calculateIntergenicCoverage(qual_assess_df)
 
         # if coverage_check_flag true, check coverage of perturbed genes
         try:
@@ -133,6 +134,9 @@ class QualityAssessmentObject(StandardData):
                 qual_assess_df = pd.merge(qual_assess_df, coverage_df, how='left', on='FASTQFILENAME')
         except AttributeError:
             self.logger.info('query_df or coverage_check_flag not present -- no coverage check')
+
+        # format the qual_assess_df dataframe
+        qual_assess_df = self.formatQualAssess1DataFrame(qual_assess_df)
 
         return qual_assess_df.set_index("FASTQFILENAME")
 
@@ -164,49 +168,52 @@ class QualityAssessmentObject(StandardData):
                         print('bam file not found: %s' % bam_path)
                     row_date_time = pd.to_datetime(row['libraryDate'])
                     strandedness = 'no' if row_date_time < strandedness_date_threshold else 'reverse'
-                    total_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
-                    total_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, kn99_tRNA_ncRNA_annotations, strandedness)
-                    num_reads_to_ncRNA_dict.setdefault(fastq_simple_name,
-                                                       {'total_rRNA': total_rRNA, 'total_tRNA_ncRNA': total_tRNA_ncRNA})
+                    total_rRNA, unique_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
+                    unique_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, kn99_tRNA_ncRNA_annotations, strandedness)
+                    num_reads_to_ncRNA_dict.setdefault(fastq_simple_name, {'total_rRNA': total_rRNA, 'unique_rRNA': unique_rRNA, 'total_tRNA_ncRNA': unique_tRNA_ncRNA})
+
+        # create dataframe from num_reads_to_ncRNA_dict
         ncRNA_df = pd.DataFrame.from_dict(num_reads_to_ncRNA_dict, orient='index').reset_index()
-        ncRNA_df.columns = ['FASTQFILENAME', 'TOTAL_rRNA', 'TOTAL_tRNA_ncRNA']
+        # format column headers
+        ncRNA_df.columns = ['FASTQFILENAME', 'TOTAL_rRNA', 'UNIQUE_rRNA', 'UNIQUE_tRNA_ncRNA']
+
         return ncRNA_df
 
     def formatQualAssess1DataFrame(self, qual_assess_df):
         """
 
         """
-        # reformat qual_assess_1 columns
-        # store library size column
-        library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
-        # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
-        with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
-            'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
-        # unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float') # removed -- see unique align no ncRNA
+        # EFFECTIVE_LIBRARY_SIZE is LIBRARY_SIZE - (total_rRNA + unique_tRNA_ncRNA)
+        qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
 
-        # calculate percent of library made up of rRNA reads
-        qual_assess_df['PERCENT_rRNA'] = qual_assess_df['TOTAL_rRNA'] / library_size_column
-        qual_assess_df['UNIQUE_ALIGNMENT_NO_ncRNA'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (
-                    qual_assess_df['TOTAL_rRNA'] + qual_assess_df['TOTAL_tRNA_ncRNA'])
-        qual_assess_df['WITH_FEATURE_vs_NO_ncRNA_UNIQUE_ALIGN'] = with_feature_column / qual_assess_df[
-            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype('float')
-        qual_assess_df['tRNA_ncRNA_TO_mRNA'] = qual_assess_df['TOTAL_tRNA_ncRNA'] / with_feature_column
+        # EFFECTIVE_UNIQUE_ALIGNMENT is number of unique reads minus those unique reads mapping to rRNA and nc + t RNA
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
 
-        qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
-        qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
-        qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
-        qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
+        # calculate percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
+        qual_assess_df['PERCENT_rRNA'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['PERCENT_nctRNA'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['PERCENT_nctrRNA'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
 
-        # convert htseq count columns to percent of aligned reads
-        qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / library_size_column
-        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df[
-            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-        qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / qual_assess_df[
-            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df[
-            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df[
-            'UNIQUE_ALIGNMENT_NO_ncRNA'].astype(float)
+        # present the following categories as fraction of library_size
+        qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        # htseq output not_aligned_total is no_map + homopoly_filter + read_length filter. present as fraction of library_size
+        qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+
+        # PROTEIN_CODING_FEATURE (formerly with_feature) is EFFECTIVE_UNIQUE_ALIGNMENT - N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL (each htseq metadata)
+        qual_assess_df['PROTEIN_CODING_FEATURE'] = (qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] -
+                                                    qual_assess_df['NO_FEATURE'] -
+                                                    qual_assess_df['AMBIGUOUS_FEATURE'] -
+                                                    qual_assess_df['TOO_LOW_AQUAL'])
+
+        # present the following categories as fraction of effective_unique_alignment
+        qual_assess_df['PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN'] = qual_assess_df['PROTEIN_CODING_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_nctrRNA'].astype('float')
+        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
 
         return qual_assess_df
 
@@ -288,7 +295,7 @@ class QualityAssessmentObject(StandardData):
             :params bam_path: path to a bam file. requires that an index (with samtools index, novoindex, etc) be in same directory (will have .bai extension)
             :params rRNA_region: region of the rRNA in samtools view format -- chromosome:start_coord-stop_coord. eg CP022021.1:204523-235534
             :params strandedness: no or reverse, according to the library prep. This determines whether all
-            :returns: ratio of rRNA to total reads
+            :returns: total_rRNA is unique_rRNA + num_primary_alignment_rRNA (this is the number of primarily alignments from the multimap), AND unique_rRNA
         """
         # extract number of primary alignments of multimapped reads to rRNA. If reverse, only accept reads mapping in the positive direction
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
@@ -313,13 +320,13 @@ class QualityAssessmentObject(StandardData):
         # add for total rRNA
         total_rRNA = num_primary_alignment_rRNA + unique_rRNA
 
-        return total_rRNA
+        return total_rRNA, unique_rRNA
 
     @staticmethod
     # TODO: CURRENTLY DOES NOT INCLUDE PRIMARY ALIGNMENT OF MULTI MAPS -- SHOULD IT?
     def totaltRNAncRNA(bam_path, trna_ncrna_annotation_gff, strandedness):
         """
-            count reads that align to provided gff if the annotation overlaps at least 90% of the read
+            count reads that align to provided gff if the annotation overlaps at least 90% of the read uniquely
             :param bam_path: path to bam annotation file
             :param trna_ncrna_annotation_gff: a gff3 format with same chromosome/location notation as genome
             :param strandedness: strandedness of the library ('no' or 'reverse')
@@ -328,14 +335,82 @@ class QualityAssessmentObject(StandardData):
         # construct command based on strandedness of library
         if strandedness == 'reverse':
             # note: look up bedtools intersect --help for flags. grep -v returns all lines except those matching the pattern, in this case signifying multimaps
-            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
-            bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
         else:
             # no -s means this will count intersects regardless of strand
-            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
-            bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
 
-        return int(subprocess.getoutput(bedtools_cmd))
+        # extract unique_alignments to nc and t RNA
+        unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
+
+        return unique_align_tRNA_ncRNA
+
+    def calculateIntergenicCoverage(self, qual_assess_df):
+        """
+            calculate coverage of regions in genome between features
+            Requires that the number of bases in the intergenic regions of the genome is present in OrganismData_config.ini
+            in genome_files/<organism>
+        """
+        # create new column in qual_assess_df
+        qual_assess_df['INTERGENIC_COVERAGE'] = None
+
+        # set up ConfigParser to read OrganismData_config.ini file (this is in each subdir of genome_files)
+        kn99_config = configparser.ConfigParser()
+        kn99_config.read(os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini'))
+        kn99_config = kn99_config['OrganismData']
+
+        s288c_config = configparser.ConfigParser()
+        s288c_config.read(os.path.join(self.genome_files, 'S288C_R64', 'OrganismData_config.ini'))
+        s288c_config = s288c_config['OrganismData']
+
+        try:
+            for index, row in qual_assess_df.iterrows():
+                print('...Assessing intergenic coverage for %s' %row['FASTQFILENAME'])
+                genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME']+'.fastq.gz')]['genotype'])[0]
+                # set total_intergenic_bases and intergenic_region_bed by organism
+                # common error message for setting total_intergenic_bases. Requires %(attribute_name, organism) both strings eg %('kn99_total_intergenic_bases', 'KN99')
+                error_msg = 'No attribute %s. Check OrganismData_config.ini in %s'
+                if genotype.startswith('CNAG'):
+                    try:
+                        intergenic_region_bed_path = os.path.join(self.genome_files, 'KN99', kn99_config['intergenic_region_bed'])
+                        total_intergenic_bases = int(kn99_config['total_intergenic_bases'])
+                    except KeyError:
+                        kn99_error_msg = error_msg %('kn99_total_intergenic_bases', 'KN99')
+                        self.logger.critical(kn99_error_msg)
+                        print(kn99_error_msg)
+                else: #TODO: THIS NEEDS TO BE FIXED TO BE MORE SPECIFIC FOR YEAST
+                    try:
+                        intergenic_region_bed_path = os.path.join(self.genome_files, 'S288C_R41', s288c_config['intergenic_region_bed'])
+                        total_intergenic_bases = int(s288c_config['total_intergenic_bases'])
+                    except KeyError:
+                        s288c_r64_error_msg = error_msg % ('s288c_r64_total_intergenic_bases', 'S288C_R64')
+                        self.logger.critical(s288c_r64_error_msg)
+                        print(s288c_r64_error_msg)
+
+                # error check intergenic_region_bed_path
+                try:
+                    if not os.path.isfile(intergenic_region_bed_path):
+                        raise FileNotFoundError('IntergenicRegionBedDoesNotExist')
+                except FileNotFoundError:
+                    intergenic_region_bed_error_msg = 'Intergenic region bed file does not exist at: %s' %intergenic_region_bed_path
+                    self.logger.critical(intergenic_region_bed_error_msg)
+                    print(intergenic_region_bed_error_msg)
+
+                # extract intergenic_bases_covered from the bam file
+                try:
+                    bam_file = [bam_file for bam_file in self.bam_file_list if str(row['FASTQFILENAME']) in bam_file][0]
+                except IndexError:
+                    self.logger.info('bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
+                intergenic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' %(intergenic_region_bed_path, bam_file)
+                num_intergenic_bases_covered = int(subprocess.getoutput(intergenic_bases_covered_cmd))
+                qual_assess_df.loc[index, 'INTERGENIC_COVERAGE'] = num_intergenic_bases_covered / float(total_intergenic_bases)
+
+        except NameError:
+            self.logger.critical('Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
+        # return qual_assess_df with INTERGENIC_COVERAGE added
+        return qual_assess_df
+
+
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
