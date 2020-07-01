@@ -207,13 +207,16 @@ class QualityAssessmentObject(StandardData):
                                                     qual_assess_df['NO_FEATURE'] -
                                                     qual_assess_df['AMBIGUOUS_FEATURE'] -
                                                     qual_assess_df['TOO_LOW_AQUAL'])
-
         # present the following categories as fraction of effective_unique_alignment
-        qual_assess_df['PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN'] = qual_assess_df['PROTEIN_CODING_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT_NO_nctrRNA'].astype('float')
-        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN'] = qual_assess_df['PROTEIN_CODING_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+
+        # present the following as fraction of (total) unique_alignment
+        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+
+        # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
 
         return qual_assess_df
 

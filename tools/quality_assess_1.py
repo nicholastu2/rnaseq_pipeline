@@ -60,10 +60,10 @@ def main(argv):
     output_path = os.path.join(output_directory, quality_assessment_filename)
 
     # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-    column_order = ['TOTAL_LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'PERCENT_nctrRNA', 'PERCENT_rRNA', 'PERCENT_nctRNA',
-                    'TOTAL_rRNA', 'UNIQUE_tRNA_ncRNA', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'MULTI_MAP', 'NOT_ALIGNED_TOTAL',
-                    'HOMOPOLY_FILTER', 'READ_LENGTH_FILTER', 'PROTEIN_CODING_FEATURE', 'PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN',
-                    'NO_FEATURE', 'FEATURE_ALIGN_NOT_UNIQUE', 'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL', 'INTERGENIC_COVERAGE']
+    column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN',
+                    'INTERGENIC_COVERAGE', 'NO_FEATURE', 'NOT_ALIGNED_TOTAL', 'MULTI_MAP', 'PERCENT_nctrRNA', 'PERCENT_rRNA',
+                    'PERCENT_nctRNA', 'PROTEIN_CODING_FEATURE', 'TOTAL_rRNA', 'UNIQUE_tRNA_ncRNA', 'HOMOPOLY_FILTER',
+                    'READ_LENGTH_FILTER', 'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL']
     # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
     if args.coverage_check:
         qa = QualityAssessmentObject(bam_file_list=bam_list,
