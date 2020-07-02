@@ -140,6 +140,9 @@ class DatabaseObject(StandardData):
         # create dataframe from first file in file_list in given key(subdirectory) of database_dict
         for subdirectory, file_list in self.database_dict.items():
             self.concat_database_dict[subdirectory] = utils.readInDataframe(file_list[0])
+            column_list = self.concat_database_dict[subdirectory].columns
+            column_list = [column_header.strip() for column_header in column_list]
+            self.concat_database_dict[subdirectory].columns = column_list
             # keep appending (cbind) dataframes to the bottom
             for file in file_list[1:]:
                 # read in next file in list as next_sheet
