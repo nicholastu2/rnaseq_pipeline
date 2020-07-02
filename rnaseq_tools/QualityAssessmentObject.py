@@ -326,6 +326,7 @@ class QualityAssessmentObject(StandardData):
         else:
             cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
 
+        # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
             unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
         except ValueError:
@@ -355,10 +356,8 @@ class QualityAssessmentObject(StandardData):
             bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
 
         # extract unique_alignments to nc and t RNA
-        try:
-            unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
-        except ValueError:
-            print('You must first index the alignment files with samtools index')
+        print(bedtools_cmd)
+        unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
 
         return unique_align_tRNA_ncRNA
 
