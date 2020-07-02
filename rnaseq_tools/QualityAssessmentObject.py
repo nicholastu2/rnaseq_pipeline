@@ -121,7 +121,7 @@ class QualityAssessmentObject(StandardData):
 
         print('Quantifying noncoding rRNA (rRNA, tRNA and ncRNA)')
         # extract rRNA, tRNA and ncRNA quantification for crypto from bam files -- this takes a long time
-        ncRNA_df = self.quantifyNonCodingRna()
+        ncRNA_df = self.quantifyNonCodingRna(qual_assess_df)
         # merge this into the qual_assess_df
         qual_assess_df = pd.merge(qual_assess_df, ncRNA_df, on='FASTQFILENAME')
 
@@ -141,7 +141,7 @@ class QualityAssessmentObject(StandardData):
 
         return qual_assess_df.set_index("FASTQFILENAME")
 
-    def quantifyNonCodingRna(self):
+    def quantifyNonCodingRna(self, qual_assess_df):
         """
 
         """
@@ -150,11 +150,12 @@ class QualityAssessmentObject(StandardData):
         strandedness_date_threshold = pd.to_datetime('10.01.2015')
         kn99_tRNA_ncRNA_annotations = os.path.join(self.genome_files, 'KN99', 'ncRNA_tRNA_no_rRNA.gff')
         if hasattr(self, 'query_df'):
-            for index, row in self.query_df.iterrows():
-                if row['genotype'].startswith('CNAG'):
+            for index, row in qual_assess_df.iterrows():
+                genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+                if genotype.startswith('CNAG'):
                     # extract fastq_filename without any preceeding path or file extension
-                    fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
-                    print('...evaluating ncRNA in %s, %s' % (row['runNumber'], fastq_simple_name))
+                    fastq_simple_name = utils.pathBaseName(row['FASTQFILENAME'])
+                    print('...evaluating ncRNA in %s' %fastq_simple_name)
                     # use this to extract bam_path
                     try:
                         bam_path = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
@@ -167,7 +168,8 @@ class QualityAssessmentObject(StandardData):
                     except FileNotFoundError:
                         self.logger.error('bam file not found %s' % bam_path)
                         print('bam file not found: %s' % bam_path)
-                    row_date_time = pd.to_datetime(row['libraryDate'])
+                    libraryDate = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['libraryDate'])[0]
+                    row_date_time = pd.to_datetime(libraryDate)
                     strandedness = 'no' if row_date_time < strandedness_date_threshold else 'reverse'
                     total_rRNA, unique_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
                     unique_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, kn99_tRNA_ncRNA_annotations, strandedness)
