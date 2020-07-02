@@ -328,6 +328,7 @@ class QualityAssessmentObject(StandardData):
 
         # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
+            print(cmd_unique_rRNA)
             unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
         except ValueError:
             print('You must first index the alignment files with samtools index')
