@@ -351,7 +351,6 @@ class QualityAssessmentObject(StandardData):
             bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
 
         # extract unique_alignments to nc and t RNA
-        print(bedtools_cmd)
         unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
 
         return unique_align_tRNA_ncRNA
