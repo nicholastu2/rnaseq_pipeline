@@ -315,7 +315,6 @@ class QualityAssessmentObject(StandardData):
             bam_path, rRNA_region)
         # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
-            print(cmd_primary_multi_alignment_rRNA)
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
         except ValueError:
             sys.exit('You must first index the alignment files with samtools index')
