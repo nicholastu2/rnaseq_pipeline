@@ -313,8 +313,9 @@ class QualityAssessmentObject(StandardData):
             # grep -v excludes reads with a digit after the 1 (there is a prettier way to do this, im sure)
             cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
             bam_path, rRNA_region)
-
+        # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
+            print(cmd_primary_multi_alignment_rRNA)
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
         except ValueError:
             sys.exit('You must first index the alignment files with samtools index')
@@ -325,13 +326,7 @@ class QualityAssessmentObject(StandardData):
             cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
         else:
             cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
-
-        # as long as this is the first function called that needs an index, this will error check that samtools index has been run
-        try:
-            print(cmd_unique_rRNA)
-            unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
-        except ValueError:
-            print('You must first index the alignment files with samtools index')
+        unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
 
         # add for total rRNA
         total_rRNA = num_primary_alignment_rRNA + unique_rRNA
