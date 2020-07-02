@@ -146,14 +146,34 @@ def main(argv):
                                 kn99_annotation_file, kn99_annotation_file_no_strand, kn99_genome, s288c_r64_novoalign_index, s288c_r64_annotation_file,
                                 s288c_r64_genome)
 
+    # write out and submit sbatch script with named/combined output/err
+
     nextflow_config_path = os.path.join(db.job_scripts, args.name + '_nextflow.config')
     print('...writing nextflow job config file to %s' % nextflow_config_path)
     with open(nextflow_config_path, 'w') as nextflow_config_file:
         nextflow_config_file.write(config_header)
         nextflow_config_file.write(params_section)
-    print('\nDone. To align/count these files, first enter an interactive session by entering:\n\tinteractive')
-    print('\nNext, Run the job with:\n'
-          '\tnextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n' % nextflow_config_path)
+
+    sbatch_script_name = args.name + '_nextflow_sbatch'
+    nextflow_sbatch_path = os.path.join(db.job_scripts, sbatch_script_name + '.sbatch')
+    # write sbatch script to submit nextflow job
+    print('...writing sbatch script to %s' %nextflow_config_path)
+    with open(nextflow_sbatch_path, 'w') as nf_sbatch_file:
+        nf_sbatch_file.write('#!/bin/bash\n'
+                             '#SBATCH --mem=15G\n'
+                             '#SBATCH -o sbatch_log/%s.out\n'
+                             '#SBATCH -J %s'
+                             'ml rnaseq_pipeline\n'
+                             'nextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n'
+                             %(sbatch_script_name, sbatch_script_name, nextflow_config_path))
+
+    print('\nsubmitting sbatch script:\n')
+    sbatch_cmd = 'sbatch %s' %nextflow_sbatch_path
+    utils.executeSubProcess(sbatch_cmd)
+
+    print('\nSbatch submitted. Check progress by entering:\n\tcat sbatch_log/%s.out' %sbatch_script_name)
+    print('To run this in an interactive session, do the following:\n\t'
+          'interactive\n\tnextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n' % nextflow_config_path)
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
