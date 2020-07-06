@@ -112,7 +112,8 @@ class QualityAssessmentObject(StandardData):
             # set sample name in library_metadata_dict
             library_metadata_dict = {"FASTQFILENAME": fastq_basename}
             print('...extracting count information from count file for %s' % fastq_basename)
-            library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(count_file))
+            library_metadata_dict.update(QualityAssessmentObject.parseCryptoGeneCount(count_file))
+            library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(fastq_basename)
             htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
         print('\nDone parsing count files\n')
 
@@ -190,7 +191,9 @@ class QualityAssessmentObject(StandardData):
         qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
 
         # EFFECTIVE_UNIQUE_ALIGNMENT is number of unique reads minus those unique reads mapping to rRNA and nc + t RNA
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] +
+                                                                                             qual_assess_df['UNIQUE_tRNA_ncRNA'] +
+                                                                                             qual_assess_df['TOO_LOW_AQUAL'])
 
         # present the following categories as fraction of library_size
         # percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
@@ -204,13 +207,11 @@ class QualityAssessmentObject(StandardData):
         # htseq output not_aligned_total is no_map + homopoly_filter + read_length filter. present as fraction of library_size
         qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
 
-        # PROTEIN_CODING_FEATURE (formerly with_feature) is EFFECTIVE_UNIQUE_ALIGNMENT - N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL (each htseq metadata)
-        qual_assess_df['PROTEIN_CODING_FEATURE'] = (qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] -
-                                                    qual_assess_df['NO_FEATURE'] -
-                                                    qual_assess_df['AMBIGUOUS_FEATURE'] -
-                                                    qual_assess_df['TOO_LOW_AQUAL'])
-        # present the following categories as fraction of effective_unique_alignment
-        qual_assess_df['PROTEIN_CODING_vs_EFFECTIVE_UNIQUE_ALIGN'] = qual_assess_df['PROTEIN_CODING_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        # PROTEIN_CODING_TOTAL (formerly with_feature) is the number of reads mapping to a protein coding gene by htseq plus the unique ambiguous reads mapping to exon portiosn of overlapping protein coding reads
+        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['EFFECTIVE_PROTEIN_CODING_TOTAL'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
+
+        # effective_protein_coding is total COUNTED reads mapping to protein coding features. effective unique alignment is total unique alignments by novoalign MINUS too_low_aQual
+        qual_assess_df['EFFECTIVE_PROTEIN_CODING_vs_UNIQUE_ALIGN'] = qual_assess_df['EFFECTIVE_PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
 
         # present the following as fraction of (total) unique_alignment
         qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
@@ -261,8 +262,9 @@ class QualityAssessmentObject(StandardData):
         return library_metadata_dict
 
     @staticmethod
-    def parseGeneCount(htseq_counts_path):
+    def parseCryptoGeneCount(htseq_counts_path):
         """
+            NOTE: SPECIFICALLY SET UP FOR CRYPTO
             count the gene counts that mapped either to genes (see COUNT_VARS at top of script for other features)
             :param htseq_counts_path: a path to a  _read_count.tsv file (htseq-counts output)
             :returns: a dictionary with the keys FEATURE_ALIGN_NOT_UNIQUE, TOO_LOW_AQUAL, AMBIGUOUS_FEATURE, NO_FEATURE, NOT_ALIGNED_TOTAL
@@ -272,26 +274,64 @@ class QualityAssessmentObject(StandardData):
         htseq_file = open(htseq_counts_path, 'r')
         htseq_file_reversed = reversed(htseq_file.readlines())
 
+        crypto_protein_coding_effective_count = 0
         line = next(htseq_file_reversed)
         try:
-            while not (line.startswith('CNAG') or line.startswith('CKF44')):
-                # strip newchar, split on tab
-                line = line.strip().split('\t')
-                # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
-                htseq_count_metadata_category = line[0][2:].upper()  # drop the __ in front of the category
-                # enter to htseq_count_dict
-                library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
-                # iterate
+            while True:
+                line_strip_split = line.strip().split('\t')
+                if line.startswith('CKF44'):
+                    # split the line, take the entry in the second column, which is the gene count, and add to crypto_protein_coding_effective_count
+                    gene_count = int(line_strip_split[1])
+                    crypto_protein_coding_effective_count += gene_count
+                if not (line.startswith('CNAG') or line.startswith('CKF44')):
+                    # strip newchar, split on tab
+                    line = line.strip().split('\t')
+                    # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
+                    htseq_count_metadata_category = line_strip_split[0][2:].upper()  # drop the __ in front of the category
+                    # enter to htseq_count_dict
+                    library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
+                    # iterate
                 line = next(htseq_file_reversed)
         except StopIteration:
             pass
+
+        # error check gene count
+        try:
+            if crypto_protein_coding_effective_count == 0:
+                raise ValueError('NoGeneCountsDetected')
+        except ValueError:  #TODO: make this not a static method and add logger
+            print('No lines starting with CKF44 have gene counts')
+
         # rename some key/value pairs
         library_metadata_dict['NOT_ALIGNED_TOTAL'] = library_metadata_dict.pop('NOT_ALIGNED')
         library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
         library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
 
+        # add EFFECTIVE_PROTEIN_CODING_TOTAL
+        library_metadata_dict['EFFECTIVE_PROTEIN_CODING_TOTAL'] = crypto_protein_coding_effective_count
+
         htseq_file.close()
         return library_metadata_dict
+
+    def uniqueAmbiguousProteinCodingCount(self, fastq_simplename):
+        """
+            intersect bed file with protein coding coords with an alignment file with the htseq annotations added (in this case, grep out __ambiguous)
+            :params fastq_simplename: fastq filename minus any path and extention eg /path/to/my_reads_R1.fastq.gz would be my_reads_R1
+            :returns: the number of reads (lines) aligning to protein coding coordinates
+        """
+        #TODO: MAKE THE TRY/CATCH STATEMENT BELOW A FUNCTION AND REPLACE ALL INSTANCES WITH FUNCTION CALL
+
+        # extract bam file from bam_file_list using fastq simple name
+        try:
+            bam_file = [bam_file for bam_file in self.bam_file_list if fastq_simplename in bam_file][0]
+        except IndexError:
+            self.logger.debug('bam file not found for %s' % fastq_simplename)  # TODO: improve this logging
+
+        # grep out lines that are ambiguous and map to CKF44 reads (and only CKF44 -- no CNAG)
+        extract_ambiguous_protein_coding_reads_cmd = 'samtools view %s| grep ambiguous | grep CKF44| grep -v CNAG| wc -l' %bam_file
+        ambiguous_protein_coding_count = int(subprocess.getoutput(extract_ambiguous_protein_coding_reads_cmd))
+
+        return ambiguous_protein_coding_count
 
     @staticmethod
     def totalrRNA(bam_path, rRNA_region, strandedness):
