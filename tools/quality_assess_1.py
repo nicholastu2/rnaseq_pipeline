@@ -62,7 +62,7 @@ def main(argv):
     # TODO: final columns: protein coding raw (tentative threshold > 1mil), protein coding as fraction of lib size, coverages, not aligned percent of lib size
 
     # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-    column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT', 'MULTI_MAP_PERCENT',
+    column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT', 'MULTI_MAP_PERCENT',
                     'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED', 'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
                     'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT', 'TOO_LOW_AQUAL_PERCENT',
                     'rRNA_PERCENT', 'nctrRNA_PERCENT']
