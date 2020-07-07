@@ -116,7 +116,7 @@ class IgvObject(OrganismData):
             if not os.path.exists(bamfile_fullpath + '.bai'):  # test if indexed bam exists
                 self.bam_file_to_index_list.append(bamfile_fullpath)
 
-    def writeIndexScript(self):
+    def writeIndexScript(self): #TODO: update for nextflow pipeline (different bam file suffix, should already have .bai)
         """
            write sbatch script to index bam files
            This needs to be done b/c indexing can only take place via srun/sbatch (on compute node. samtools not available on login node as of 3/2020)
@@ -128,7 +128,7 @@ class IgvObject(OrganismData):
 
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
-              '#SBATCH --mem=5G\n' \
+              '#SBATCH --mem=10G\n' \
               '#SBATCH -o {0}/index_bams_%A.out\n' \
               '#SBATCH -e {0}/index_bams_%A.err\n' \
               '#SBATCH -J index_bams\n'.format(self.sbatch_log)
@@ -244,7 +244,7 @@ class IgvObject(OrganismData):
         num_samples = len(self.igv_snapshot_dict.keys())
         job = '#!/bin/bash\n' \
               '#SBATCH -N 1\n' \
-              '#SBATCH --mem=5G\n' \
+              '#SBATCH --mem=10G\n' \
               '#SBATCH -o {0}/igv_snapshot_%A.out\n' \
               '#SBATCH -e {0}/igv_snapshot_%A.err\n' \
               '#SBATCH -J igv_snapshot\n'.format(self.sbatch_log)

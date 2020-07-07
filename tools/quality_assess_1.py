@@ -62,11 +62,10 @@ def main(argv):
     # TODO: final columns: protein coding raw (tentative threshold > 1mil), protein coding as fraction of lib size, coverages, not aligned percent of lib size
 
     # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-    column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'PROTEIN_CODING_TOTAL', 'EFFECTIVE_UNIQUE_ALIGNMENT',
-                    'EFFECTIVE_PROTEIN_CODING_vs_UNIQUE_ALIGN', 'EFFECTIVE_PROTEIN_CODING_TOTAL', 'INTERGENIC_COVERAGE',
-                    'NO_FEATURE', 'NOT_ALIGNED_TOTAL', 'MULTI_MAP', 'NO_MAP', 'PERCENT_nctrRNA', 'PERCENT_rRNA',
-                    'PERCENT_nctRNA', 'TOTAL_rRNA', 'UNIQUE_tRNA_ncRNA', 'HOMOPOLY_FILTER', 'READ_LENGTH_FILTER',
-                    'AMBIGUOUS_FEATURE', 'TOO_LOW_AQUAL']
+    column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT', 'MULTI_MAP_PERCENT',
+                    'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED', 'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
+                    'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT', 'TOO_LOW_AQUAL_PERCENT',
+                    'rRNA_PERCENT', 'nctrRNA_PERCENT']
 
     # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
     if args.coverage_check:

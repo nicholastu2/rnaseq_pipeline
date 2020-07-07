@@ -197,29 +197,31 @@ class QualityAssessmentObject(StandardData):
 
         # present the following categories as fraction of library_size
         # percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
-        qual_assess_df['PERCENT_rRNA'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['PERCENT_nctRNA'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['PERCENT_nctrRNA'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        # htseq output not_aligned_total is no_map + homopoly_filter + read_length filter. present as fraction of library_size
-        qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['rRNA_PERCENT'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['nctRNA_PERCENT'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['nctrRNA_PERCENT'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['MULTI_MAP_PERCENT'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['NO_MAP_PERCENT'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        # htseq output not_aligned_total_percent is no_map + homopoly_filter + read_length filter. present as fraction of library_size
+        qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
 
         # PROTEIN_CODING_TOTAL (formerly with_feature) is the number of reads mapping to a protein coding gene by htseq plus the unique ambiguous reads mapping to exon portiosn of overlapping protein coding reads
-        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['EFFECTIVE_PROTEIN_CODING_TOTAL'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
+        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['PROTEIN_CODING_COUNTED'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
 
-        # effective_protein_coding is total COUNTED reads mapping to protein coding features. effective unique alignment is total unique alignments by novoalign MINUS too_low_aQual
-        qual_assess_df['EFFECTIVE_PROTEIN_CODING_vs_UNIQUE_ALIGN'] = qual_assess_df['EFFECTIVE_PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        # protein_coding_total as percent of effective unique alignment
+        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        # protein_coding_counted as percent of unique alignment
+        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
 
         # present the following as fraction of (total) unique_alignment
-        qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
 
         # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
 
         return qual_assess_df
 
@@ -274,7 +276,7 @@ class QualityAssessmentObject(StandardData):
         htseq_file = open(htseq_counts_path, 'r')
         htseq_file_reversed = reversed(htseq_file.readlines())
 
-        crypto_protein_coding_effective_count = 0
+        crypto_protein_coding_count = 0
         line = next(htseq_file_reversed)
         try:
             while True:
@@ -282,7 +284,7 @@ class QualityAssessmentObject(StandardData):
                 if line.startswith('CKF44'):
                     # split the line, take the entry in the second column, which is the gene count, and add to crypto_protein_coding_effective_count
                     gene_count = int(line_strip_split[1])
-                    crypto_protein_coding_effective_count += gene_count
+                    crypto_protein_coding_count += gene_count
                 if not (line.startswith('CNAG') or line.startswith('CKF44')):
                     # strip newchar, split on tab
                     line = line.strip().split('\t')
@@ -297,7 +299,7 @@ class QualityAssessmentObject(StandardData):
 
         # error check gene count
         try:
-            if crypto_protein_coding_effective_count == 0:
+            if crypto_protein_coding_count == 0:
                 raise ValueError('NoGeneCountsDetected')
         except ValueError:  #TODO: make this not a static method and add logger
             print('No lines starting with CKF44 have gene counts')
@@ -307,8 +309,8 @@ class QualityAssessmentObject(StandardData):
         library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
         library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
 
-        # add EFFECTIVE_PROTEIN_CODING_TOTAL
-        library_metadata_dict['EFFECTIVE_PROTEIN_CODING_TOTAL'] = crypto_protein_coding_effective_count
+        # add PROTEIN_CODING_COUNTED
+        library_metadata_dict['PROTEIN_CODING_COUNTED'] = crypto_protein_coding_count
 
         htseq_file.close()
         return library_metadata_dict
