@@ -90,9 +90,6 @@ def main(argv):
     # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
     qual_assess_1_df = qa.compileAlignCountMetadata()
 
-    # re_order columns
-    qual_assess_1_df = qual_assess_1_df[column_order]
-
     print('writing output to %s' % output_path)
     qual_assess_1_df.to_csv(output_path, index_label="FASTQFILENAME")
 

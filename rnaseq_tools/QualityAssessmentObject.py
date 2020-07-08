@@ -8,6 +8,7 @@ import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
+import numpy as np
 
 # from rnaseq_tools.IgvObject import IgvObject
 
@@ -112,7 +113,7 @@ class QualityAssessmentObject(StandardData):
             # set sample name in library_metadata_dict
             library_metadata_dict = {"FASTQFILENAME": fastq_basename}
             print('...extracting count information from count file for %s' % fastq_basename)
-            library_metadata_dict.update(QualityAssessmentObject.parseCryptoGeneCount(count_file))
+            library_metadata_dict.update(self.parseCryptoGeneCount(count_file))
             library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(fastq_basename)
             htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
         print('\nDone parsing count files\n')
@@ -132,7 +133,7 @@ class QualityAssessmentObject(StandardData):
         # if coverage_check_flag true, check coverage of perturbed genes
         try:
             if self.coverage_check_flag:
-                coverage_df = self.coverageCheck()
+                coverage_df = self.perturbedCheck()
                 qual_assess_df = pd.merge(qual_assess_df, coverage_df, how='left', on='FASTQFILENAME')
         except AttributeError:
             self.logger.info('query_df or coverage_check_flag not present -- no coverage check')
@@ -141,6 +142,53 @@ class QualityAssessmentObject(StandardData):
         qual_assess_df = self.formatQualAssess1DataFrame(qual_assess_df)
 
         return qual_assess_df.set_index("FASTQFILENAME")
+
+    def auditQualAssess1(self, qual_assess_df):
+        """
+            use rnaseq_pipeline/config/quality_assess_config.ini entries to add status, auto_audit columns
+            :params qual_assess_df: a quality_assess_df created by qual_assess_1 or a path to one
+            :returns: qual_assess_df with added status and auto_audit columns
+        """
+        if os.path.isfile(qual_assess_df):
+            qual_assess_df = utils.readInDataframe(qual_assess_df)
+
+        # extract threshold/status from config file
+        qual_assess_config = configparser.ConfigParser()
+        qual_assess_config.read(self.config_file)
+        qual_assess_1_dict = qual_assess_config['QualityAssess1']
+
+        # extract thresholds and bit status
+        protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
+        protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
+        coverage_threshold = float(qual_assess_1_dict['COVERAGE_THRESHOLD'])
+        coverage_bit_status = int(qual_assess_1_dict['COVERAGE_STATUS'])
+
+        status_column_list = []
+        for index,row in qual_assess_df.iterrows():
+            # extract quality_assessment_metrics
+            library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
+            if row['GENOTYPE_1_COVERAGE'] is not None:
+                library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
+            else:
+                library_genotype_1_coverage = -1
+            if row['GENOTYPE_2_COVERAGE'] is not None:
+                library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
+            else:
+                library_genotype_2_coverage = -1
+
+            # set status_total to 0
+            status_total = 0
+            if library_protein_coding_total < protein_coding_total_threshold:
+                status_total += protein_coding_total_bit_status
+            if library_genotype_1_coverage > coverage_threshold or library_genotype_2_coverage > coverage_threshold:
+                status_total += coverage_bit_status
+            status_column_list.append(status_total)
+            # TODO: ADD OVEREXPRESSION AND MARKER
+
+        qual_assess_df['STATUS'] = status_column_list
+        qual_assess_df['AUTO_AUDIT'] = np.where(qual_assess_df.STATUS > 0, 1, 0)
+
+        return qual_assess_df
 
     def quantifyNonCodingRna(self, qual_assess_df):
         """
@@ -263,14 +311,14 @@ class QualityAssessmentObject(StandardData):
         alignment_file.close()
         return library_metadata_dict
 
-    @staticmethod
-    def parseCryptoGeneCount(htseq_counts_path):
+    def parseCryptoGeneCount(self, htseq_counts_path):
         """
             NOTE: SPECIFICALLY SET UP FOR CRYPTO
             count the gene counts that mapped either to genes (see COUNT_VARS at top of script for other features)
             :param htseq_counts_path: a path to a  _read_count.tsv file (htseq-counts output)
             :returns: a dictionary with the keys FEATURE_ALIGN_NOT_UNIQUE, TOO_LOW_AQUAL, AMBIGUOUS_FEATURE, NO_FEATURE, NOT_ALIGNED_TOTAL
         """
+
         library_metadata_dict = {}
         # TODO: error checking on keys
         htseq_file = open(htseq_counts_path, 'r')
@@ -489,7 +537,7 @@ class QualityAssessmentObject(StandardData):
                     else:
                         self.ko_gene_list.append(genotype)
 
-    def coverageCheck(self):
+    def perturbedCheck(self):
         """
            calculate gene coverage of genes in the 'genotype' column of the query_df that do not have suffix _over
            split genotype into two columns, genotype1, genotype2 to address double KO
