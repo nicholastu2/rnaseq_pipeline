@@ -263,10 +263,10 @@ class QualityAssessmentObject(StandardData):
         # protein_coding_counted as percent of unique alignment
         qual_assess_df['PROTEIN_CODING_COUNTED_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
 
-        # present the following as fraction of (total) unique_alignment
-        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['UNIQUE_ALIGNMENT'].astype(float)
+        # present the following as fraction of (total) unique_alignment  ### TODO: SHOULD THIS BE OF EFFECTIVE_UNIQUE_ALIGNMENT? PROBABLY YES: NOTE THE GRAPHS IN CURRENT OLD CRYPTO SHEETS ARE OF UNIQUE_ALIGNMENT
+        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
 
         # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
         qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
@@ -509,7 +509,64 @@ class QualityAssessmentObject(StandardData):
         # return qual_assess_df with INTERGENIC_COVERAGE added
         return qual_assess_df
 
+    def calculateExonicCoverage(self, bam_file):
+        """
+            calculate coverage of regions in genome between features
+            Requires that the number of bases in the intergenic regions of the genome is present in OrganismData_config.ini
+            in genome_files/<organism>
+        """
+        # create df with two columns -- fastqFileName and EXONIC_COVERAGE
+        exonic_df = pd.DataFrame()
+        exonic_df['fastqFileName'] = [(bam_file)]
+        exonic_df['EXONIC_COVERAGE'] = None
 
+        # set up ConfigParser to read OrganismData_config.ini file (this is in each subdir of genome_files)
+        kn99_config = configparser.ConfigParser()
+        kn99_config.read(os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini'))
+        kn99_config = kn99_config['OrganismData']
+
+        # s288c_config = configparser.ConfigParser()
+        # s288c_config.read(os.path.join(self.genome_files, 'S288C_R64', 'OrganismData_config.ini'))
+        # s288c_config = s288c_config['OrganismData']
+
+        try:
+            for index,row in exonic_df.iterrows():
+                bam_file = row['fastqFileName']
+                print('...Assessing exonic coverage for %s' %bam_file)
+                error_msg = 'No attribute %s. Check OrganismData_config.ini in %s'
+                # get exon info from config file
+                try:
+                    exon_region_bed_path = os.path.join(self.genome_files, 'KN99', kn99_config['exon_region_bed'])
+                    total_exon_bases = int(kn99_config['total_exon_bases'])
+                except KeyError:
+                    kn99_error_msg = error_msg %('kn99_total_intergenic_bases', 'KN99')
+                    self.logger.critical(kn99_error_msg)
+                    print(kn99_error_msg)
+
+                # error check intergenic_region_bed_path
+                try:
+                    if not os.path.isfile(exon_region_bed_path):
+                        raise FileNotFoundError('IntergenicRegionBedDoesNotExist')
+                except FileNotFoundError:
+                    exonic_region_bed_path_error_msg = 'Intergenic region bed file does not exist at: %s' %exon_region_bed_path
+                    self.logger.critical(exonic_region_bed_path_error_msg)
+                    print(exonic_region_bed_path_error_msg)
+
+                # extract exonic bases covered by at least one read
+                exonic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' %(exon_region_bed_path, bam_file)
+                num_exonic_bases_covered = int(subprocess.getoutput(exonic_bases_covered_cmd))
+
+                # add to the df
+                exonic_df.loc[index, 'EXONIC_COVERAGE'] = num_exonic_bases_covered / float(total_exon_bases)
+
+        except NameError:
+            self.logger.critical('Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
+        # return qual_assess_df with INTERGENIC_COVERAGE added
+
+        exonic_df['fastqFileName'] = exonic_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
+        # write
+        output_name = utils.pathBaseName(bam_file)+'_exonic_coverage.csv'
+        exonic_df.to_csv('./%s' %output_name, index=False)
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
