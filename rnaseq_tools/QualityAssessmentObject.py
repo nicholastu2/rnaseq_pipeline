@@ -509,11 +509,11 @@ class QualityAssessmentObject(StandardData):
         # return qual_assess_df with INTERGENIC_COVERAGE added
         return qual_assess_df
 
-    def calculateExonicCoverage(self, bam_file):
+    def calculateExonicCoverage(self, bam_file, output_directory):
         """
-            calculate coverage of regions in genome between features
-            Requires that the number of bases in the intergenic regions of the genome is present in OrganismData_config.ini
-            in genome_files/<organism>
+            calculate coverage of exon regions. deposits file in output directory named utils.pathBaseName(bam_file)+'_exonic_coverage.csv'
+            :param bam_file: path to bam file
+            :param output_directory: path to output directory
         """
         # create df with two columns -- fastqFileName and EXONIC_COVERAGE
         exonic_df = pd.DataFrame()
@@ -565,8 +565,8 @@ class QualityAssessmentObject(StandardData):
 
         exonic_df['fastqFileName'] = exonic_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # write
-        output_name = utils.pathBaseName(bam_file)+'_exonic_coverage.csv'
-        exonic_df.to_csv('./%s' %output_name, index=False)
+        output_path = os.path.join(output_directory, utils.pathBaseName(bam_file)+'_exonic_coverage.csv')
+        exonic_df.to_csv(output_path, index=False)
 
     def setCryptoGenotypeList(self):
         """ # TODO: Move this to DatabaseObject
