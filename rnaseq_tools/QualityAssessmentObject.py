@@ -12,13 +12,12 @@ import abc
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
-
 class QualityAssessmentObject(StandardData):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
-        self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_file_list',
-                                         'coverage_check_flag']
+        self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_log_list', 'coverage_check_flag',
+                                         'query_path', 'standardized_database_df', 'qual_assess_dir_path']
         # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
@@ -30,45 +29,16 @@ class QualityAssessmentObject(StandardData):
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'QualityAssessmentObject'
 
-        # set optional kwarg arguments # TODO: clean this up
+        # if query_path passed, read in as dataframe
         try:
-            self.query_path = kwargs['query_path']
-            try:
-                self.query_df = utils.readInDataframe(self.query_path)
-            except ValueError:
-                self.logger.critical('query_path not valid')
-            except FileNotFoundError:
-                self.logger.critical('%s  --> query_path not valid' % self.query_path)
-        except KeyError:
+            self.query_df = utils.readInDataframe(self.query_path)
+        except ValueError:
+            self.logger.critical('query_path not valid')
+        except FileNotFoundError:
+            self.logger.critical('%s  --> query_path not valid' % self.query_path)
+        except AttributeError:
             pass
-        try:
-            self.bam_file_list = kwargs['bam_file_list']
-        except KeyError:
-            pass
-        try:
-            self.count_file_list = kwargs['count_file_list']
-        except KeyError:
-            pass
-        try:
-            self.novoalign_log_list = kwargs['novoalign_log_list']
-        except KeyError:
-            pass
-        try:
-            self.coverage_check_flag = kwargs['coverage_check_flag']
-        except KeyError:
-            pass
-        try:
-            self.standardized_database_df = kwargs['standardized_database_df']
-        except KeyError:
-            pass
-        try:
-            self.genotype_list = kwargs['genotype_list']
-        except KeyError:
-            self.genotype_list = []
-        try:
-            self.quality_assess_dir_path = kwargs['quality_assess_dir_path']
-        except KeyError:
-            pass
+
 
     @abc.abstractmethod
     def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
@@ -236,11 +206,11 @@ class QualityAssessmentObject(StandardData):
             :param output_directory: path to output directory
         """
 
-    @abc.abstractmethod
     def igvShot(self):
         """
             create IgvObject and create browser shots
         """
+        raise NotImplementedError
 
     def qortsPlots(self):
         """

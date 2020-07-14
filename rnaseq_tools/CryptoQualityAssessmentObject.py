@@ -13,32 +13,90 @@ import numpy as np
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
-
 class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
-        self._add_expected_attributes = ['ko_gene_list', 'overexpress_gene_list', ]
+        self._add_expected_attributes = []
         # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(CryptoQualityAssessmentObject, self).__init__(self._add_expected_attributes, **kwargs)
-        # set standardDirectory structure
-        self.standardDirectoryStructure()
         # overwrite super.self_type with object type of child (this object)
-        self.self_type = 'QualityAssessmentObject'
-        try:
-            self.ko_gene_list = kwargs['ko_gene_list']
-        except KeyError:
-            self.ko_gene_list = []  # eg ['CNAG_01020' , ['CNAG_39392','CNAG_48382'], 'CNAG_23421'] where the center item is a double ko
-        try:
-            self.overexpress_gene_list = kwargs['overexpress_gene_list']
-        except KeyError:
-            self.overexpress_gene_list = []  # expecting no nested lists in this
+        self.self_type = 'CryptoQualityAssessmentObject'
 
-    def auditQualAssess1(self, qual_assess_df):
+        # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
+        column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT',
+                        'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT', 'MULTI_MAP_PERCENT',
+                        'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED',
+                        'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
+                        'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE',
+                        'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT', 'TOO_LOW_AQUAL_PERCENT',
+                        'rRNA_PERCENT', 'nctrRNA_PERCENT']
+
+    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+        """
+        get a list of the filenames in the run_#### file that correspond to a given type
+        :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
+        :param suffix_list: the type of file either novoalign or _read_count (htseq count output) currently set
+        :returns: a dataframe containing the files according to their suffix
+        """
+        # instantiate dataframe
+        align_df = pd.DataFrame()
+        htseq_count_df = pd.DataFrame()
+        # assemble qual_assess_df dataframe
+        for suffix in self.log_suffix_list:  # TODO: error checking: alignment must come before read_count
+            # extract files in directory with given suffix
+            file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, suffix))
+            for file_path in file_paths:
+                # extract fastq filename
+                fastq_filename = re.findall(r'(.+?)%s' % suffix, os.path.basename(file_path))[0]
+                # set sample name in library_metadata_dict
+                library_metadata_dict = {"FASTQFILENAME": fastq_filename}
+                if "novoalign" in suffix:
+                    library_metadata_dict.update(QualityAssessmentObject.parseAlignmentLog(file_path))
+                    align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+                elif "read_count" in suffix:
+                    library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(file_path))
+                    htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
+        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+
+        # reformat qual_assess_1 columns
+        if "_novoalign.log" in self.log_suffix_list and "_read_count.tsv" in self.log_suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
+            # store library size column
+            library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
+            # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
+            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
+                'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
+            unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float')
+
+            # create new column TOTAL_ALIGNMENT_PCT as unique + multi maps as percentage of library size
+            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df[
+                'MULTI_MAP']) / library_size_column
+            # convert novoalign columns to percents of library_size_column
+            total_alignment_count_column = qual_assess_df['TOTAL_ALIGNMENT'] * library_size_column
+            qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / library_size_column
+            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
+            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
+            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
+            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
+
+            # convert htseq count columns to percent of aligned reads
+            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df[
+                                                      'NOT_ALIGNED_TOTAL'] / library_size_column  # TODO: CHECK THIS
+            qual_assess_df['WITH_FEATURE'] = with_feature_column / unique_alignment_total
+            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / unique_alignment_total
+            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df[
+                                                             'FEATURE_ALIGN_NOT_UNIQUE'] / unique_alignment_total
+            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / unique_alignment_total
+            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / unique_alignment_total
+
+        return qual_assess_df.set_index("FASTQFILENAME")
+
+    def auditQualAssessDataFrame(self, qual_assess_df):
         """
             use rnaseq_pipeline/config/quality_assess_config.ini entries to add status, auto_audit columns
             :params qual_assess_df: a quality_assess_df created by qual_assess_1 or a path to one
@@ -55,13 +113,18 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # extract thresholds and bit status
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
+
         coverage_threshold = float(qual_assess_1_dict['COVERAGE_THRESHOLD'])
         coverage_bit_status = int(qual_assess_1_dict['COVERAGE_STATUS'])
+
+        not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
+        not_aligned_total_percent_status = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
 
         status_column_list = []
         for index, row in qual_assess_df.iterrows():
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
+            not_aligned_total = int(row['NOT_ALIGNED_TOTAL'])
             if row['GENOTYPE_1_COVERAGE'] is not None:
                 library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
             else:
@@ -77,6 +140,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 status_total += protein_coding_total_bit_status
             if library_genotype_1_coverage > coverage_threshold or library_genotype_2_coverage > coverage_threshold:
                 status_total += coverage_bit_status
+            if not_aligned_total > not_aligned_total_percent_threshold:
+                status_total += not_aligned_total_percent_status
             status_column_list.append(status_total)
             # TODO: ADD OVEREXPRESSION AND MARKER
 
@@ -126,7 +191,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         return ncRNA_df
 
-    def formatQualAssess1DataFrame(self, qual_assess_df):
+    def formatQualAssessDataFrame(self, qual_assess_df):
         """
 
         """
@@ -348,32 +413,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         output_path = os.path.join(output_directory, utils.pathBaseName(bam_file)+'_exonic_coverage.csv')
         exonic_df.to_csv(output_path, index=False)
 
-    def setCryptoGenotypeList(self):
-        """ # TODO: Move this to DatabaseObject
-            from database_df extract crypto genotype_list (no wildtype CNAG_00000)
-        """
-        try:
-            self.genotype_list = self.standardized_database_df.GENOTYPE.unique()
-        except AttributeError:
-            print('QualityAssessObject has no standardized_database_df attribute')
-
-    def parseCryptoGenotypeList(self):
-        """
-            parse a list of genotypes extracted from database_df into ko_gene_list (list of knockout genes) and
-            overexpress_gene_list (overexpression genes)
-        """
-        if len(self.genotype_list) == 0:
-            raise IndexError('GenotypeListEmpty')
-        for genotype in self.genotype_list:
-            if not genotype == 'CNAG_00000':
-                if '_over' in genotype:
-                    self.overexpress_gene_list.append(genotype.split('_over')[0])
-                else:
-                    if '.' in genotype:
-                        self.ko_gene_list.append(genotype.split('.'))
-                    else:
-                        self.ko_gene_list.append(genotype)
-
     def perturbedCheck(self):
         """
            calculate gene coverage of genes in the 'genotype' column of the query_df that do not have suffix _over
@@ -474,105 +513,3 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
-
-    def ineffectivePerturbationIgvShot(self):
-        """
-            create IgvObject and create browser shots
-        """
-        raise NotImplementedError
-
-    def qortsPlots(self):
-        """
-            create the qorts multiplots
-        """
-        try:
-            if not os.path.isfile(self.align_count_path):
-                raise NotADirectoryError('AlignCountPathNotValid')
-        except NotADirectoryError or AttributeError:
-            print(
-                'Align count path is either not set or not valid. align_count_path should be pointed toward a directory\n'
-                'with alignment files, typically the output of align_count.py or create_experiment.py')
-
-        try:  # TODO: clean this up
-            if not os.path.isfile(self.query_path):
-                raise FileExistsError('QueryPathNotValid')
-            else:
-                if not hasattr(self, 'standardized_database_df'):
-                    query_df = utils.readInDataframe(self.query_path)
-                    self.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
-        except FileExistsError or AttributeError:
-            print('Query Path not valid')
-
-        try:
-            if not os.path.isdir(self.qorts_output):
-                raise NotADirectoryError('QortsOutputDoesNotExist')
-        except NotADirectoryError or AttributeError:
-            print('qorts_output is either not passed as an argument, or does not exist.')
-
-        try:
-            if not os.path.isfile(self.annotation_file):
-                raise FileExistsError('AnnotationFilePathNotValid')
-        except FileExistsError or AttributeError:
-            print('You must pass a correct path to an annotation file (see genome_files)')
-
-        sorted_bamfile_list = glob(os.path.join(self.align_count_path, '*_sorted_aligned_reads.bam'))
-        sorted_bamfile_list = [os.path.basename(x) for x in sorted_bamfile_list]
-
-        # sort list of countfilenames pre and post 2015
-        self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])
-        pre_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] <= '2015-01-01']
-        pre_2015_countfilename_list = list(pre_2015_df['COUNTFILENAME'])
-        post_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] > '2015-01-01']
-        post_2015_countfilename_list = list(post_2015_df['COUNTFILENAME'])
-
-        cmd_list = []
-
-        for countfilename in post_2015_countfilename_list:
-            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
-            try:
-                if not bamfilename in sorted_bamfile_list:
-                    raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
-            except FileNotFoundError:
-                return ('A sample in the query could not be located in the directory with the alignment files.\n'
-                        'Make sure the query provided corresponds to the align_count_path directory')
-
-            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
-            utils.mkdirp(output_subdir)
-            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
-            try:
-                if not os.path.exists(bamfilename_path):
-                    raise FileExistsError('BamfilePathNotValid')
-            except FileExistsError:
-                print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (
-                bamfilename_path, self.annotation_file, output_subdir)
-            cmd_list.append(qorts_cmd)
-
-        for countfilename in pre_2015_countfilename_list:
-            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
-            try:
-                if not bamfilename in sorted_bamfile_list:
-                    raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
-            except FileNotFoundError:
-                print('A sample in the query could not be located in the directory with the alignment files.\n'
-                      'Make sure the query provided corresponds to the align_count_path directory')
-
-            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
-            utils.mkdirp(output_subdir)
-            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
-            try:
-                if not os.path.exists(bamfilename_path):
-                    raise FileExistsError('BamfilePathNotValid')
-            except FileExistsError:
-                print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
-                bamfilename_path, self.annotation_file, output_subdir)
-            cmd_list.append(qorts_cmd)
-
-        with open(self.sbatch_script, 'w') as sbatch_file:
-            sbatch_file.write('\n')
-            sbatch_file.write('\n')
-
-            for cmd in cmd_list:
-                sbatch_file.write(cmd)
-                sbatch_file.write('\n')
