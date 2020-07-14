@@ -183,14 +183,14 @@ class StandardData:
             cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
             utils.executeSubProcess(cmd)
 
-    def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function
+    def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function TODO: IMPROVE ERROR CHECKING AND LOGGING. CLUNKY CURRENTLY.
         """
             read in OrganismDataConfig.ini from each expected subdir of genome_files and check if the path is valid.
             If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths
         """
         # rename organism_genome_file to organism_genome_file_subdir and change this
-        no_file_organism_attributes = ['organism_genome_file', 'feature_type', 'total_exon_bases']
+        no_file_organism_attributes = ['organism_genome_file', 'feature_type', 'total_exon_bases', 'total_intergenic_bases']
         for organism in self._configured_organisms_list:
             # check if directory exists
             organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
