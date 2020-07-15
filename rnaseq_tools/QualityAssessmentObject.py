@@ -39,14 +39,54 @@ class QualityAssessmentObject(StandardData):
         except AttributeError:
             pass
 
-
-    @abc.abstractmethod
     def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
         """
-        get a list of the filenames in the run_#### file that correspond to a relevant alignment and count files (eg all _read_count.tsv and novoalign.log files)
+        get a list of the filenames in the run_#### file that correspond to a given type
         :returns: a dataframe containing the files according to their suffix
         """
-        return
+        # instantiate dataframe
+        align_df = pd.DataFrame()
+        htseq_count_df = pd.DataFrame()
+        # extract metadata from novoalign log files
+        for log_file in self.novoalign_log_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(log_file).replace('_novoalign', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting information from novoalign log for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseAlignmentLog(log_file))
+            align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing novoalign logs\n')
+        # extract metadata from count files
+        for count_file in self.count_file_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(count_file).replace('_read_count', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting count information from count file for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseGeneCount(count_file))
+            library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(fastq_basename)
+            htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing count files\n')
+        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
+        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+        print('Quantifying noncoding rRNA (rRNA, tRNA and ncRNA)')
+        # extract rRNA, tRNA and ncRNA quantification for crypto from bam files -- this takes a long time
+        ncRNA_df = self.quantifyNonCodingRna(qual_assess_df)
+        # merge this into the qual_assess_df
+        qual_assess_df = pd.merge(qual_assess_df, ncRNA_df, on='FASTQFILENAME')
+        print('Quantifying intergenic coverage')
+        qual_assess_df = self.calculateIntergenicCoverage(qual_assess_df)
+        # if coverage_check_flag true, check coverage of perturbed genes
+        try:
+            if self.coverage_check_flag:
+                coverage_df = self.perturbedCheck()
+                qual_assess_df = pd.merge(qual_assess_df, coverage_df, how='left', on='FASTQFILENAME')
+        except AttributeError:
+            self.logger.info('query_df or coverage_check_flag not present -- no coverage check')
+        # format the qual_assess_df dataframe
+        qual_assess_df = self.formatQualAssessDataFrame(qual_assess_df)
+        return qual_assess_df
 
     @abc.abstractmethod
     def auditQualAssessDataFrame(self, qual_assess_df):
@@ -55,7 +95,7 @@ class QualityAssessmentObject(StandardData):
             :params qual_assess_df: the quality assessment dataframe with all appropriate columns for values in quality_assess thresholds in config file
             :returns: qual_assess_df with STATUS and AUTO_AUDIT columns added
         """
-        return
+        raise NotImplementedError
 
     @abc.abstractmethod
     def quantifyNonCodingRna(self, qual_assess_df):
@@ -65,7 +105,7 @@ class QualityAssessmentObject(StandardData):
             :returns qual_assess_df: noncoding_rna_df with columns 'FASTQFILENAME','TOTAL_rRNA', 'UNIQUE_rRNA', 'UNIQUE_tRNA_ncRNA' added.
             NOTE: FASTQFILENAME may be some other way of consistently identifying a sample uniquely
         """
-        return
+        raise NotImplementedError
 
     @abc.abstractmethod
     def formatQualAssessDataFrame(self, qual_assess_df):
@@ -74,7 +114,7 @@ class QualityAssessmentObject(StandardData):
             :params qual_assess_df: a quality_assess_df with all columns
             :returns: qual_assess_df with appropriate formatting for writing out
         """
-        return
+        raise NotImplementedError
 
     def parseAlignmentLog(self, alignment_log_file_path):
         """
@@ -120,7 +160,7 @@ class QualityAssessmentObject(StandardData):
             :param htseq_counts_path: a path to a  _read_count.tsv file (htseq-counts output)
             :returns: a dictionary with the keys FEATURE_ALIGN_NOT_UNIQUE, TOO_LOW_AQUAL, AMBIGUOUS_FEATURE, NO_FEATURE, NOT_ALIGNED_TOTAL (at least, maybe more)
         """
-        return
+        raise NotImplementedError
 
     @abc.abstractmethod
     def uniqueAmbiguousProteinCodingCount(self, fastq_simplename):
@@ -129,7 +169,7 @@ class QualityAssessmentObject(StandardData):
             :params fastq_simplename: fastq filename minus any path and extention eg /path/to/my_reads_R1.fastq.gz would be my_reads_R1
             :returns: the number of reads (lines) aligning to protein coding coordinates
         """
-        return
+        raise NotImplementedError
 
     def totalrRNA(self, bam_path, rRNA_region, strandedness):
         """
@@ -196,7 +236,7 @@ class QualityAssessmentObject(StandardData):
             in genome_files/<organism>
             TODO: BETTER NOTES HERE -- SEE CRYPTOQUALITYASSESSMENTOBJECT
         """
-        return
+        raise NotImplementedError
 
     @abc.abstractmethod
     def calculateExonicCoverage(self, bam_file, output_directory):
@@ -205,6 +245,25 @@ class QualityAssessmentObject(StandardData):
             :param bam_file: path to bam file
             :param output_directory: path to output directory
         """
+
+    def calculatePercentFeatureCoverage(self, feature, genotype, annotation_path, bam_file, num_bases_in_region = None):
+        """
+            Calculate percent of given feature (regions summed, so all exon in gene, eg) of a gene (exon, CDS, etc) covered by 1 or more reads
+            :param feature: annotation feature over which to take percentage, eg all exons in gene, or all CDS
+            :param genotype: gene in annotation file
+            :param bam_file: a sorted, indexed alignment file (.bam)
+            :param num_bases_in_region: pass number of bases in the region directly, this will skip the step of calculating this number from the annotation file
+            :returns: the fraction of bases in the (summed over the number of features in the gene) feature region covered by at least one read
+        """
+        if not num_bases_in_region:
+            # extract number of bases in CDS of given gene. Credit: https://www.biostars.org/p/68283/#390427
+            num_bases_in_region_cmd = "grep %s %s | grep %s | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (genotype, annotation_path, feature)
+            num_bases_in_region = int(subprocess.getoutput(num_bases_in_region_cmd))
+        # extract number of bases with depth != 0
+        num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" %(genotype, annotation_path, feature, bam_file)
+        num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
+
+        return num_bases_in_cds_with_one_or_more_read / float(num_bases_in_region)
 
     def igvShot(self):
         """

@@ -12,7 +12,8 @@ import numpy as np
 
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
-
+#TODO: CURRENTLY, ALWAYS CALCULATES COVERAGES -- CREATE FLAG TO SKIP THIS STEP IF PASSED
+#TODO: CALCULATE COVERAGE ONCE, STORE AS BED FILE, USE BED RATHER THAN QUANTIFYING BAM EVERYTIME
 class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -28,73 +29,54 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         self.self_type = 'CryptoQualityAssessmentObject'
 
         # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-        column_order = ['LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT',
-                        'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT', 'MULTI_MAP_PERCENT',
-                        'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED',
-                        'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
-                        'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE',
-                        'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT', 'TOO_LOW_AQUAL_PERCENT',
-                        'rRNA_PERCENT', 'nctrRNA_PERCENT']
+        self.column_order = ['FASTQFILENAME','LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT',
+                             'MULTI_MAP_PERCENT', 'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED',
+                             'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
+                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE',
+                             'NAT_COVERAGE', 'G418_COVERAGE', 'OVEREXPRESSION_FOW', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
+                             'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
 
-    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+    def formatQualAssessDataFrame(self, qual_assess_df):
         """
-        get a list of the filenames in the run_#### file that correspond to a given type
-        :param dir_path: path to the run_#### directory, generally (and intended to be) in /scratch/mblab/$USER/rnaseq_pipeline/reports
-        :param suffix_list: the type of file either novoalign or _read_count (htseq count output) currently set
-        :returns: a dataframe containing the files according to their suffix
+
         """
-        # instantiate dataframe
-        align_df = pd.DataFrame()
-        htseq_count_df = pd.DataFrame()
-        # assemble qual_assess_df dataframe
-        for suffix in self.log_suffix_list:  # TODO: error checking: alignment must come before read_count
-            # extract files in directory with given suffix
-            file_paths = glob("{}/*{}".format(self.quality_assess_dir_path, suffix))
-            for file_path in file_paths:
-                # extract fastq filename
-                fastq_filename = re.findall(r'(.+?)%s' % suffix, os.path.basename(file_path))[0]
-                # set sample name in library_metadata_dict
-                library_metadata_dict = {"FASTQFILENAME": fastq_filename}
-                if "novoalign" in suffix:
-                    library_metadata_dict.update(QualityAssessmentObject.parseAlignmentLog(file_path))
-                    align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-                elif "read_count" in suffix:
-                    library_metadata_dict.update(QualityAssessmentObject.parseGeneCount(file_path))
-                    htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
-        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+        # EFFECTIVE_LIBRARY_SIZE is LIBRARY_SIZE - (total_rRNA + unique_tRNA_ncRNA)
+        qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
 
-        # reformat qual_assess_1 columns
-        if "_novoalign.log" in self.log_suffix_list and "_read_count.tsv" in self.log_suffix_list:  # TODO: CLEAN UP FOLLOWING LINES TO CREATE PERCENT COLUMNS IN SINGLE LINE
-            # store library size column
-            library_size_column = qual_assess_df['LIBRARY_SIZE'].astype('float')
-            # total_with_feature is the unique alignments MINUS N0_FEATURE, AMBIGUOUS_FEATURE and TOO_LOW_AQUAL
-            with_feature_column = (qual_assess_df['UNIQUE_ALIGNMENT'] - qual_assess_df['NO_FEATURE'] - qual_assess_df[
-                'AMBIGUOUS_FEATURE'] - qual_assess_df['TOO_LOW_AQUAL'])
-            unique_alignment_total = qual_assess_df['UNIQUE_ALIGNMENT'].astype('float')
+        # EFFECTIVE_UNIQUE_ALIGNMENT is number of unique reads minus those unique reads mapping to rRNA and nc + t RNA
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] +
+                                                                                             qual_assess_df['UNIQUE_tRNA_ncRNA'] +
+                                                                                             qual_assess_df['TOO_LOW_AQUAL'])
 
-            # create new column TOTAL_ALIGNMENT_PCT as unique + multi maps as percentage of library size
-            qual_assess_df['TOTAL_ALIGNMENT'] = (qual_assess_df['UNIQUE_ALIGNMENT'] + qual_assess_df[
-                'MULTI_MAP']) / library_size_column
-            # convert novoalign columns to percents of library_size_column
-            total_alignment_count_column = qual_assess_df['TOTAL_ALIGNMENT'] * library_size_column
-            qual_assess_df['UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] / library_size_column
-            qual_assess_df['MULTI_MAP'] = qual_assess_df['MULTI_MAP'] / library_size_column
-            qual_assess_df['NO_MAP'] = qual_assess_df['NO_MAP'] / library_size_column
-            qual_assess_df['HOMOPOLY_FILTER'] = qual_assess_df['HOMOPOLY_FILTER'] / library_size_column
-            qual_assess_df['READ_LENGTH_FILTER'] = qual_assess_df['READ_LENGTH_FILTER'] / library_size_column
+        # present the following categories as fraction of library_size
+        # percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
+        qual_assess_df['rRNA_PERCENT'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['nctRNA_PERCENT'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['nctrRNA_PERCENT'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['MULTI_MAP_PERCENT'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['NO_MAP_PERCENT'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        # htseq output not_aligned_total_percent is no_map + homopoly_filter + read_length filter. present as fraction of library_size
+        qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
 
-            # convert htseq count columns to percent of aligned reads
-            qual_assess_df['NOT_ALIGNED_TOTAL'] = qual_assess_df[
-                                                      'NOT_ALIGNED_TOTAL'] / library_size_column  # TODO: CHECK THIS
-            qual_assess_df['WITH_FEATURE'] = with_feature_column / unique_alignment_total
-            qual_assess_df['NO_FEATURE'] = qual_assess_df['NO_FEATURE'] / unique_alignment_total
-            qual_assess_df['FEATURE_ALIGN_NOT_UNIQUE'] = qual_assess_df[
-                                                             'FEATURE_ALIGN_NOT_UNIQUE'] / unique_alignment_total
-            qual_assess_df['AMBIGUOUS_FEATURE'] = qual_assess_df['AMBIGUOUS_FEATURE'] / unique_alignment_total
-            qual_assess_df['TOO_LOW_AQUAL'] = qual_assess_df['TOO_LOW_AQUAL'] / unique_alignment_total
+        # PROTEIN_CODING_TOTAL (formerly with_feature) is the number of reads mapping to a protein coding gene by htseq plus the unique ambiguous reads mapping to exon portiosn of overlapping protein coding reads
+        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['PROTEIN_CODING_COUNTED'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
 
-        return qual_assess_df.set_index("FASTQFILENAME")
+        # protein_coding_total as percent of effective unique alignment
+        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        # protein_coding_counted as percent of unique alignment
+        qual_assess_df['PROTEIN_CODING_COUNTED_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+
+        # present the following as fraction of (total) unique_alignment  ### TODO: SHOULD THIS BE OF EFFECTIVE_UNIQUE_ALIGNMENT? PROBABLY YES: NOTE THE GRAPHS IN CURRENT OLD CRYPTO SHEETS ARE OF UNIQUE_ALIGNMENT
+        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+
+        # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+
+        return qual_assess_df[self.column_order]
 
     def auditQualAssessDataFrame(self, qual_assess_df):
         """
@@ -114,34 +96,68 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
 
-        coverage_threshold = float(qual_assess_1_dict['COVERAGE_THRESHOLD'])
-        coverage_bit_status = int(qual_assess_1_dict['COVERAGE_STATUS'])
+        perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
+        perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
+
+        wt_nat_coverage_threshold = float(qual_assess_1_dict['WT_NAT_COVERAGE_THRESHOLD'])
+        wt_nat_coverage_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
+
+        wt_g418_coverage_threshold = float(qual_assess_1_dict['WT_G418_COVERAGE_THRESHOLD'])
+        wt_g418_coverage_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
+
+        perturbed_nat_coverage_threshold = float(qual_assess_1_dict['PERTURBED_NAT_COVERAGE_THRESHOLD'])
+        perturbed_nat_coverage_status = int(qual_assess_1_dict['PERTURBED_NAT_COVERAGE_STATUS'])
+
+        perturbed_g418_coverage_threshold = float(qual_assess_1_dict['PERTURBED_G418_COVERAGE_THRESHOLD'])
+        perturbed_g418_coverage_status = int(qual_assess_1_dict['PERTURBED_G418_COVERAGE_STATUS'])
 
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
         not_aligned_total_percent_status = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
 
         status_column_list = []
         for index, row in qual_assess_df.iterrows():
+            # get genotype of sample
+            genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
-            not_aligned_total = int(row['NOT_ALIGNED_TOTAL'])
+
+            not_aligned_total = int(row['NOT_ALIGNED_TOTAL_PERCENT'])
+
             if row['GENOTYPE_1_COVERAGE'] is not None:
                 library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
             else:
                 library_genotype_1_coverage = -1
+
             if row['GENOTYPE_2_COVERAGE'] is not None:
                 library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
             else:
                 library_genotype_2_coverage = -1
 
+            if genotype == 'CNAG_00000':
+                wt_nat_coverage = float(row['NAT_COVERAGE'])
+                wt_g418_coverage = float(row['G418_COVERAGE'])
+            else:
+                wt_nat_coverage = -1
+                wt_g418_coverage = -1
+
             # set status_total to 0
             status_total = 0
+            # check values against thresholds, add status to flag
             if library_protein_coding_total < protein_coding_total_threshold:
                 status_total += protein_coding_total_bit_status
-            if library_genotype_1_coverage > coverage_threshold or library_genotype_2_coverage > coverage_threshold:
-                status_total += coverage_bit_status
+
+            if library_genotype_1_coverage > perturbed_coverage_threshold or library_genotype_2_coverage > perturbed_coverage_threshold:
+                status_total += perturbed_coverage_bit_status
+
+            if wt_nat_coverage > wt_nat_coverage_threshold:
+                status_total += wt_nat_coverage_status
+            if wt_g418_coverage > wt_g418_coverage_threshold:
+                status_total += wt_g418_coverage_status
+
             if not_aligned_total > not_aligned_total_percent_threshold:
                 status_total += not_aligned_total_percent_status
+
             status_column_list.append(status_total)
             # TODO: ADD OVEREXPRESSION AND MARKER
 
@@ -190,48 +206,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         ncRNA_df.columns = ['FASTQFILENAME', 'TOTAL_rRNA', 'UNIQUE_rRNA', 'UNIQUE_tRNA_ncRNA']
 
         return ncRNA_df
-
-    def formatQualAssessDataFrame(self, qual_assess_df):
-        """
-
-        """
-        # EFFECTIVE_LIBRARY_SIZE is LIBRARY_SIZE - (total_rRNA + unique_tRNA_ncRNA)
-        qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
-
-        # EFFECTIVE_UNIQUE_ALIGNMENT is number of unique reads minus those unique reads mapping to rRNA and nc + t RNA
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] +
-                                                                                             qual_assess_df['UNIQUE_tRNA_ncRNA'] +
-                                                                                             qual_assess_df['TOO_LOW_AQUAL'])
-
-        # present the following categories as fraction of library_size
-        # percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
-        qual_assess_df['rRNA_PERCENT'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['nctRNA_PERCENT'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['nctrRNA_PERCENT'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['MULTI_MAP_PERCENT'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['NO_MAP_PERCENT'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        # htseq output not_aligned_total_percent is no_map + homopoly_filter + read_length filter. present as fraction of library_size
-        qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-
-        # PROTEIN_CODING_TOTAL (formerly with_feature) is the number of reads mapping to a protein coding gene by htseq plus the unique ambiguous reads mapping to exon portiosn of overlapping protein coding reads
-        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['PROTEIN_CODING_COUNTED'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
-
-        # protein_coding_total as percent of effective unique alignment
-        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
-        # protein_coding_counted as percent of unique alignment
-        qual_assess_df['PROTEIN_CODING_COUNTED_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
-
-        # present the following as fraction of (total) unique_alignment  ### TODO: SHOULD THIS BE OF EFFECTIVE_UNIQUE_ALIGNMENT? PROBABLY YES: NOTE THE GRAPHS IN CURRENT OLD CRYPTO SHEETS ARE OF UNIQUE_ALIGNMENT
-        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-
-        # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
-
-        return qual_assess_df
 
     def parseGeneCount(self, htseq_counts_path):
         """
@@ -413,6 +387,12 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         output_path = os.path.join(output_directory, utils.pathBaseName(bam_file)+'_exonic_coverage.csv')
         exonic_df.to_csv(output_path, index=False)
 
+    def calculateMarkerCoverage(self, qual_asses_df):
+        """
+
+        """
+        raise NotImplementedError
+
     def perturbedCheck(self):
         """
            calculate gene coverage of genes in the 'genotype' column of the query_df that do not have suffix _over
@@ -431,7 +411,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # reduce fastqFileName to only simple basename (eg /path/to/some_fastq_R1_001.fastq.gz --> some_fastq_R1_001
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # new column perturbation, if _over in genotype, put 'over' otherwise 'ko'
-        genotype_df['pertubation'] = ['over' if '_over' in genotype_column else 'ko' for genotype_column in
+        genotype_df['perturbation'] = ['over' if '_over' in genotype_column else 'ko' for genotype_column in
                                       genotype_df['genotype']]
         # remove _over from genotype
         genotype_df['genotype'] = genotype_df['genotype'].str.replace('_over', '')
@@ -446,70 +426,66 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         genotype_df.drop(columns=['genotype'], inplace=True)
         genotype_df = pd.concat([genotype_df, genotype_columns], axis=1)
 
-        # set genomes (this is directly from OrganismData_config.ini in each genome_files subdir)
-        s288c_r64_genome = os.path.join(self.genome_files, 'S288C_R64', 'S288C_R64.gff')
-        if not os.path.isfile(s288c_r64_genome):
-            self.logger.critical('S288C_R64 genome path not valid: %s' % s288c_r64_genome)
-            raise FileNotFoundError
-        kn99_genome = os.path.join(self.genome_files, 'KN99', 'KN99_stranded_annotations_fungidb_augment.gff')
-        if not os.path.isfile(kn99_genome):
-            self.logger.critical('S288C_R64 genome path not valid: %s' % kn99_genome)
-            raise FileNotFoundError
-        h99_genome = os.path.join(self.genome_files, 'H99', 'crNeoH99.gtf')
-        if not os.path.isfile(h99_genome):
-            self.logger.critical('S288C_R64 genome path not valid: %s' % h99_genome)
-            raise FileNotFoundError
+        # read in KN99 OrganismData_config.ini
+        kn99_config_filepath = os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini')
+        if not os.path.isfile(kn99_config_filepath):
+            self.logger.critical('kn99 config file not found at %s' %kn99_config_filepath)
+            raise FileNotFoundError('KN99ConfigFilpathNotFound')
+        config = configparser.ConfigParser()
+        config.read(kn99_config_filepath)
+        kn99_organism_data_dict = config['OrganismData']
+        # extract genome path
+        kn99_annotation_path = os.path.join(self.genome_files, 'KN99', kn99_organism_data_dict['annotation_file'])
+        if not os.path.isfile(kn99_config_filepath):
+            self.logger.critical('kn99 annotation file not found at %s' %kn99_config_filepath)
+            raise FileNotFoundError('KN99AnnotationFileNotFound')
+        nat_bases_in_cds = int(kn99_organism_data_dict['NAT_cds_length'])
+        g418_bases_in_cds = int(kn99_organism_data_dict['G418_cds_length'])
 
-        # create columns genotype_1_coverage and genotype_2_coverage
+        # set feature over which to take percentage of reads (CDS in this case)
+        feature = 'CDS'
+
+        # create columns genotype_1_coverage, genotype_2_coverage, overexpression_fow (fold over wildtype), NAT_coverage, G418_coverage
         genotype_df['genotype_1_coverage'] = None
         genotype_df['genotype_2_coverage'] = None
+        genotype_df['overexpression_fow'] = None
+        genotype_df['NAT_coverage'] = None
+        genotype_df['G418_coverage'] = None
+
         # loop over rows, calculating coverage for each genotype (testing wither genotype2 is none and perturbation is _over
         for index, row in genotype_df.iterrows():
-            if not row['genotype_1'] == 'CNAG_00000':
-                # simple name is like this: run_673_s_4_withindex_sequence_TGAGGTT (no containing directories, no extention)
-                fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
+            # simple name is like this: run_673_s_4_withindex_sequence_TGAGGTT (no containing directories, no extention)
+            fastq_simple_name = utils.pathBaseName(row['fastqFileName'])
+            # get bam files which correspond to query_df fastqFileNames
+            try:
+                bam_file = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
+            except IndexError:
+                self.logger.info('bam file not found for %s' % fastq_simple_name)  # TODO: improve this logging
+                continue
+
+            # calculate marker coverages
+            print('...calculation NAT coverage for %s' %fastq_simple_name)
+            genotype_df.loc[index, 'NAT_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_NAT', kn99_annotation_path, bam_file, nat_bases_in_cds)
+            print('...calculation G418 coverage for %s' %fastq_simple_name)
+            genotype_df.loc[index, 'G418_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_G418', kn99_annotation_path, bam_file, g418_bases_in_cds)
+
+            # if perturbed, calculate perturbed gene coverage
+            if not row['genotype_1'] == 'CNAG_00000' and not row['perturbation'] == 'over':
                 genotype_1 = row['genotype_1']
                 genotype_2 = row['genotype_2']
                 # determine which genome to use -- if CNAG, use kn99
-                if genotype_1.startswith('CNAG'):
-                    genome = kn99_genome
-                    # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
-                    genotype_1 = genotype_1.replace('CNAG', 'CKF44')
-                    if genotype_2 is not None and genotype_2.startswith('CNAG'):
-                        genotype_2 = genotype_2.replace('CNAG', 'CKF44')
-                # for now, if the gene does not start with CNAG, assume it is yeast. TODO: This needs to be changes
-                else:
-                    genome = s288c_r64_genome
-                # get bam files which correspond to query_df fastqFileNames
-                try:
-                    bam_file = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
-                except IndexError:
-                    self.logger.info('bam file not found for %s' % fastq_simple_name)  # TODO: improve this logging
-                    continue
-                print('...checking coverage of %s %s' % (genotype_1, genotype_2))
-                # extract number of bases in CDS of given gene. Credit: https://www.biostars.org/p/68283/#390427
-                num_bases_in_cds_cmd = "grep %s %s | grep CDS | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
-                genotype_1, genome)
-                num_bases_in_cds = int(subprocess.getoutput(num_bases_in_cds_cmd))
-                # extract number of bases with depth != 0
-                num_bases_depth_not_zero_cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
-                genotype_1, genome, bam_file)
-                num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
-
-                # coverage of gene with depth > 1 == (num bases in cds with one or more read) / (number of bases in CDS)
-                genotype_df.loc[index, 'genotype_1_coverage'] = num_bases_in_cds_with_one_or_more_read / float(
-                    num_bases_in_cds)
+                if not genotype_1.startswith('CNAG'):
+                    raise ValueError('%sNotRecognizedCryptoGenotype' %genotype_1)
+                # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
+                genotype_1 = genotype_1.replace('CNAG', 'CKF44')
+                if genotype_2 is not None and genotype_2.startswith('CNAG'):
+                    genotype_2 = genotype_2.replace('CNAG', 'CKF44')
+                print('...checking coverage of %s %s in %s' % (genotype_1, genotype_2, fastq_simple_name))
+                genotype_df.loc[index, 'genotype_1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype_1, kn99_annotation_path, bam_file)
                 # do the same for genotype_2 if it exists
                 if genotype_2 is not None:
-                    num_bases_in_cds_cmd = "grep %s %s | grep CDS | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
-                    genotype_2, genome)
-                    num_bases_in_cds = int(subprocess.getoutput(num_bases_in_cds_cmd))
-                    num_bases_depth_not_zero_cmd = "grep %s %s | grep CDS | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
-                    genotype_2, genome, bam_file)
-                    num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
-                    genotype_df.loc[index, 'genotype_2_coverage'] = num_bases_in_cds_with_one_or_more_read / float(
-                        num_bases_in_cds)
+                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentCdsCoverage(feature, genotype_2, kn99_annotation_path, bam_file)
 
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
-        return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE']]
+        return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'G418_COVERAGE']]
