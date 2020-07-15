@@ -484,7 +484,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 genotype_df.loc[index, 'genotype_1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype_1, kn99_annotation_path, bam_file)
                 # do the same for genotype_2 if it exists
                 if genotype_2 is not None:
-                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentCdsCoverage(feature, genotype_2, kn99_annotation_path, bam_file)
+                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype_2, kn99_annotation_path, bam_file)
 
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
