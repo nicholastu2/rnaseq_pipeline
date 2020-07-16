@@ -13,11 +13,13 @@ import abc
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
+
 class QualityAssessmentObject(StandardData):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
-        self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_log_list', 'coverage_check_flag',
+        self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_log_list',
+                                         'coverage_check_flag',
                                          'query_path', 'standardized_database_df', 'qual_assess_dir_path']
         # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
@@ -66,7 +68,8 @@ class QualityAssessmentObject(StandardData):
             library_metadata_dict = {"FASTQFILENAME": fastq_basename}
             print('...extracting count information from count file for %s' % fastq_basename)
             library_metadata_dict.update(self.parseGeneCount(count_file))
-            library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(fastq_basename)
+            library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(
+                fastq_basename)
             htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
         print('\nDone parsing count files\n')
         # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
@@ -184,10 +187,12 @@ class QualityAssessmentObject(StandardData):
         # NOTE: THIS IS ONLY CORRECT IF THE rRNA IS ON THE FORWARD STRAND
         if strandedness == 'reverse':
             # -F 16 excludes reverse strand reads
-            cmd_primary_multi_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (bam_path, rRNA_region)
+            cmd_primary_multi_alignment_rRNA = 'samtools view -F 16 %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
+                bam_path, rRNA_region)
         else:
             # grep -v excludes reads with a digit after the 1 (there is a prettier way to do this, im sure)
-            cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (bam_path, rRNA_region)
+            cmd_primary_multi_alignment_rRNA = 'samtools view %s %s | grep ZS:Z:R | grep HI:i:1 | grep -v \"HI:i:1[[:digit:]]\" | wc -l' % (
+                bam_path, rRNA_region)
         # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
@@ -219,10 +224,12 @@ class QualityAssessmentObject(StandardData):
         # construct command based on strandedness of library
         if strandedness == 'reverse':
             # note: look up bedtools intersect --help for flags. grep -v returns all lines except those matching the pattern, in this case signifying multimaps
-            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -s -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
+                bam_path, trna_ncrna_annotation_gff)
         else:
             # no -s means this will count intersects regardless of strand
-            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (bam_path, trna_ncrna_annotation_gff)
+            bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
+                bam_path, trna_ncrna_annotation_gff)
 
         # extract unique_alignments to nc and t RNA
         unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
@@ -248,7 +255,7 @@ class QualityAssessmentObject(StandardData):
         """
         raise NotImplementedError('AbstractMethodMustBeOverwrittenByOrganismSpecificQA')
 
-    def calculatePercentFeatureCoverage(self, feature, genotype, annotation_path, bam_file, num_bases_in_region = None):
+    def calculatePercentFeatureCoverage(self, feature, genotype, annotation_path, bam_file, num_bases_in_region=None):
         """
             Calculate percent of given feature (regions summed, so all exon in gene, eg) of a gene (exon, CDS, etc) covered by 1 or more reads
             :param feature: annotation feature over which to take percentage, eg all exons in gene, or all CDS
@@ -259,15 +266,18 @@ class QualityAssessmentObject(StandardData):
         """
         if not num_bases_in_region:
             # extract number of bases in CDS of given gene. Credit: https://www.biostars.org/p/68283/#390427
-            num_bases_in_region_cmd = "grep %s %s | grep %s | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (genotype, annotation_path, feature)
+            num_bases_in_region_cmd = "grep %s %s | grep %s | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
+                genotype, annotation_path, feature)
             num_bases_in_region = int(subprocess.getoutput(num_bases_in_region_cmd))
         # extract number of bases with depth != 0
-        num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" %(genotype, annotation_path, feature, bam_file)
+        num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
+            genotype, annotation_path, feature, bam_file)
         num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
 
         return num_bases_in_cds_with_one_or_more_read / float(num_bases_in_region)
 
-    def igvShot(self, bam_file_list, organism=None, igv_output_dir=None, gene=None, audited_qual_assess_df=None, manual_audit_flag=False):
+    def igvShot(self, bam_file_list, organism=None, igv_output_dir=None, gene=None, audited_qual_assess_df=None,
+                manual_audit_flag=False):
         """
             first checks if alignment files are indexed; creates and submit sbatch script to index if not.
             creates a lookup_file.tsv of alignment_file(bam)_path \t bed_path \t igv_genome_path \t igv_output_dir
@@ -291,7 +301,8 @@ class QualityAssessmentObject(StandardData):
             if not gene or audited_qual_assess_df:
                 raise AttributeError
         except AttributeError:
-            self.logger.critical('igvShot cannot make lookup file without either a gene, gene list, or an audited_qual_assess_df')
+            self.logger.critical(
+                'igvShot cannot make lookup file without either a gene, gene list, or an audited_qual_assess_df')
             print('igvShot cannot make lookup file without either a gene, gene list, or an audited_qual_assess_df')
         # user must pass either gene/gene_list or a audited_qual_assess_df
         if gene is not None and audited_qual_assess_df is not None:
@@ -302,7 +313,8 @@ class QualityAssessmentObject(StandardData):
 
         # set output_dir to default if not passed by user
         if not igv_output_dir:
-            igv_output_dir = os.path.join(self.reports, 'igv_%s_%s' %self.year_month_day, utils.hourMinuteSecond())
+            igv_output_dir = os.path.join(self.reports, 'igv_%s_%s' % (self.year_month_day, utils.hourMinuteSecond()))
+            utils.mkdirp(igv_output_dir)
 
         # make sure that gene is a list (this allows user to pass multiple genes as a list, or single gene)
         if not isinstance(gene, list):
@@ -326,13 +338,14 @@ class QualityAssessmentObject(StandardData):
 
         # create lookup file for sbatch
         if audited_qual_assess_df:
-            lookup_file_path = self.createIgvLookupFromDataframe(bam_file_list, audited_qual_assess_df, manual_audit_flag)
+            lookup_file_path = self.createIgvLookupFromDataframe(bam_file_list, audited_qual_assess_df,
+                                                                 manual_audit_flag)
         else:
-            lookup_file_path = self.createIgvLookupFromGeneList(organism, bam_file_list, gene)  # note 'gene' may be a list, and even if it is not passed as one, will be turned into a list of length 1
+            lookup_file_path = self.createIgvLookupFromGeneList(organism, bam_file_list,
+                                                                gene)  # note 'gene' may be a list, and even if it is not passed as one, will be turned into a list of length 1
 
         # create sbatch script for igv shots
         self.createIgvBatchscript(lookup_file_path, igv_output_dir)
-
 
     def indexBamFileBathScript(self, bam_files_to_index):
         """
@@ -355,7 +368,7 @@ class QualityAssessmentObject(StandardData):
 
         raise NotImplementedError('AbstractMethodMustBeOverwritten')
 
-    def createIgvLookupFromGeneList(self, organism, bam_list, gene_list, gene_offset = 500):
+    def createIgvLookupFromGeneList(self, organism, bam_list, gene_list, gene_offset=500):
         """
 
         :returns: path to the lookup file for createIgvBatchscript
@@ -363,58 +376,68 @@ class QualityAssessmentObject(StandardData):
         organism_genome_files = os.path.join(self.genome_files, organism)
         if not os.path.isdir(organism_genome_files):
             self.logger.critical('%s not a in genome_files. Make sure genome_files exists in rnaseq_pipeline, '
-                                 'and that the organism is passed as a correctly formatted subdirectory of genome_files' %organism_genome_files)
+                                 'and that the organism is passed as a correctly formatted subdirectory of genome_files' % organism_genome_files)
             raise NotADirectoryError('OrganismDirectoryNotFoundInGenomeFiles')
         organism_config_file = os.path.join(organism_genome_files, 'OrganismData_config.ini')
         if not os.path.isfile(organism_config_file):
-            self.logger.critical('%s not found -- check genome_files/organism subdir. Possibly delete genome_files and let the script re-download (make sure it is accessible)' %organism_config_file)
+            self.logger.critical(
+                '%s not found -- check genome_files/organism subdir. Possibly delete genome_files and let the script re-download (make sure it is accessible)' % organism_config_file)
             raise FileNotFoundError('ConfigFileNotFound')
         # read in organism config file
         organism_config = configparser.ConfigParser()
         organism_config.read(organism_config_file)
         organism_config_dict = organism_config['OrganismData']
         # set annotation file
-        annotation_file = organism_config_dict['annotation_file']
+        annotation_file = os.path.join(self.genome_files, organism, organism_config_dict['annotation_file'])
+        if not os.path.isfile(annotation_file):
+            self.logger.critical('the annotation file %s not valid filepath' % annotation_file)
+            raise FileNotFoundError('AnnotationFileNotFound')
         # set igv genome
         try:
-            igv_genome = organism_config_dict['igv_genome']
+            igv_genome = os.path.join(self.genome_files, organism, organism_config_dict['igv_genome'])
         except KeyError:  # this is for KN99
-            igv_genome = organism_config_dict['igv_stranded_genome']
+            igv_genome = os.path.join(self.genome_files, organism, organism_config_dict['igv_stranded_genome'])
+        if not os.path.isfile(igv_genome):
+            self.logger.critical('igv_genome path %s not valid' % igv_genome)
+            raise FileNotFoundError('IgvGenomeNotFound')
         # make directory to store bedfiles
-        bed_file_dir = os.path.join(self.job_scripts, 'igv_%s' %self.year_month_day)
+        bed_file_dir_path = os.path.join(self.job_scripts, 'igv_%s' % self.year_month_day)
+        utils.mkdirp(bed_file_dir_path)
         # make lookup_file_path
-        igv_lookup_file_path = os.path.join(bed_file_dir, 'igv_lookup_file.txt')
+        igv_lookup_file_path = os.path.join(bed_file_dir_path, 'igv_lookup_file.txt')
 
         bed_entry_dict = {}
         for gene in gene_list:
             # get first column corresponding to given gene, take uniq value as chromosome
-            extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' %(gene, annotation_file)
+            extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' % (gene, annotation_file)
             chromosome_identifier = subprocess.getoutput(extract_chr_cmd)
 
             # get the list of all start coordinates associated with a feature, sort, and take smallest
-            extract_start_coord_cmd = 'grep %s %s | cut -f4 | sort -n | head -1' %(gene, annotation_file)
+            extract_start_coord_cmd = 'grep %s %s | cut -f4 | sort -n | head -1' % (gene, annotation_file)
             start_coord = int(subprocess.getoutput(extract_start_coord_cmd))
-            start_coord_with_offest = start_coord - gene_offset # add offset to widen window on igv_viewer
-
+            start_coord_with_offest = start_coord - gene_offset  # add offset to widen window on igv_viewer
+            if start_coord_with_offest < 1:
+                start_coord_with_offest = 1
             # sort stop coordinates of all features of given gene, take largest
-            extract_stop_coord_cmd = 'grep %s %s | cut -f5 | sort -n | tail -1' %(gene, annotation_file)
+            extract_stop_coord_cmd = 'grep %s %s | cut -f5 | sort -n | tail -1' % (gene, annotation_file)
             stop_coord = int(subprocess.getoutput(extract_stop_coord_cmd))
-            stop_coord_with_offset = stop_coord + gene_offset # add offset to widen window on igv_viewer
+            stop_coord_with_offset = stop_coord + gene_offset  # add offset to widen window on igv_viewer
 
             # enter {gene: bed_line} to dict -- not the final \t allows to add the bam_file_simplename later
-            bed_line = '%s\t%s\t%s\t' %(chromosome_identifier, start_coord_with_offest, stop_coord_with_offset)
+            bed_line = '%s\t%s\t%s\t' % (chromosome_identifier, start_coord_with_offest, stop_coord_with_offset)
             bed_entry_dict.setdefault(gene, bed_line)
 
-        utils.mkdirp(bed_file_dir)
         for bam_file in bam_list:
             bam_simple_name = utils.pathBaseName(bam_file)
             for gene in bed_entry_dict:
-                bed_file_path = os.path.join(bed_file_dir, bam_simple_name + '_%s.bed' %gene)
+                bed_file_path = os.path.join(bed_file_dir_path, bam_simple_name + '_%s.bed' % gene)
                 with open(bed_file_path, 'w') as bed_file:
-                    bed_file.write(bed_entry_dict[gene]+'%s' %bam_simple_name)
-            with open(igv_lookup_file_path, 'a') as igv_lookup_file:
-                new_lookup_line = '%s\t%s\t%s' %(bam_file, bed_file_path, igv_genome)
-                igv_lookup_file.write(new_lookup_line)
+                    bed_file.write(bed_entry_dict[gene] + '%s' % bam_simple_name)
+                with open(igv_lookup_file_path, 'a') as igv_lookup_file:
+                    new_lookup_line = '%s\t%s\t%s\n' % (bam_file, bed_file_path, igv_genome)
+                    igv_lookup_file.write(new_lookup_line)
+
+        return igv_lookup_file_path
 
     def createIgvBatchscript(self, lookup_file_path, output_dir):
         """
@@ -422,16 +445,16 @@ class QualityAssessmentObject(StandardData):
         """
         # error check input
         if not os.path.isfile(lookup_file_path):
-            self.logger.critical('lookup file %s does not exist' %lookup_file_path)
+            self.logger.critical('lookup file %s does not exist' % lookup_file_path)
             raise FileNotFoundError('LookupFileDoesNotExist')
         if not os.path.isdir(output_dir):
-            self.logger.critical('output dir %s does not exist' %output_dir)
+            self.logger.critical('output dir %s does not exist' % output_dir)
             raise NotADirectoryError('OutputDirectoryDoesNotExist')
 
         # write sbatch job. see https://htcfdocs.readthedocs.io/en/latest/runningjobs/
-        line_count_cmd = 'cat %s | wc -l' %lookup_file_path
-        line_count = subprocess.getoutput(line_count_cmd)
-        sbatch_array_line = "--array=1-{}%{}".format(line_count, min(int(line_count), 20))
+        line_count_cmd = 'cat %s | wc -l' % lookup_file_path
+        line_count = int(subprocess.getoutput(line_count_cmd))
+        sbatch_array_line = "--array=1-{}%{}".format(line_count, min(line_count, 20))
         job = '#!/bin/bash\n\n' \
               '#SBATCH -N 1\n' \
               '#SBATCH --mem=20G\n' \
@@ -440,23 +463,28 @@ class QualityAssessmentObject(StandardData):
               '#SBATCH -J igv_snapshot\n\n' \
               'ml rnaseq_pipeline java\n\n' \
               'read bam_file bed_file igv_genome < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
-              'make_IGV_snapshots.py ${bam_file} -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r ${bed_file} -g ${igv_genome} -fig_format png -o %s\n'\
-              %(self.sbatch_log, sbatch_array_line, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path, output_dir)
+              'make_IGV_snapshots.py ${bam_file} -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r ${bed_file} -g ${igv_genome} -fig_format png -o %s\n' \
+              % (sbatch_array_line, self.sbatch_log, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path,
+                 output_dir)
 
         # write to file
-        igv_job_script_path=os.path.join(self.job_scripts, 'igv_%s_%s' %(self.year_month_day, utils.hourMinuteSecond()))
+        # check that a job_scripts directory for igv for today has been created, make one if no
+        job_script_dir_path = os.path.join(self.job_scripts, 'igv_%s' % self.year_month_day)
+        if not os.path.isdir(os.path.join(job_script_dir_path)):
+            utils.mkdirp(job_script_dir_path)
+
+        igv_job_script_path = os.path.join(job_script_dir_path, 'igv_%s_%s.sbatch' % (self.year_month_day, utils.hourMinuteSecond()))
         with open(igv_job_script_path, 'w') as igv_job_script_file:
             igv_job_script_file.write(job)
 
         # error check igv_job_script_path
         if not os.path.isfile(igv_job_script_path):
-            self.loger.critical('Failed to write job %s to file %s' %(job, igv_job_script_path))
+            self.loger.critical('Failed to write job %s to file %s' % (job, igv_job_script_path))
             raise FileNotFoundError('IgvJobScriptNotSuccessfullyWritten')
         else:
-            print('Submitting igv batchscript %s')
-            batchscript_submit_cmd = 'sbatch %s' %igv_job_script_path
+            print('Submitting igv batchscript %s' % igv_job_script_path)
+            batchscript_submit_cmd = 'sbatch %s' % igv_job_script_path
             utils.executeSubProcess(batchscript_submit_cmd)
-
 
     def qortsPlots(self):
         """
