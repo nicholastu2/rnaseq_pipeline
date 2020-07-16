@@ -303,8 +303,7 @@ def configure(object_instance, config_file, config_header, prefix=''):
     config.read(config_file)
     # set attributes for StandardData
     for key, value in config[config_header].items():
-        setattr(object_instance, key, os.path.join(prefix,
-                                                   value))  # by default, values are read in as strings. Currently, all filepaths, so this is good
+        setattr(object_instance, key, os.path.join(prefix, value))  # by default, values are read in as strings. Currently, all filepaths, so this is good
 
 
 def submitSbatch(sbatch_path, email=None):

@@ -2,13 +2,10 @@
 tools to create browser shots
 
 makeIgvSnapshotDict create a dict with the following format
-igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...],
-                     'bam': file.bam, 'bed': file.bed},
-                     'perturbed_sample.fastq.gz': {'gene': [gene_1, gene_2],
-                     'bam': file.bam, 'bed': file.bed},
-                     'perturbed_sample.fastq.gz': {'gene': [gene_1],
-                     'bam': file.bam, 'bed': file.bed}
-                  }
+igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...], 'bam': file.bam, 'bed': file.bed},
+                     'perturbed_sample.fastq.gz': {'gene': [gene_1, gene_2], 'bam': file.bam, 'bed': file.bed},
+                     'perturbed_sample.fastq.gz': {'gene': [gene_1], 'bam': file.bam, 'bed': file.bed}
+                    }
 and ensures that all alignment files (.bam) and their index companions (.bam.bai) are in the experiment directory, which
 is either supplied or created in rnaseq_tmp
 
@@ -25,15 +22,6 @@ from rnaseq_tools.DatabaseObject import DatabaseObject
 import sys
 import os
 import time
-
-
-# igv_snapshot_dict = {'wildtype.fastq.gz': {'gene': [gene_1, gene_2, gene_3...], 'bam':
-#                  file.bam, 'bed': file_1.bed},
-#                  'perturbed_sample.fastq.gz': {'gene': [gene_1, gene_2], 'bam':
-#                   file.bam, 'bed': file_1.bed},
-#                  'perturbed_sample.fastq.gz': {'gene': [gene_1], 'bam': file.bam,
-#                  'bed': file_1.bed}
-#                  }
 
 class IgvObject(OrganismData):
     """
@@ -102,7 +90,7 @@ class IgvObject(OrganismData):
                                                                           leading_zero_dict=self._run_numbers_with_zeros)
             self.logger.debug('the run_number extracted is: %s' % run_number)
             # create bamfile name
-            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+            bamfile = sample.replace('_read_count.tsv', '_sorted_aligned_reads_with_annote.bam')
             # if it is not in the exp dir, then add it
             if not os.path.exists(os.path.join(self.scratch_alignment_source, bamfile)):
                 prefix = utils.addForwardSlash(self.lts_align_expr)
@@ -155,7 +143,7 @@ class IgvObject(OrganismData):
             # TODO: clean this up -- remove .fastq.gz or _read_count.tsv to create the bamfile name
             bamfile = sample.replace('_read_count.tsv', '')
             bamfile = bamfile.replace('.fastq.gz', '')
-            bamfile = bamfile + '_sorted_aligned_reads.bam'
+            bamfile = bamfile + '_sorted_aligned_reads_with_annote.bam'
             bamfile_fullpath = os.path.join(self.scratch_alignment_source, bamfile)
             try:
                 if not os.path.exists(bamfile_fullpath):
@@ -213,7 +201,7 @@ class IgvObject(OrganismData):
         """
         # TODO if bed files exist in exp dir, just get those
 
-        ## get gene dictionary with chromsome, gene coordinates, strand
+        # get gene dictionary with chromsome, gene coordinates, strand
         if self.annotation_file.endswith('gtf'):
             self.annotation_dict = annotation_tools.parseGtf(self.annotation_file)
         elif self.annotation_file.endswith('gff') or self.annotation_file.endswith('gff3'):
@@ -221,7 +209,7 @@ class IgvObject(OrganismData):
         else:
             sys.exit(
                 "ERROR: The gene annotation format cannot be recognized.")  # TODO: clean up preceeding blocks -- move parseGFF to OrganismData
-        ## create gene body region bed file
+        # create gene body region bed file
         for sample in self.igv_snapshot_dict.keys():
             igv_bed_filepath = os.path.join(self.scratch_alignment_source, utils.pathBaseName(sample) + '.bed')
             self.igv_snapshot_dict[sample]['bed'] = igv_bed_filepath

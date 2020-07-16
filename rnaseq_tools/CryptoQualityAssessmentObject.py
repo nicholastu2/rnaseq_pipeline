@@ -100,7 +100,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
 
         wt_nat_coverage_threshold = float(qual_assess_1_dict['WT_NAT_COVERAGE_THRESHOLD'])
-        wt_nat_coverage_bit_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
+        wt_nat_coverage_bit_status = int(qual_assess_1_dict['WT_NAT_COVERAGE_STATUS'])
 
         wt_g418_coverage_threshold = float(qual_assess_1_dict['WT_G418_COVERAGE_THRESHOLD'])
         wt_g418_coverage_bit_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
