@@ -99,17 +99,26 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
         perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
 
+        overexpression_fow_threshold = int(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
+        overexpression_fow_status = int(qual_assess_1_dict['OVEREXPRESSION_FOW_STATUS'])
+
         wt_nat_coverage_threshold = float(qual_assess_1_dict['WT_NAT_COVERAGE_THRESHOLD'])
         wt_nat_coverage_bit_status = int(qual_assess_1_dict['WT_NAT_COVERAGE_STATUS'])
 
         wt_g418_coverage_threshold = float(qual_assess_1_dict['WT_G418_COVERAGE_THRESHOLD'])
         wt_g418_coverage_bit_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
 
-        perturbed_nat_coverage_threshold = float(qual_assess_1_dict['PERTURBED_NAT_COVERAGE_THRESHOLD'])
-        perturbed_nat_coverage_status = int(qual_assess_1_dict['PERTURBED_NAT_COVERAGE_STATUS'])
+        correct_marker_coverage_threshold = float(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_THRESHOLD'])
+        correct_marker_coverage_threshold = int(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_THRESHOLD'])
 
-        perturbed_g418_coverage_threshold = float(qual_assess_1_dict['PERTURBED_G418_COVERAGE_THRESHOLD'])
-        perturbed_g418_coverage_status = int(qual_assess_1_dict['PERTURBED_G418_COVERAGE_STATUS'])
+        incorrect_marker_coverage_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_THRESHOLD'])
+        incorrect_marker_coverage_threshold = int(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_THRESHOLD'])
+
+        correct_marker_expression_threshold = float(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_THRESHOLD'])
+        correct_marker_expression_threshold = int(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_STATUS'])
+
+        incorrect_marker_expression_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_THRESHOLD'])
+        incorrect_marker_expression_threshold = int(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_STATUS'])
 
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
         not_aligned_total_percent_bit_status = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
@@ -119,20 +128,33 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # get genotype of sample
             genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
 
+            # test genotype for _overexpression
+            overexpression_flag = False
+            # extract log2cpm
+            perturbed_overexpression = -1
+
+            # extract NAT log2cpm
+            #extract G418 log2cpm
+
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
 
             not_aligned_total = float(row['NOT_ALIGNED_TOTAL_PERCENT'])
 
-            if row['GENOTYPE_1_COVERAGE'] is not None:
-                library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
+            # if overexpression, apply overexpression_fow_threshold
+            if overexpression_flag:
+                raise NotImplementedError
+            # else evalute KO
             else:
-                library_genotype_1_coverage = -1
+                if row['GENOTYPE_1_COVERAGE'] is not None:
+                    library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
+                else:
+                    library_genotype_1_coverage = -1
 
-            if row['GENOTYPE_2_COVERAGE'] is not None:
-                library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
-            else:
-                library_genotype_2_coverage = -1
+                if row['GENOTYPE_2_COVERAGE'] is not None:
+                    library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
+                else:
+                    library_genotype_2_coverage = -1
 
             if genotype == 'CNAG_00000':
                 wt_nat_coverage = float(row['NAT_COVERAGE'])

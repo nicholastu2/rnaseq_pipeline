@@ -347,6 +347,49 @@ class QualityAssessmentObject(StandardData):
         # create sbatch script for igv shots
         self.createIgvBatchscript(lookup_file_path, igv_output_dir)
 
+    def extractLog2cpm(self, gene, fastq_simple_name, log2cpm_csv_path):
+        """
+           extract log2cpm
+           :param gene: log2cpm of gene you wish to extract
+           :param fastq_simple_name: name of the fastq_file, no ext, no path
+           :param log2cpm_csv_path: created by raw_counts.py --> log2_cpm.R. index in gene_name, columns are fastq_simple_name_read_count.tsv
+           :returns: log2cpm of a gene in a given library
+        """
+        # read in log2cpm dataframe
+        try:
+            log2cpm_df = utils.readInDataframe(log2cpm_csv_path)
+            log2cpm_df = log2cpm_df.set_index('gene_id')
+        except FileNotFoundError:
+            error_msg = 'path to log2_cpm not valid: %s' %log2cpm_csv_path
+            self.logger.critical(error_msg)
+            print(error_msg)
+
+        # create column name corresponding to log2cpm_df from fastq_simple_name
+        column_name = fastq_simple_name + '_read_count.tsv'
+        # check that it is actually in the log2cpm_df columns
+        try:
+            if column_name not in log2cpm_df.columns:
+                raise AttributeError('ColumnNameNotInLog2CpmSheet')
+        except AttributeError:
+            error_msg = '%s not in log2cpm sheet %s' %(column_name, log2cpm_csv_path)
+            self.logger.critical(error_msg)
+            print(error_msg)
+        else:
+            # check that the gene is in the gene_id column
+            try:
+                if gene not in log2cpm_df.index:
+                    raise AttributeError('GeneNotInLog2cpmSheet')
+            except AttributeError:
+                error_msg = '%s not in log2cpm sheet %s' %(gene, log2cpm_csv_path)
+                self.logger.critical(error_msg)
+                print(error_msg)
+
+            else:
+                # extract log2cpm and return
+                return log2cpm_df.loc[gene, column_name]
+
+
+
     def indexBamFileBathScript(self, bam_files_to_index):
         """
 
