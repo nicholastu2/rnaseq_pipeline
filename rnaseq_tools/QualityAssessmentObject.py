@@ -378,7 +378,9 @@ class QualityAssessmentObject(StandardData):
             # check that the gene is in the gene_id column
             try:
                 if gene not in log2cpm_df.index:
-                    raise AttributeError('GeneNotInLog2cpmSheet')
+                    gene = gene.replace('CNAG', 'CKF44')
+                    if gene not in log2cpm_df.index:
+                        raise AttributeError('GeneNotInLog2cpmSheet')
             except AttributeError:
                 error_msg = '%s not in log2cpm sheet %s' %(gene, log2cpm_csv_path)
                 self.logger.critical(error_msg)

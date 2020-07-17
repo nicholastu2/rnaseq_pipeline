@@ -35,6 +35,10 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                              'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE',
                              'NAT_COVERAGE', 'G418_COVERAGE', 'OVEREXPRESSION_FOW', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
                              'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
+        # set organismdata_config.ini in genome_files
+        crypto_genome_files_config_path = os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini')
+        utils.configure(self, crypto_genome_files_config_path, 'OrganismData', os.path.join(self.genome_files, 'KN99'))
+
 
     def formatQualAssessDataFrame(self, qual_assess_df):
         """
@@ -78,16 +82,30 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         return qual_assess_df[self.column_order]
 
-    def auditQualAssessDataFrame(self, qual_assess_df):
+    def auditQualAssessDataFrame(self, query_df_path, qual_assess_df, bam_file_list):
         """
             use rnaseq_pipeline/config/quality_assess_config.ini entries to add status, auto_audit columns
             :params qual_assess_df: a quality_assess_df created by qual_assess_1 or a path to one
+            :params bam_file_list: the bam_file_list used in qual_assess_1 -- TODO: make this a list of log2cpm files
             :returns: qual_assess_df with added status and auto_audit columns
         """
+        # read in median_wt_expression_by_timepoint_treatment_df
+        try:
+            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(self.median_wt_expression_by_timepoint_treatment)
+            # SET INDEX ON (gene_id, TREATMENT, TIMEPOINT) note: timepoint is read in as an int
+            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(['gene_id', 'TREATMENT', 'TIMEPOINT'])
+        except AttributeError:
+            self.logger.critical('genome files config in constructor did not work')
+            print('genome files config in constructor did not work')
+
+        # read in qual_assess_df if nec
         if os.path.isfile(qual_assess_df):
             qual_assess_df = utils.readInDataframe(qual_assess_df)
+        # read in query_df
+        if os.path.isfile(query_df_path):
+            self.query_df = utils.readInDataframe(query_df_path)
 
-        # extract threshold/status from config file
+        # extract threshold/status from config file #TODO: move to constructor
         qual_assess_config = configparser.ConfigParser()
         qual_assess_config.read(self.config_file)
         qual_assess_1_dict = qual_assess_config['CryptoQualityAssessOne']
@@ -109,52 +127,79 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         wt_g418_coverage_bit_status = int(qual_assess_1_dict['WT_G418_COVERAGE_STATUS'])
 
         correct_marker_coverage_threshold = float(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_THRESHOLD'])
-        correct_marker_coverage_threshold = int(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_THRESHOLD'])
+        correct_marker_coverage_status = int(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_STATUS'])
 
         incorrect_marker_coverage_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_THRESHOLD'])
-        incorrect_marker_coverage_threshold = int(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_THRESHOLD'])
+        incorrect_marker_coverage_status = int(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_STATUS'])
 
         correct_marker_expression_threshold = float(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_THRESHOLD'])
-        correct_marker_expression_threshold = int(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_STATUS'])
+        correct_marker_expression_status = int(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_STATUS'])
 
         incorrect_marker_expression_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_THRESHOLD'])
-        incorrect_marker_expression_threshold = int(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_STATUS'])
+        incorrect_marker_expression_status = int(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_STATUS'])
 
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
-        not_aligned_total_percent_bit_status = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
+        not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
 
         status_column_list = []
         for index, row in qual_assess_df.iterrows():
+            # extract fastq simple name
+            fastq_simple_name = str(row['FASTQFILENAME'])
+            # extract treatment # TODO: MAKE EXTRACTING INFO FROM QUERY_DF FROM QUAL_ASSES A FUNCTION IN QUALITYASSESSMENTOBJECT
+            try:
+                sample_treatment = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['treatment'])[0]
+            except AttributeError:
+                sys.exit('You must pass a query df')
+            # extract timePoint
+            sample_timepoint = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['timePoint'])[0]
+
+            # log2cpm path TODO: THIS NEEDS TO BE FIXED -- INPUT LIST OF LOG2_CPM AND REDO NAMING CONVENTION IN LOG2 CPM SCRIPT TO INCLUDE CONTAINING FOLDER
+            bam_path = [bam_file for bam_file in bam_file_list if fastq_simple_name in bam_file][0]
+            run_dirpath = utils.dirPath(utils.dirPath(bam_path))
+            log2_cpm_path = os.path.join(run_dirpath, 'count', 'log2_cpm.csv')
+            try:
+                if not os.path.isfile(log2_cpm_path):
+                    raise FileNotFoundError('Log2CpmSheetNotFound')
+            except FileNotFoundError:
+                error_msg = 'log2_cpm sheet path %s not valid' %log2_cpm_path
+                self.logger.critical(error_msg)
+                print(error_msg)
+
             # get genotype of sample
             genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
 
-            # test genotype for _overexpression
+            # set overexpression flag
             overexpression_flag = False
-            # extract log2cpm
-            perturbed_overexpression = -1
+            if '_over' in genotype:
+                overexpression_flag = True
+                perturbed_gene = genotype.replace('_over', '')
+                overexpression_log2cpm = float(self.extractLog2cpm(perturbed_gene, fastq_simple_name, log2_cpm_path))
+                try:
+                    wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[(perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
+                except KeyError:
+                    perturbed_gene = perturbed_gene.replace('CNAG', 'CKF44')
+                    wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
+                                           (perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
 
             # extract NAT log2cpm
+            nat_log2cpm = self.extractLog2cpm('CNAG_NAT', fastq_simple_name, log2_cpm_path)
             #extract G418 log2cpm
+            g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
 
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
 
             not_aligned_total = float(row['NOT_ALIGNED_TOTAL_PERCENT'])
 
-            # if overexpression, apply overexpression_fow_threshold
-            if overexpression_flag:
-                raise NotImplementedError
-            # else evalute KO
+            if row['GENOTYPE_1_COVERAGE'] is not None:
+                library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
             else:
-                if row['GENOTYPE_1_COVERAGE'] is not None:
-                    library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
-                else:
-                    library_genotype_1_coverage = -1
+                library_genotype_1_coverage = -1
 
-                if row['GENOTYPE_2_COVERAGE'] is not None:
-                    library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
-                else:
-                    library_genotype_2_coverage = -1
+            if row['GENOTYPE_2_COVERAGE'] is not None:
+                library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
+            else:
+                library_genotype_2_coverage = -1
 
             if genotype == 'CNAG_00000':
                 wt_nat_coverage = float(row['NAT_COVERAGE'])
@@ -169,8 +214,15 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             if library_protein_coding_total < protein_coding_total_threshold:
                 status_total += protein_coding_total_bit_status
 
-            if library_genotype_1_coverage > perturbed_coverage_threshold or library_genotype_2_coverage > perturbed_coverage_threshold:
-                status_total += perturbed_coverage_bit_status
+            # if the overexpression_flag is set, eval based on expression
+            if overexpression_flag:
+                overexpression_fow = (overexpression_log2cpm - wt_log2cpm) / wt_log2cpm
+                if overexpression_fow < overexpression_fow_threshold:
+                    status_total += overexpression_fow_status
+            # else, evaluate KO based on coverage
+            else:
+                if library_genotype_1_coverage > perturbed_coverage_threshold or library_genotype_2_coverage > perturbed_coverage_threshold:
+                    status_total += perturbed_coverage_bit_status
 
             if wt_nat_coverage > wt_nat_coverage_threshold:
                 status_total += wt_nat_coverage_bit_status
@@ -181,7 +233,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 status_total += not_aligned_total_percent_bit_status
 
             status_column_list.append(status_total)
-            # TODO: ADD OVEREXPRESSION AND MARKER
 
         qual_assess_df['STATUS'] = status_column_list
         qual_assess_df['AUTO_AUDIT'] = np.where(qual_assess_df.STATUS > 0, 1, 0)

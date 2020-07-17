@@ -31,6 +31,14 @@ class MyTestCase(unittest.TestCase):
         gene_list=['CNAG_NAT', 'CNAG_G418']
         qa.igvShot(bam_list, organism='KN99', gene=gene_list)
 
+    def test_extractLog2cpm(self):
+        qa = QualityAssessmentObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini',
+                                     interactive=True)
+        sheet_path = '/mnt/htcf_scratch/chasem/rnaseq_pipeline/align_count_results/run_0673_samples/count/log2_cpm.csv'
+        gene = 'CKF44_00005'
+        fastq_simple_name = 'run_673_s_4_withindex_sequence_GGTCCTC'
+        val = qa.extractLog2cpm(gene, fastq_simple_name, sheet_path)
+        print(val)
 
 if __name__ == '__main__':
     unittest.main()
