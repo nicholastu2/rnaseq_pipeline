@@ -117,7 +117,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
         perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
 
-        overexpression_fow_threshold = int(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
+        overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
         overexpression_fow_status = int(qual_assess_1_dict['OVEREXPRESSION_FOW_STATUS'])
 
         wt_nat_coverage_threshold = float(qual_assess_1_dict['WT_NAT_COVERAGE_THRESHOLD'])
