@@ -216,7 +216,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # if the overexpression_flag is set, eval based on expression
             if overexpression_flag:
-                overexpression_fow = (overexpression_log2cpm - wt_log2cpm) / wt_log2cpm
+                overexpression_fow = overexpression_log2cpm - wt_log2cpm
                 if overexpression_fow < overexpression_fow_threshold:
                     status_total += overexpression_fow_status
             # else, evaluate KO based on coverage
