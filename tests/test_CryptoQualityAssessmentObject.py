@@ -15,5 +15,6 @@ class MyTestCase(unittest.TestCase):
         df = qa.auditQualAssessDataFrame(query_df_path, qual_asses_df_path, bam_file_list)
         print('yes')
 
+
 if __name__ == '__main__':
     unittest.main()

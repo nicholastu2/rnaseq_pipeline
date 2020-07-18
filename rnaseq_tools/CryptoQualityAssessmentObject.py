@@ -108,7 +108,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # extract threshold/status from config file #TODO: move to constructor
         qual_assess_config = configparser.ConfigParser()
         qual_assess_config.read(self.config_file)
-        qual_assess_1_dict = qual_assess_config['CryptoQualityAssessOne']
+        qual_assess_1_dict = qual_assess_config['KN99QualityAssessOne']
 
         # extract thresholds and bit status
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
