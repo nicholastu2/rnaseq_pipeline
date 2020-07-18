@@ -8,6 +8,7 @@ from rnaseq_tools import utils
 
 # TODO: Update with OrganismData object (no more need to input gene list). Better commeting and explanation of each step
 #  in createCountMatrix. Try to abstract this for use when making any matrix (counts qual_assess_1 and 2, etc)
+# TODO: for runs/directories with more than one organism, create two sheets (input query_sheet for this)
 
 def main(argv):
     args = parseArgs(argv)
