@@ -16,9 +16,13 @@ main = function(args){
 
   # parse cmd line arguments
   parsed = args
+  # rename inputs
+  print('...parsing cmd line input')
   path_to_raw_counts = parsed$raw_counts
-  print('...Reading in raw counts')
+  organism = parsed$organism
+  output_full_path=parsed$output_FULL_path
 
+  print('...Reading in raw counts')
   # read in raw counts data.frame
   raw_counts = read.csv(path_to_raw_counts, row.names = 'gene_id', check.names = FALSE) # without check.names = FALSE, R will insert X in front of colnames that start with a number https://stackoverflow.com/a/58951644/9708266
 
@@ -45,7 +49,7 @@ main = function(args){
 
   # write to output path -- NOTE: in cmd line input, the -o is the FULL output path (including filename and extension)
   sprintf("Writing log2_cpm matrix to: %s", parsed$output_FULL_path)
-  write_csv(log2_cpm, parsed$output_FULL_path)
+  write_csv(log2_cpm, output_full_path)
 
 } # end main()
 
