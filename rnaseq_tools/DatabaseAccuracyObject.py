@@ -143,6 +143,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             :return: colname_inconsistencies_dict, a dict in structure {specification_heading: nearest_match_to_heading, ...}
                      row_inconsistencies_dict, a dict in structure {row_index: column_with_inconsistent_entry, ...}
         """
+        logger.info('path to sheet is %s' %subdirectory_filepath)
         # see :return: statement for structure
         colname_inconsistencies_dict = {}
         row_inconsistencies_dict = {}
