@@ -230,7 +230,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             if genotype[0] == 'CNAG_00000' and (nat_log2cpm > incorrect_marker_expression_threshold or g418_log2cpm > incorrect_marker_expression_threshold):
                 status_total += incorrect_marker_expression_status
 
-            if genotype[0] is not 'CNAG_00000': # TODO: this nan is funny -- is None didn't work. need to check column formatting in actual sheets
+            if genotype[0] != 'CNAG_00000': # TODO: this nan is funny -- is None didn't work. need to check column formatting in actual sheets
                 if marker_1 == 'nan' or marker_1 is None: # TODO: clean this up! huge duplication
                     status_total+=no_metadata_marker_status
                 else:
