@@ -104,6 +104,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # read in query_df
         if os.path.isfile(query_df_path):
             self.query_df = utils.readInDataframe(query_df_path)
+        # remove na/nan fastqFileName rows
+        self.query_df = self.query_df[~self.query_df.fastqFileName.isna()]
 
         # extract threshold/status from config file #TODO: move to constructor
         qual_assess_config = configparser.ConfigParser()
@@ -153,8 +155,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # split on period to separate double KO. note that this is now a list, even if one item
             genotype = genotype.split('.')
             # get markers
-            marker_1 = str(row['MARKER_1'])
-            marker_2 = str(row['MARKER_2'])
+            marker_1 = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_1'])[0]
+            marker_2 = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_2'])[0]
 
             # log2cpm path TODO: THIS NEEDS TO BE FIXED -- INPUT LIST OF LOG2_CPM AND REDO NAMING CONVENTION IN LOG2 CPM SCRIPT TO INCLUDE CONTAINING FOLDER
             bam_path = [bam_file for bam_file in bam_file_list if fastq_simple_name in bam_file][0]
@@ -217,6 +219,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # if the overexpression_flag is set, eval based on expression
             if overexpression_flag:
                 overexpression_fow = overexpression_log2cpm - wt_log2cpm
+                qual_assess_df.loc[index, 'OVEREXPRESSION_FOW'] = overexpression_fow
                 if overexpression_fow < overexpression_fow_threshold:
                     status_total += overexpression_fow_status
             # else, evaluate KO based on coverage
@@ -230,7 +233,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             if genotype[0] == 'CNAG_00000' and (nat_log2cpm > incorrect_marker_expression_threshold or g418_log2cpm > incorrect_marker_expression_threshold):
                 status_total += incorrect_marker_expression_status
 
-            if genotype[0] != 'CNAG_00000': # TODO: this nan is funny -- is None didn't work. need to check column formatting in actual sheets
+            if genotype[0] != 'CNAG_00000' and not overexpression_flag: # TODO: this nan is funny -- is None didn't work. need to check column formatting in actual sheets
                 if marker_1 == 'nan' or marker_1 is None: # TODO: clean this up! huge duplication
                     status_total+=no_metadata_marker_status
                 else:
