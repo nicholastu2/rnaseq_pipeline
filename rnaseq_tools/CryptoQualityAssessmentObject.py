@@ -282,6 +282,11 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         qual_assess_df['STATUS'] = status_column_list
         qual_assess_df['AUTO_AUDIT'] = np.where(qual_assess_df.STATUS > 0, 1, 0)
+        qual_assess_df['STATUS_DECOMP'] = None
+        # add status decomposition
+        for index,row in qual_assess_df.iterrows():
+            status = int(row['STATUS'])
+            qual_assess_df.loc[index, 'STATUS_DECOMP'] = utils.decomposeStatus2Bit(status)
 
         return qual_assess_df
 
