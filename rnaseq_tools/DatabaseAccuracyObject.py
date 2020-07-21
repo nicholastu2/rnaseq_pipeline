@@ -206,7 +206,7 @@ class metadataSpecificationObject:
                               r"RPMI.30C.CO2.pH7|RPMI.37C.CO2.pH7|YPD.30C.CO2.pH7|YPD.37C.CO2.pH7|DMEM.30C.cAMP.pH7|DMEM.37C.cAMP.pH7|" \
                               r"RPMI.30C.cAMP.pH7|RPMI.37C.cAMP.pH7|YPD.30C.cAMP.pH7|YPD.37C.cAMP.pH7|DMEM.30C.CO2.cAMP.pH7|" \
                               r"DMEM.37C.CO2.cAMP.pH7|RPMI.30C.CO2.cAMP.pH7|RPMI.37C.CO2.cAMP.pH7|YPD.30C.CO2.cAMP.pH7|YPD.37C.CO2.cAMP.pH7"
-        marker_format = r"NAT|G418|None"
+        marker_format = r"NAT|G418|NaN"
         rna_prep_method = r"DirectZol|RiboPure0.5X|RiboPure0.25X|RiboPure0.125X|ComboA|ComboB|TRIzol"
         ribosomal_band_shape_options = r"straight|smile|NA"
         sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
@@ -221,15 +221,14 @@ class metadataSpecificationObject:
                                  'experimentDesign': atleast_one_non_space_format,
                                  'experimentObservations': atleast_one_non_space_format,
                                  'strain': atleast_one_non_space_format,
-                                 # TODO: LIST OF SPECIFIC POSSIBILITIES?
                                  'genotype': capital_underscore_digit_format,
                                  'floodmedia': flood_media_options,
                                  'inductionDelay': int_format,
                                  'treatment': biosample_treatment,
                                  'timePoint': int_format,
                                  'replicate': int_format,
-                                 'marker_1': marker_format,
-                                 'marker_2': marker_format}
+                                 'marker_1': marker_format or None,
+                                 'marker_2': marker_format or None}
 
         rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
         rnaSample_column_dict = {'harvestDate': date_format,
@@ -238,8 +237,7 @@ class metadataSpecificationObject:
                                  'rnaDate': date_format,
                                  'rnaPreparer': name_format,
                                  'rnaSampleNumber': int_format,
-                                 'rnaPrepMethod': rna_prep_method,
-                                 # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
+                                 'rnaPrepMethod': rna_prep_method,  # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
                                  'roboticRNAPrep': boolean_format,
                                  'RIBOSOMAL_BAND': boolean_format,
                                  'RIBOSOMAL_BAND_SHAPE': ribosomal_band_shape_options,
