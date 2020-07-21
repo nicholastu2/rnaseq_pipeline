@@ -286,7 +286,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # add status decomposition
         for index,row in qual_assess_df.iterrows():
             status = int(row['STATUS'])
-            qual_assess_df.loc[index, 'STATUS_DECOMP'] = utils.decomposeStatus2Bit(status)
+            qual_assess_df.loc[index, 'STATUS_DECOMP'] = str(utils.decomposeStatus2Bit(status))
 
         return qual_assess_df
 
