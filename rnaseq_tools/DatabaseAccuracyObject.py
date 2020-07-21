@@ -206,7 +206,7 @@ class metadataSpecificationObject:
                               r"RPMI.30C.CO2.pH7|RPMI.37C.CO2.pH7|YPD.30C.CO2.pH7|YPD.37C.CO2.pH7|DMEM.30C.cAMP.pH7|DMEM.37C.cAMP.pH7|" \
                               r"RPMI.30C.cAMP.pH7|RPMI.37C.cAMP.pH7|YPD.30C.cAMP.pH7|YPD.37C.cAMP.pH7|DMEM.30C.CO2.cAMP.pH7|" \
                               r"DMEM.37C.CO2.cAMP.pH7|RPMI.30C.CO2.cAMP.pH7|RPMI.37C.CO2.cAMP.pH7|YPD.30C.CO2.cAMP.pH7|YPD.37C.CO2.cAMP.pH7"
-        marker_format = r"NAT|G418|NaN"
+        marker_format = r"NAT|G418|NaN|nan"
         rna_prep_method = r"DirectZol|RiboPure0.5X|RiboPure0.25X|RiboPure0.125X|ComboA|ComboB|TRIzol"
         ribosomal_band_shape_options = r"straight|smile|NA"
         sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
