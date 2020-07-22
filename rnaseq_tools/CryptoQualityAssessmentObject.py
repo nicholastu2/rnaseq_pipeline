@@ -98,7 +98,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             self.logger.critical('genome files config in constructor did not work')
             print('genome files config in constructor did not work')
 
-        # read in qual_assess_df if nec
+        # read in qual_assess_df if necessary
         if os.path.isfile(qual_assess_df):
             qual_assess_df = utils.readInDataframe(qual_assess_df)
         # read in query_df
@@ -132,6 +132,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
         not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
         perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
+        wt_nat_unexpected_marker_status = int(qual_assess_1_dict['WT_NAT_UNEXPECTED_MARKER_STATUS'])
+        wt_g418_unexpected_marker_status = int(qual_assess_1_dict['WT_G418_UNEXPECTED_MARKER_STATUS'])
         nat_expected_marker_status = int(qual_assess_1_dict['NAT_EXPECTED_MARKER_STATUS'])
         nat_unexpected_marker_status = int(qual_assess_1_dict['NAT_UNEXPECTED_MARKER_STATUS'])
         g418_expected_marker_status = int(qual_assess_1_dict['G418_EXPECTED_MARKER_STATUS'])
@@ -240,12 +242,12 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     status_total += perturbed_coverage_bit_status
 
             # test wildtypes for marker coverage and expression
-            if genotype[0] == 'CNAG_00000' and not overexpression_flag:
+            if genotype[0] == 'CNAG_00000':
                 if nat_probability > nat_probability_threshold:
-                    status_total += nat_unexpected_marker_status
+                    status_total += wt_nat_unexpected_marker_status
                 if genotype[0] == 'CNAG_00000' and g418_log2cpm > g418_log2cpm_threshold:
-                    status_total += g418_unexpected_marker_status
-
+                    status_total += wt_g418_unexpected_marker_status
+            # if we should be testing overexpression for marker expression, then this overexpression flag should be removed (none have strains thus far -- all will be flagged that way)
             if genotype[0] != 'CNAG_00000' and not overexpression_flag:
                 if marker_1 == 'nan' or marker_1 is None or (len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
                     status_total+=no_metadata_marker_status

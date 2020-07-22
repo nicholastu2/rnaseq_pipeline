@@ -10,7 +10,7 @@ class MyTestCase(unittest.TestCase):
         bam_file_list = utils.extractFiles('/home/chase/Desktop/tmp/run_1045_samples/align', '.bam')
         qual_asses_df_path = '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/experiments/run_1045_quality_summary.csv'
 
-        query_df_path = '/home/chase/Desktop/tmp/combined_df_20200720.csv'
+        query_df_path = '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/query/combined_df_20200720.csv'
 
         df = qa.auditQualAssessDataFrame(query_df_path, qual_asses_df_path, bam_file_list)
         print('yes')
