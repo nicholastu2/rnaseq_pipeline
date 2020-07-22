@@ -112,34 +112,40 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         qual_assess_config.read(self.config_file)
         qual_assess_1_dict = qual_assess_config['KN99QualityAssessOne']
 
-        # extract thresholds and bit status
+        # extract thresholds
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
-        protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
-
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
-        not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
-
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
-        perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
-
-        incorrect_marker_coverage_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_THRESHOLD'])
-        incorrect_marker_coverage_status = int(qual_assess_1_dict['INCORRECT_MARKER_COVERAGE_STATUS'])
-
-        correct_marker_coverage_threshold = float(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_THRESHOLD'])
-        correct_marker_coverage_status = int(qual_assess_1_dict['CORRECT_MARKER_COVERAGE_STATUS'])
-
-        incorrect_marker_expression_threshold = float(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_THRESHOLD'])
-        incorrect_marker_expression_status = int(qual_assess_1_dict['INCORRECT_MARKER_EXPRESSION_STATUS'])
-
-        correct_marker_expression_threshold = float(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_THRESHOLD'])
-        correct_marker_expression_status = int(qual_assess_1_dict['CORRECT_MARKER_EXPRESSION_STATUS'])
-
+        nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
+        g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
-        overexpression_fow_status = int(qual_assess_1_dict['OVEREXPRESSION_FOW_STATUS'])
 
+        # extract NAT coefficients and create glm model
+        intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
+        coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
+        log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
+        # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
+        # input to nat_glm will need to be in order: (coverage, log2cpm)
+        nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
+
+        # extract status
+        protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
+        not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
+        perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
+        nat_expected_marker_status = int(qual_assess_1_dict['NAT_EXPECTED_MARKER_STATUS'])
+        nat_unexpected_marker_status = int(qual_assess_1_dict['NAT_UNEXPECTED_MARKER_STATUS'])
+        g418_expected_marker_status = int(qual_assess_1_dict['G418_EXPECTED_MARKER_STATUS'])
+        g418_unexpected_marker_status = int(qual_assess_1_dict['G418_UNEXPECTED_MARKER_STATUS'])
+        nat_double_ko_expected_marker_status = int(qual_assess_1_dict['NAT_DOUBLE_KO_EXPECTED_MARKER_STATUS'])
+        nat_double_ko_unexpected_marker_status = int(qual_assess_1_dict['NAT_DOUBLE_KO_UNEXPECTED_MARKER_STATUS'])
+        g418_double_ko_expected_marker_status = int(qual_assess_1_dict['G418_DOUBLE_KO_EXPECTED_MARKER_STATUS'])
+        g418_double_ko_unexpected_marker_status = int(qual_assess_1_dict['G418_DOUBLE_KO_UNEXPECTED_MARKER_STATUS'])
+        overexpression_fow_status = int(qual_assess_1_dict['OVEREXPRESSION_FOW_STATUS'])
         no_metadata_marker_status = int(qual_assess_1_dict['NO_METADATA_MARKER_STATUS'])
 
+        # instantiate a list to hold the status (sum of the status' values when a threshold is failed)
         status_column_list = []
+        # loop over the rows of qual_assess_df
         for index, row in qual_assess_df.iterrows():
             # extract fastq simple name
             fastq_simple_name = str(row['FASTQFILENAME'])
@@ -155,8 +161,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # split on period to separate double KO. note that this is now a list, even if one item
             genotype = genotype.split('.')
             # get markers
-            marker_1 = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_1'])[0]
-            marker_2 = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_2'])[0]
+            marker_1 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_1'])[0])
+            marker_2 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_2'])[0])
 
             # log2cpm path TODO: THIS NEEDS TO BE FIXED -- INPUT LIST OF LOG2_CPM AND REDO NAMING CONVENTION IN LOG2 CPM SCRIPT TO INCLUDE CONTAINING FOLDER
             bam_path = [bam_file for bam_file in bam_file_list if fastq_simple_name in bam_file][0]
@@ -174,19 +180,17 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             overexpression_flag = False
             if '_over' in genotype[0]:
                 overexpression_flag = True
+                # set perturbed_gene variable
                 perturbed_gene = genotype[0].replace('_over', '')
+                # extract overexpression log2_cpm
                 overexpression_log2cpm = float(self.extractLog2cpm(perturbed_gene, fastq_simple_name, log2_cpm_path))
+                # get wildtype log2_cpm from median_wt-expression_by_timepoint_treatment
                 try:
                     wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[(perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
                 except KeyError:
                     perturbed_gene = perturbed_gene.replace('CNAG', 'CKF44')
                     wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
                                            (perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
-
-            # extract NAT log2cpm
-            nat_log2cpm = self.extractLog2cpm('CNAG_NAT', fastq_simple_name, log2_cpm_path)
-            # extract G418 log2cpm
-            g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
 
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
@@ -203,9 +207,17 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             else:
                 library_genotype_2_coverage = -1
 
+            # extract NAT log2cpm
+            nat_log2cpm = self.extractLog2cpm('CNAG_NAT', fastq_simple_name, log2_cpm_path)
+            # extract G418 log2cpm
+            g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
+
             # extract marker coverage
             nat_coverage = float(row['NAT_COVERAGE'])
             g418_coverage = float(row['G418_COVERAGE'])
+
+            nat_logit = nat_glm(nat_coverage, nat_log2cpm)
+            nat_probability = utils.logit2probability(nat_logit)
 
             # set status_total to 0
             status_total = 0
@@ -228,55 +240,37 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     status_total += perturbed_coverage_bit_status
 
             # test wildtypes for marker coverage and expression
-            if genotype[0] == 'CNAG_00000' and (nat_coverage > incorrect_marker_coverage_threshold or g418_coverage > incorrect_marker_coverage_threshold):
-                status_total += incorrect_marker_coverage_status
-            if genotype[0] == 'CNAG_00000' and (nat_log2cpm > incorrect_marker_expression_threshold or g418_log2cpm > incorrect_marker_expression_threshold):
-                status_total += incorrect_marker_expression_status
+            if genotype[0] == 'CNAG_00000' and not overexpression_flag:
+                if nat_probability > nat_probability_threshold:
+                    status_total += nat_unexpected_marker_status
+                if genotype[0] == 'CNAG_00000' and g418_log2cpm > g418_log2cpm_threshold:
+                    status_total += g418_unexpected_marker_status
 
-            if genotype[0] != 'CNAG_00000' and not overexpression_flag: # TODO: this nan is funny -- is None didn't work. need to check column formatting in actual sheets
-                if marker_1 == 'nan' or marker_1 is None: # TODO: clean this up! huge duplication
+            if genotype[0] != 'CNAG_00000' and not overexpression_flag:
+                if marker_1 == 'nan' or marker_1 is None or (len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
                     status_total+=no_metadata_marker_status
                 else:
                     if marker_1 == 'NAT':
-                        if nat_coverage < correct_marker_coverage_threshold:
-                            status_total += correct_marker_coverage_status
-                        if g418_coverage > incorrect_marker_coverage_threshold:
-                            status_total += incorrect_marker_coverage_status
-                        if nat_log2cpm < correct_marker_expression_threshold:
-                            status_total += correct_marker_expression_status
-                        if g418_log2cpm > incorrect_marker_expression_threshold:
-                            status_total += incorrect_marker_expression_status
+                        if nat_probability < nat_probability_threshold:
+                            status_total += nat_expected_marker_status
+                        if g418_coverage > g418_log2cpm_threshold:
+                            status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
-                        if g418_coverage < correct_marker_coverage_threshold:
-                            status_total += correct_marker_coverage_status
-                        if nat_coverage > incorrect_marker_coverage_threshold:
-                            status_total += incorrect_marker_coverage_status
-                        if g418_log2cpm < correct_marker_expression_threshold:
-                            status_total += correct_marker_expression_status
-                        if nat_log2cpm > incorrect_marker_expression_threshold:
-                            status_total += incorrect_marker_expression_status
-                if len(genotype) > 1:
-                    if marker_2 == 'nan' or marker_2 is None:
-                        status_total += no_metadata_marker_status
-                    else:
+                        if g418_log2cpm < g418_log2cpm_threshold:
+                            status_total += g418_expected_marker_status
+                        if nat_probability > nat_probability_threshold:
+                            status_total += nat_unexpected_marker_status
+                    if len(genotype) > 1:  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
-                            if nat_coverage < correct_marker_coverage_threshold:
-                                status_total += correct_marker_expression_status
-                            if g418_coverage > incorrect_marker_coverage_threshold:
-                                status_total += incorrect_marker_coverage_status
-                            if nat_log2cpm < correct_marker_expression_threshold:
-                                status_total += correct_marker_expression_status
-                            if g418_log2cpm > incorrect_marker_expression_threshold:
-                                status_total += incorrect_marker_expression_status
+                            if nat_probability < nat_probability_threshold:
+                                status_total += nat_double_ko_expected_marker_status
+                            if g418_log2cpm > g418_log2cpm_threshold:
+                                status_total += g418_double_ko_unexpected_marker_status
                         elif marker_2 == 'G418':
-                            if g418_coverage < correct_marker_coverage_threshold:
-                                status_total += correct_marker_expression_status
-                            if nat_coverage > incorrect_marker_coverage_threshold:
-                                status_total += incorrect_marker_coverage_status
-                            if g418_log2cpm < correct_marker_expression_threshold:
-                                status_total += correct_marker_expression_status
-                            if nat_log2cpm > incorrect_marker_expression_threshold:
-                                status_total += incorrect_marker_expression_status
+                            if g418_log2cpm < g418_log2cpm_threshold:
+                                status_total += g418_double_ko_expected_marker_status
+                            if nat_probability > nat_probability_threshold:
+                                status_total += nat_double_ko_unexpected_marker_status
 
             status_column_list.append(status_total)
 

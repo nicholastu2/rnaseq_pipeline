@@ -11,6 +11,7 @@ import configparser
 import time
 import logging
 import logging.config
+import math
 
 
 def getRunNumber(fastq_path):
@@ -303,7 +304,8 @@ def configure(object_instance, config_file, config_header, prefix=''):
     config.read(config_file)
     # set attributes for StandardData
     for key, value in config[config_header].items():
-        setattr(object_instance, key, os.path.join(prefix, value))  # by default, values are read in as strings. Currently, all filepaths, so this is good
+        setattr(object_instance, key, os.path.join(prefix,
+                                                   value))  # by default, values are read in as strings. Currently, all filepaths, so this is good
 
 
 def submitSbatch(sbatch_path, email=None):
@@ -493,7 +495,8 @@ def createStdOutLogger(**kwargs):
     return logger
 
 
-def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
+def getFileListFromDirectory(dir_path,
+                             list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
     """
     write fastq filepaths in a list stored as a .txt. Used in slurm job script
     :param dir_path: path to a diretory with files you wish to extract
@@ -512,6 +515,7 @@ def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract):  # TOD
             file_paths += glob(dir_path + "/*." + suffix)
         return file_paths
 
+
 def extractFiles(containing_directory, file_pattern):
     """
         extract a list of files, expected to be non-empty, from containing_directory. NOTE: this is recursive, so be
@@ -525,18 +529,70 @@ def extractFiles(containing_directory, file_pattern):
         if file_pattern.startswith('*'):
             raise UserWarning('DoNotStartPatternWithAstrisk')
     except UserWarning:
-        print('When using utils.extractFiles, the argument file_pattern should not start with an astrisk. That is added in the method.')
+        print(
+            'When using utils.extractFiles, the argument file_pattern should not start with an astrisk. That is added in the method.')
 
     try:
         if os.path.isdir(containing_directory):
-            file_list = glob('%s/**/*%s' %(containing_directory, file_pattern), recursive=True)
+            file_list = glob('%s/**/*%s' % (containing_directory, file_pattern), recursive=True)
         else:
             raise NotADirectoryError('AlignDirectoryDoesNotExist')
         if len(file_list) == 0:
             raise FileNotFoundError('NoFileFoundMatchingPatternInContainingDirectory')
     except NotADirectoryError:
-        print('Directory %s does not exist' %containing_directory)
+        print('Directory %s does not exist' % containing_directory)
     except FileNotFoundError:
-        print('No Files found matching the pattern %s in containing directory %s' %(file_pattern, containing_directory))
+        print(
+            'No Files found matching the pattern %s in containing directory %s' % (file_pattern, containing_directory))
     else:
         return file_list
+
+
+def logit2probability(log_odds):
+    """
+        convert log odds to probability
+        params log_odds: a log odds score
+        :returns: probability converted from input
+        credit: https://sebastiansauer.github.io/convert_logit2prob/
+    """
+    # convert log odds to odds
+    odds = math.exp(log_odds)
+    # return probability
+    return odds / float(1 + odds)
+
+def twoParameterGlmTemplate(intercept, coefficient_1, coefficient_2):
+    """
+        factory function to create a two parameter glm formula.
+        usage: to create the formula, first call twoParameterGlmTemplate:
+            my_glm = twoParameterGlmTemplate(1,2,3)
+        then, you can use my_glm to return x if x = 1 + 2*x_1 + 3*x_2 where x_1 and x_2 are inputs to my_glm
+            for example, my_glm(1,1) == 6
+        :params intercept: intercept of the model you wish to create
+        :params coefficient_1: first coefficient of the model you wish to create
+        :params coefficient_2: second coefficient of the model you wish to create
+        :returns: a two parameter glm with the intercept and two coefficients
+    """
+    # define a specific instance of a two parameter glm
+    def twoParameterGlm(x_1, x_2):
+        if not testNumeric(x_1):
+            raise ValueError('VariablesNonNumeric %s' %x_1)
+        if not testNumeric(x_2):
+            raise ValueError('VariablesNonNumeric %s' %x_2)
+        x_1 = float(x_1)
+        x_2 = float(x_2)
+        return intercept + (coefficient_1*x_1) + (coefficient_2*x_2)
+
+    return twoParameterGlm
+
+def testNumeric(var):
+    """
+    test if var is numeric
+    :params var: any variable
+    :returns: true if var is int or float, false otherwise
+    """
+    if isinstance(var, int):
+        return True
+    elif isinstance(var, float):
+        return True
+    else:
+        return False
