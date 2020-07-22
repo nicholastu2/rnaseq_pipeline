@@ -245,7 +245,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             if genotype[0] == 'CNAG_00000':
                 if nat_probability > nat_probability_threshold:
                     status_total += wt_nat_unexpected_marker_status
-                if genotype[0] == 'CNAG_00000' and g418_log2cpm > g418_log2cpm_threshold:
+                if g418_log2cpm > g418_log2cpm_threshold:
                     status_total += wt_g418_unexpected_marker_status
             # if we should be testing overexpression for marker expression, then this overexpression flag should be removed (none have strains thus far -- all will be flagged that way)
             else:
@@ -255,7 +255,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     if marker_1 == 'NAT':
                         if nat_probability < nat_probability_threshold:
                             status_total += nat_expected_marker_status
-                        if g418_coverage > g418_log2cpm_threshold:
+                        if g418_log2cpm > g418_log2cpm_threshold:
                             status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < g418_log2cpm_threshold:
