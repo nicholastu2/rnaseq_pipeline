@@ -82,6 +82,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         return qual_assess_df[self.column_order]
 
+
     def auditQualAssessDataFrame(self, query_df_path, qual_assess_df, bam_file_list):
         """
             use rnaseq_pipeline/config/quality_assess_config.ini entries to add status, auto_audit columns
@@ -116,19 +117,19 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
-        # nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
+        nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
         g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
 
-        # # extract NAT coefficients and create glm model
-        # intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
-        # coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
-        # log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
-        # # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
-        # # input to nat_glm will need to be in order: (coverage, log2cpm)
-        # nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
-        nat_coverage_threshold = float(qual_assess_1_dict['NAT_COVERAGE_THRESHOLD'])
-        nat_log2cpm_threshold = float(qual_assess_1_dict['NAT_LOG2CPM_THRESHOLD'])
+        # extract NAT coefficients and create glm model
+        intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
+        coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
+        log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
+
+        # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
+        # input to nat_glm will need to be in order: (coverage, log2cpm)
+        nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
+
 
         # extract status
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
@@ -214,8 +215,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             nat_coverage = float(row['NAT_COVERAGE'])
             g418_coverage = float(row['G418_COVERAGE'])
 
-            # nat_logit = nat_glm(nat_coverage, nat_log2cpm)
-            # nat_probability = utils.logit2probability(nat_logit)
+            nat_logit = nat_glm(nat_coverage, nat_log2cpm)
+            nat_probability = utils.logit2probability(nat_logit)
 
             # set status_total to 0
             status_total = 0
@@ -239,7 +240,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # test wildtypes for marker coverage and expression
             if genotype[0] == 'CNAG_00000':
-                if nat_coverage > nat_coverage_threshold and nat_log2cpm > nat_log2cpm_threshold:
+                if nat_probability > nat_probability_threshold:
                     status_total += nat_unexpected_marker_status
                 if g418_log2cpm > g418_log2cpm_threshold:
                     status_total += g418_unexpected_marker_status
@@ -250,20 +251,20 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 # if perturbed, and marker information is present, test the markers
                 else:
                     if marker_1 == 'NAT':
-                        if nat_coverage < nat_coverage_threshold or nat_log2cpm < nat_log2cpm_threshold:
+                        if nat_probability < nat_probability_threshold:
                             status_total += nat_expected_marker_status
                         if g418_log2cpm > g418_log2cpm_threshold:
                             status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < g418_log2cpm_threshold:
                             status_total += g418_expected_marker_status
-                        if nat_coverage > nat_coverage_threshold or nat_log2cpm > nat_log2cpm_threshold:
+                        if nat_probability > nat_probability_threshold:
                             status_total += nat_unexpected_marker_status
                     if len(genotype) > 1:  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
                             if marker_1 == 'NAT':
                                 self.logger.critical('%s has two NAT markers in the metadata' %fastq_simple_name)
-                            if nat_coverage < nat_coverage_threshold or nat_log2cpm < nat_log2cpm_threshold:
+                            if nat_probability < nat_probability_threshold:
                                 status_total += nat_expected_marker_status
                             if g418_log2cpm > g418_log2cpm_threshold:
                                 status_total += g418_unexpected_marker_status
@@ -272,7 +273,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                                 self.logger.critical('%s has two G418 markers in the metadata' %fastq_simple_name)
                             if g418_log2cpm < g418_log2cpm_threshold:
                                 status_total += g418_expected_marker_status
-                            if nat_coverage > nat_coverage_threshold or nat_log2cpm > nat_log2cpm_threshold:
+                            if nat_probability > nat_probability_threshold:
                                 status_total += nat_unexpected_marker_status
 
             status_column_list.append(status_total)
