@@ -116,7 +116,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
-        nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
+        # nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
         g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
 
