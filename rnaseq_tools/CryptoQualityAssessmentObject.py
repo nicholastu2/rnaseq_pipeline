@@ -248,7 +248,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 if genotype[0] == 'CNAG_00000' and g418_log2cpm > g418_log2cpm_threshold:
                     status_total += wt_g418_unexpected_marker_status
             # if we should be testing overexpression for marker expression, then this overexpression flag should be removed (none have strains thus far -- all will be flagged that way)
-            if genotype[0] != 'CNAG_00000' and not overexpression_flag:
+            else:
                 if marker_1 == 'nan' or marker_1 is None or (len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
                     status_total+=no_metadata_marker_status
                 else:
