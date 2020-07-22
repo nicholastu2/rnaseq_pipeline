@@ -120,28 +120,24 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
 
-        # extract NAT coefficients and create glm model
-        intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
-        coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
-        log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
-        # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
-        # input to nat_glm will need to be in order: (coverage, log2cpm)
-        nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
+        # # extract NAT coefficients and create glm model
+        # intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
+        # coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
+        # log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
+        # # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
+        # # input to nat_glm will need to be in order: (coverage, log2cpm)
+        # nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
+        nat_coverage_threshold = float(qual_assess_1_dict['NAT_COVERAGE_THRESHOLD'])
+        nat_log2cpm_threshold = float(qual_assess_1_dict['NAT_LOG2CPM_THRESHOLD'])
 
         # extract status
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
         not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
         perturbed_coverage_bit_status = int(qual_assess_1_dict['PERTURBED_COVERAGE_STATUS'])
-        wt_nat_unexpected_marker_status = int(qual_assess_1_dict['WT_NAT_UNEXPECTED_MARKER_STATUS'])
-        wt_g418_unexpected_marker_status = int(qual_assess_1_dict['WT_G418_UNEXPECTED_MARKER_STATUS'])
         nat_expected_marker_status = int(qual_assess_1_dict['NAT_EXPECTED_MARKER_STATUS'])
         nat_unexpected_marker_status = int(qual_assess_1_dict['NAT_UNEXPECTED_MARKER_STATUS'])
         g418_expected_marker_status = int(qual_assess_1_dict['G418_EXPECTED_MARKER_STATUS'])
         g418_unexpected_marker_status = int(qual_assess_1_dict['G418_UNEXPECTED_MARKER_STATUS'])
-        nat_double_ko_expected_marker_status = int(qual_assess_1_dict['NAT_DOUBLE_KO_EXPECTED_MARKER_STATUS'])
-        nat_double_ko_unexpected_marker_status = int(qual_assess_1_dict['NAT_DOUBLE_KO_UNEXPECTED_MARKER_STATUS'])
-        g418_double_ko_expected_marker_status = int(qual_assess_1_dict['G418_DOUBLE_KO_EXPECTED_MARKER_STATUS'])
-        g418_double_ko_unexpected_marker_status = int(qual_assess_1_dict['G418_DOUBLE_KO_UNEXPECTED_MARKER_STATUS'])
         overexpression_fow_status = int(qual_assess_1_dict['OVEREXPRESSION_FOW_STATUS'])
         no_metadata_marker_status = int(qual_assess_1_dict['NO_METADATA_MARKER_STATUS'])
 
@@ -218,8 +214,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             nat_coverage = float(row['NAT_COVERAGE'])
             g418_coverage = float(row['G418_COVERAGE'])
 
-            nat_logit = nat_glm(nat_coverage, nat_log2cpm)
-            nat_probability = utils.logit2probability(nat_logit)
+            # nat_logit = nat_glm(nat_coverage, nat_log2cpm)
+            # nat_probability = utils.logit2probability(nat_logit)
 
             # set status_total to 0
             status_total = 0
@@ -243,36 +239,41 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # test wildtypes for marker coverage and expression
             if genotype[0] == 'CNAG_00000':
-                if nat_probability > nat_probability_threshold:
-                    status_total += wt_nat_unexpected_marker_status
+                if nat_coverage > nat_coverage_threshold and nat_log2cpm > nat_log2cpm_threshold:
+                    status_total += nat_unexpected_marker_status
                 if g418_log2cpm > g418_log2cpm_threshold:
-                    status_total += wt_g418_unexpected_marker_status
-            # if we should be testing overexpression for marker expression, then this overexpression flag should be removed (none have strains thus far -- all will be flagged that way)
+                    status_total += g418_unexpected_marker_status
+            # if a perturbed sample, first check that marker information is present and flag it if it is not
             else:
                 if marker_1 == 'nan' or marker_1 is None or (len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
                     status_total+=no_metadata_marker_status
+                # if perturbed, and marker information is present, test the markers
                 else:
                     if marker_1 == 'NAT':
-                        if nat_probability < nat_probability_threshold:
+                        if nat_coverage < nat_coverage_threshold and nat_log2cpm < nat_log2cpm_threshold:
                             status_total += nat_expected_marker_status
                         if g418_log2cpm > g418_log2cpm_threshold:
                             status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < g418_log2cpm_threshold:
                             status_total += g418_expected_marker_status
-                        if nat_probability > nat_probability_threshold:
+                        if nat_coverage > nat_coverage_threshold and nat_log2cpm > nat_log2cpm_threshold:
                             status_total += nat_unexpected_marker_status
                     if len(genotype) > 1:  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
-                            if nat_probability < nat_probability_threshold:
-                                status_total += nat_double_ko_expected_marker_status
+                            if marker_1 == 'NAT':
+                                self.logger.critical('%s has two NAT markers in the metadata' %fastq_simple_name)
+                            if nat_coverage < nat_coverage_threshold and nat_log2cpm < nat_log2cpm_threshold:
+                                status_total += nat_expected_marker_status
                             if g418_log2cpm > g418_log2cpm_threshold:
-                                status_total += g418_double_ko_unexpected_marker_status
+                                status_total += g418_unexpected_marker_status
                         elif marker_2 == 'G418':
+                            if marker_1 == 'G418':
+                                self.logger.critical('%s has two G418 markers in the metadata' %fastq_simple_name)
                             if g418_log2cpm < g418_log2cpm_threshold:
-                                status_total += g418_double_ko_expected_marker_status
-                            if nat_probability > nat_probability_threshold:
-                                status_total += nat_double_ko_unexpected_marker_status
+                                status_total += g418_expected_marker_status
+                            if nat_coverage > nat_coverage_threshold and nat_log2cpm > nat_log2cpm_threshold:
+                                status_total += nat_unexpected_marker_status
 
             status_column_list.append(status_total)
 
