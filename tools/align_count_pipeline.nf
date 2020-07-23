@@ -199,10 +199,10 @@ utils.executeSubProcess(cmd_pipeline_info)
 
 # include the date processed in pipeline_info_subdir_path/pipeline_into.txt
 with open(pipeline_info_txt_file_path, "a+") as file:
-    file.write('\n')
+    file.write('')
     current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
     file.write('Date processed: %s' % current_datetime)
-    file.write('\n')
+    file.write('')
 
 # set annotation_file
 if ${organism} == 'KN99':
