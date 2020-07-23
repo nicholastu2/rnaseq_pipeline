@@ -162,8 +162,8 @@ def main(argv):
         nf_sbatch_file.write('#!/bin/bash\n'
                              '#SBATCH --mem=15G\n'
                              '#SBATCH -o %s/%s.out\n'
-                             '#SBATCH -J %s'
-                             'ml rnaseq_pipeline\n'
+                             '#SBATCH -J %s\n\n'
+                             'ml rnaseq_pipeline\n\n'
                              'nextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n'
                              %(db.sbatch_log, sbatch_script_name, sbatch_script_name, nextflow_config_path))
 
