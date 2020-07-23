@@ -95,7 +95,7 @@ process htseq_count {
         tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_with_htseq_annote_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into htseq_count_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
-        tuple val(run_directory), val(organism), val(strandedness) pipeline_info_ch
+        tuple val(run_directory), val(organism), val(strandedness) into pipeline_info_ch
 
     script:
         if (organism == 'S288C_R64')

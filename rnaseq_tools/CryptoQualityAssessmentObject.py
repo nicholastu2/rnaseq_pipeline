@@ -562,15 +562,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 raise AttributeError('NoBamFileList')
         except AttributeError:
             print('QualityAssessmentObject does not have attribute bam file list')
+
         # log which run numbers are present
         self.logger.info('\nThe run numbers in the sheet are: %s' % self.query_df['runNumber'].unique())
+
         # create genotype_df from query_df[['fastqFileName' and 'genotype']]
         genotype_df = self.query_df[['fastqFileName', 'genotype']]
         # reduce fastqFileName to only simple basename (eg /path/to/some_fastq_R1_001.fastq.gz --> some_fastq_R1_001
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # new column perturbation, if _over in genotype, put 'over' otherwise 'ko'
-        genotype_df['perturbation'] = ['over' if '_over' in genotype_column else 'ko' for genotype_column in
-                                       genotype_df['genotype']]
+        genotype_df['perturbation'] = ['over' if '_over' in str(genotype) else 'ko' for genotype in genotype_df['genotype']]
         # remove _over from genotype
         genotype_df['genotype'] = genotype_df['genotype'].str.replace('_over', '')
         # split genotype on period. rename column 2 genotype2 if exists. if not, add genotype_2 with values None
@@ -653,7 +654,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                                                                                                          genotype_2,
                                                                                                          kn99_annotation_path,
                                                                                                          bam_file)
-
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
         return genotype_df[
