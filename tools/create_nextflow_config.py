@@ -157,15 +157,15 @@ def main(argv):
     sbatch_script_name = args.name + '_nextflow_sbatch'
     nextflow_sbatch_path = os.path.join(db.job_scripts, sbatch_script_name + '.sbatch')
     # write sbatch script to submit nextflow job
-    print('...writing sbatch script to %s' %nextflow_config_path)
+    print('...writing sbatch script to %s' %nextflow_sbatch_path)
     with open(nextflow_sbatch_path, 'w') as nf_sbatch_file:
         nf_sbatch_file.write('#!/bin/bash\n'
                              '#SBATCH --mem=15G\n'
-                             '#SBATCH -o sbatch_log/%s.out\n'
+                             '#SBATCH -o %s/%s.out\n'
                              '#SBATCH -J %s'
                              'ml rnaseq_pipeline\n'
                              'nextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n'
-                             %(sbatch_script_name, sbatch_script_name, nextflow_config_path))
+                             %(db.sbatch_log, sbatch_script_name, sbatch_script_name, nextflow_config_path))
 
     print('\nsubmitting sbatch script:\n')
     sbatch_cmd = 'sbatch %s' %nextflow_sbatch_path

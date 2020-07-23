@@ -19,8 +19,7 @@ class QualityAssessmentObject(StandardData):
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
         self._add_expected_attributes = ['bam_file_list', 'count_file_list', 'novoalign_log_list',
-                                         'coverage_check_flag',
-                                         'query_path', 'standardized_database_df', 'qual_assess_dir_path']
+                                         'coverage_check_flag','query_path', 'standardized_database_df', 'qual_assess_dir_path']
         # This is a method of adding expected attributes to StandardData from StandardData children
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
