@@ -290,7 +290,10 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         kn99_tRNA_ncRNA_annotations = os.path.join(self.genome_files, 'KN99', 'ncRNA_tRNA_no_rRNA.gff')
         if hasattr(self, 'query_df'):
             for index, row in qual_assess_df.iterrows():
-                genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+                try:
+                     genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+                except ValueError:
+                    self.logger.critical('cannot extract genotype from %s' %row)
                 if genotype.startswith('CNAG'):
                     # extract fastq_filename without any preceeding path or file extension
                     fastq_simple_name = utils.pathBaseName(row['FASTQFILENAME'])
