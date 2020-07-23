@@ -35,6 +35,12 @@ class QualityAssessmentObject(StandardData):
         # if query_path passed, read in as dataframe
         try:
             self.query_df = utils.readInDataframe(self.query_path)
+            try:
+                if not len(self.query_df[self.query_df.fastqFileName.isnull()]) == 0:
+                    raise ValueError('EmptyFastqFileNamesIn %s' %self.query_path)
+            except ValueError:
+                self.logger.critical('Removing rows with null fastqFileNames from %s' %self.query_path)
+                self.query_df = self.query_df[~self.query_df.fastqFileName.isnull()]
         except ValueError:
             self.logger.critical('query_path not valid')
         except FileNotFoundError:
