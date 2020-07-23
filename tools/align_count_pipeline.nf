@@ -186,7 +186,7 @@ from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import utils
 
 # instantiate OrganismDataObject (see brentlab rnaseq_pipeline)
-od = OrganismData(organism = ${organism}, interactive=True)
+od = OrganismData(organism = "${organism}", interactive=True)
 
 # create pipeline_info subdir of in rnaseq_pipeline/align_count_results/${organism}_pipeline_info
 pipeline_info_subdir_path = os.path.join(od.align_count_results, ${run_directory}, "${organism}_pipeline_info")
