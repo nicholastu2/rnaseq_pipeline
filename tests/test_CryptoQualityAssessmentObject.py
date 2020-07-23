@@ -4,6 +4,11 @@ from rnaseq_tools import utils
 from glob import glob
 
 class MyTestCase(unittest.TestCase):
+    def test_qualAssessRun(self):
+        qa = CryptoQualityAssessmentObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini',
+                                           interactive=True)
+
+
     def test_auditQualAssessDataFrame(self):
         qa = CryptoQualityAssessmentObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini',
                                            interactive=True)

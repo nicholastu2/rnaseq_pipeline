@@ -9,8 +9,10 @@ import numpy as np
 
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
-#TODO: CURRENTLY, ALWAYS CALCULATES COVERAGES -- CREATE FLAG TO SKIP THIS STEP IF PASSED
-#TODO: CALCULATE COVERAGE ONCE, STORE AS BED FILE, USE BED RATHER THAN QUANTIFYING BAM EVERYTIME
+
+
+# TODO: CURRENTLY, ALWAYS CALCULATES COVERAGES -- CREATE FLAG TO SKIP THIS STEP IF PASSED
+# TODO: CALCULATE COVERAGE ONCE, STORE AS BED FILE, USE BED RATHER THAN QUANTIFYING BAM EVERYTIME
 class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -26,59 +28,76 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         self.self_type = 'CryptoQualityAssessmentObject'
 
         # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
-        self.column_order = ['FASTQFILENAME','LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT', 'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT',
-                             'MULTI_MAP_PERCENT', 'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT', 'PROTEIN_CODING_COUNTED',
+        self.column_order = ['FASTQFILENAME', 'LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT',
+                             'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT',
+                             'MULTI_MAP_PERCENT', 'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT',
+                             'PROTEIN_CODING_COUNTED',
                              'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
-                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE',
-                             'NAT_COVERAGE', 'G418_COVERAGE', 'OVEREXPRESSION_FOW', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
+                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE',
+                             'GENOTYPE_2_COVERAGE',
+                             'NAT_COVERAGE', 'G418_COVERAGE', 'OVEREXPRESSION_FOW', 'NO_MAP_PERCENT',
+                             'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
                              'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
         # set organismdata_config.ini in genome_files
         crypto_genome_files_config_path = os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini')
         utils.configure(self, crypto_genome_files_config_path, 'OrganismData', os.path.join(self.genome_files, 'KN99'))
-
 
     def formatQualAssessDataFrame(self, qual_assess_df):
         """
 
         """
         # EFFECTIVE_LIBRARY_SIZE is LIBRARY_SIZE - (total_rRNA + unique_tRNA_ncRNA)
-        qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
+        qual_assess_df['EFFECTIVE_LIBRARY_SIZE'] = qual_assess_df['LIBRARY_SIZE'].astype('float') - (
+                    qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA'])
 
         # EFFECTIVE_UNIQUE_ALIGNMENT is number of unique reads minus those unique reads mapping to rRNA and nc + t RNA
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (qual_assess_df['UNIQUE_rRNA'] +
-                                                                                             qual_assess_df['UNIQUE_tRNA_ncRNA'] +
-                                                                                             qual_assess_df['TOO_LOW_AQUAL'])
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] = qual_assess_df['UNIQUE_ALIGNMENT'] - (
+                    qual_assess_df['UNIQUE_rRNA'] +
+                    qual_assess_df['UNIQUE_tRNA_ncRNA'] +
+                    qual_assess_df['TOO_LOW_AQUAL'])
 
         # present the following categories as fraction of library_size
         # percent of library made up of rRNA (recall total_rRNA is unique + primary alignment since reads multimap in two spots, both seemingly rRNA)
         qual_assess_df['rRNA_PERCENT'] = qual_assess_df['TOTAL_rRNA'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['nctRNA_PERCENT'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['nctrRNA_PERCENT'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / qual_assess_df['LIBRARY_SIZE'].astype(float)
-        qual_assess_df['MULTI_MAP_PERCENT'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['nctRNA_PERCENT'] = qual_assess_df['UNIQUE_tRNA_ncRNA'] / qual_assess_df['LIBRARY_SIZE'].astype(
+            float)
+        qual_assess_df['nctrRNA_PERCENT'] = (qual_assess_df['TOTAL_rRNA'] + qual_assess_df['UNIQUE_tRNA_ncRNA']) / \
+                                            qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['MULTI_MAP_PERCENT'] = qual_assess_df['MULTI_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype(
+            'float')
         qual_assess_df['NO_MAP_PERCENT'] = qual_assess_df['NO_MAP'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
-        qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = qual_assess_df['HOMOPOLY_FILTER'] / qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
+        qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = qual_assess_df['READ_LENGTH_FILTER'] / qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
         # htseq output not_aligned_total_percent is no_map + homopoly_filter + read_length filter. present as fraction of library_size
-        qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df['LIBRARY_SIZE'].astype('float')
+        qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = qual_assess_df['NOT_ALIGNED_TOTAL'] / qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
 
         # PROTEIN_CODING_TOTAL (formerly with_feature) is the number of reads mapping to a protein coding gene by htseq plus the unique ambiguous reads mapping to exon portiosn of overlapping protein coding reads
-        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['PROTEIN_CODING_COUNTED'] + qual_assess_df['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
+        qual_assess_df['PROTEIN_CODING_TOTAL'] = qual_assess_df['PROTEIN_CODING_COUNTED'] + qual_assess_df[
+            'AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS']
 
         # protein_coding_total as percent of effective unique alignment
-        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_TOTAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        qual_assess_df['PROTEIN_CODING_TOTAL_PERCENT'] = qual_assess_df['PROTEIN_CODING_TOTAL'] / qual_assess_df[
+            'EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
         # protein_coding_counted as percent of unique alignment
-        qual_assess_df['PROTEIN_CODING_COUNTED_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
+        qual_assess_df['PROTEIN_CODING_COUNTED_PERCENT'] = qual_assess_df['PROTEIN_CODING_COUNTED'] / qual_assess_df[
+            'EFFECTIVE_UNIQUE_ALIGNMENT'].astype('float')
 
         # present the following as fraction of (total) unique_alignment  ### TODO: SHOULD THIS BE OF EFFECTIVE_UNIQUE_ALIGNMENT? PROBABLY YES: NOTE THE GRAPHS IN CURRENT OLD CRYPTO SHEETS ARE OF UNIQUE_ALIGNMENT
-        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
-        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['NO_FEATURE_PERCENT'] = qual_assess_df['NO_FEATURE'] / qual_assess_df[
+            'EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['AMBIGUOUS_FEATURE_PERCENT'] = qual_assess_df['AMBIGUOUS_FEATURE'] / qual_assess_df[
+            'EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
+        qual_assess_df['TOO_LOW_AQUAL_PERCENT'] = qual_assess_df['TOO_LOW_AQUAL'] / qual_assess_df[
+            'EFFECTIVE_UNIQUE_ALIGNMENT'].astype(float)
 
         # present EFFECTIVE_UNIQUE_ALIGNMENT as percent of library size (make sure this is the last step
-        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / qual_assess_df['LIBRARY_SIZE'].astype(float)
+        qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT'] = qual_assess_df['EFFECTIVE_UNIQUE_ALIGNMENT'] / \
+                                                               qual_assess_df['LIBRARY_SIZE'].astype(float)
 
         return qual_assess_df[self.column_order]
-
 
     def auditQualAssessDataFrame(self, query_df_path, qual_assess_df, bam_file_list):
         """
@@ -89,9 +108,11 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         """
         # read in median_wt_expression_by_timepoint_treatment_df
         try:
-            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(self.median_wt_expression_by_timepoint_treatment)
+            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(
+                self.median_wt_expression_by_timepoint_treatment)
             # SET INDEX ON (gene_id, TREATMENT, TIMEPOINT) note: timepoint is read in as an int
-            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(['gene_id', 'TREATMENT', 'TIMEPOINT'])
+            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(
+                ['gene_id', 'TREATMENT', 'TIMEPOINT'])
         except AttributeError:
             self.logger.critical('genome files config in constructor did not work')
             print('genome files config in constructor did not work')
@@ -121,7 +142,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
 
-
         # extract status
         protein_coding_total_bit_status = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_STATUS'])
         not_aligned_total_percent_bit_status = int(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_STATUS'])
@@ -142,22 +162,32 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # extract treatment # TODO: MAKE EXTRACTING INFO FROM QUERY_DF FROM QUAL_ASSES A FUNCTION IN QUALITYASSESSMENTOBJECT
             try:
-                sample_treatment = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['treatment'])[0]
+                sample_treatment = list(
+                    self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                        'treatment'])[0]
             except AttributeError:
                 sys.exit('You must pass a query df')
 
             # extract timePoint
-            sample_timepoint = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['timePoint'])[0]
+            sample_timepoint = list(
+                self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                    'timePoint'])[0]
 
             # extract genotype
-            genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+            genotype = list(
+                self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                    'genotype'])[0]
 
             # split on period to separate double KO. note that this is now a list, even if one item
             genotype = genotype.split('.')
 
             # get markers
-            marker_1 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_1'])[0])
-            marker_2 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_2'])[0])
+            marker_1 = str(list(
+                self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                    'marker_1'])[0])
+            marker_2 = str(list(
+                self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                    'marker_2'])[0])
 
             # log2cpm path TODO: THIS NEEDS TO BE FIXED -- INPUT LIST OF LOG2_CPM AND REDO NAMING CONVENTION IN LOG2 CPM SCRIPT TO INCLUDE CONTAINING FOLDER
             bam_path = [bam_file for bam_file in bam_file_list if fastq_simple_name in bam_file][0]
@@ -167,7 +197,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 if not os.path.isfile(log2_cpm_path):
                     raise FileNotFoundError('Log2CpmSheetNotFound')
             except FileNotFoundError:
-                error_msg = 'log2_cpm sheet path %s not valid' %log2_cpm_path
+                error_msg = 'log2_cpm sheet path %s not valid' % log2_cpm_path
                 self.logger.critical(error_msg)
                 print(error_msg)
 
@@ -181,7 +211,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 overexpression_log2cpm = float(self.extractLog2cpm(perturbed_gene, fastq_simple_name, log2_cpm_path))
                 # get wildtype log2_cpm from median_wt-expression_by_timepoint_treatment
                 try:
-                    wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[(perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
+                    wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
+                                           (perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
                 except KeyError:
                     perturbed_gene = perturbed_gene.replace('CNAG', 'CKF44')
                     wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
@@ -205,7 +236,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             try:
                 nat_coverage = float(row['NAT_COVERAGE'])
             except KeyError:
-                self.logger.critical('%s no nat coverage' %row)
+                self.logger.critical('%s no nat coverage' % row)
             # extract G418 log2cpm
             g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
 
@@ -236,8 +267,9 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     status_total += g418_unexpected_marker_status
             # if a perturbed sample, first check that marker information is present and flag it if it is not
             else:
-                if marker_1 == 'nan' or marker_1 is None or (len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
-                    status_total+=no_metadata_marker_status
+                if marker_1 == 'nan' or marker_1 is None or (
+                        len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
+                    status_total += no_metadata_marker_status
                 # if perturbed, and marker information is present, test the markers
                 else:
                     if marker_1 == 'NAT':
@@ -252,17 +284,18 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                             status_total += nat_unexpected_marker_status
                     # TODO: THIS NEEDS TO BE FIXED FOR THE INSTANCE IN WHICH A SINGLE MARKER IS NOTED WITH BOTH MARKERS B/C OF MANUAL ENTRY (SEE STRAINS 2274 AND 1351)
                     # TEST THIS WITH THE STRAINS ABOVE
-                    if len(genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
+                    if len(
+                            genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
                             if marker_1 == 'NAT':
-                                self.logger.critical('%s has two NAT markers in the metadata' %fastq_simple_name)
+                                self.logger.critical('%s has two NAT markers in the metadata' % fastq_simple_name)
                             if nat_coverage < expected_nat_coverage_threshold or nat_log2cpm < expected_nat_log2cpm_threshold:
                                 status_total += nat_expected_marker_status
                             if g418_log2cpm > g418_log2cpm_threshold:
                                 status_total += g418_unexpected_marker_status
                         elif marker_2 == 'G418':
                             if marker_1 == 'G418':
-                                self.logger.critical('%s has two G418 markers in the metadata' %fastq_simple_name)
+                                self.logger.critical('%s has two G418 markers in the metadata' % fastq_simple_name)
                             if g418_log2cpm < g418_log2cpm_threshold:
                                 status_total += g418_expected_marker_status
                             if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
@@ -274,7 +307,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         qual_assess_df['AUTO_AUDIT'] = np.where(qual_assess_df.STATUS > 0, 1, 0)
         qual_assess_df['STATUS_DECOMP'] = None
         # add status decomposition
-        for index,row in qual_assess_df.iterrows():
+        for index, row in qual_assess_df.iterrows():
             status = int(row['STATUS'])
             qual_assess_df.loc[index, 'STATUS_DECOMP'] = str(utils.decomposeStatus2Bit(status))
 
@@ -291,13 +324,13 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         if hasattr(self, 'query_df'):
             for index, row in qual_assess_df.iterrows():
                 try:
-                     genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+                    genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
                 except ValueError:
-                    self.logger.critical('cannot extract genotype from %s' %row)
+                    self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
                 if genotype.startswith('CNAG'):
                     # extract fastq_filename without any preceeding path or file extension
                     fastq_simple_name = utils.pathBaseName(row['FASTQFILENAME'])
-                    print('...evaluating ncRNA in %s' %fastq_simple_name)
+                    print('...evaluating ncRNA in %s' % fastq_simple_name)
                     # use this to extract bam_path
                     try:
                         bam_path = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
@@ -310,12 +343,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     except FileNotFoundError:
                         self.logger.error('bam file not found %s' % bam_path)
                         print('bam file not found: %s' % bam_path)
-                    libraryDate = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['libraryDate'])[0]
+                    libraryDate = list(
+                        self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                            'libraryDate'])[0]
                     row_date_time = pd.to_datetime(libraryDate)
                     strandedness = 'no' if row_date_time < strandedness_date_threshold else 'reverse'
                     total_rRNA, unique_rRNA = self.totalrRNA(bam_path, 'CP022322.1:272773-283180', strandedness)
                     unique_tRNA_ncRNA = self.totaltRNAncRNA(bam_path, kn99_tRNA_ncRNA_annotations, strandedness)
-                    num_reads_to_ncRNA_dict.setdefault(fastq_simple_name, {'total_rRNA': total_rRNA, 'unique_rRNA': unique_rRNA, 'total_tRNA_ncRNA': unique_tRNA_ncRNA})
+                    num_reads_to_ncRNA_dict.setdefault(fastq_simple_name,
+                                                       {'total_rRNA': total_rRNA, 'unique_rRNA': unique_rRNA,
+                                                        'total_tRNA_ncRNA': unique_tRNA_ncRNA})
 
         # create dataframe from num_reads_to_ncRNA_dict
         ncRNA_df = pd.DataFrame.from_dict(num_reads_to_ncRNA_dict, orient='index').reset_index()
@@ -350,7 +387,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     # strip newchar, split on tab
                     line = line.strip().split('\t')
                     # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
-                    htseq_count_metadata_category = line_strip_split[0][2:].upper()  # drop the __ in front of the category
+                    htseq_count_metadata_category = line_strip_split[0][
+                                                    2:].upper()  # drop the __ in front of the category
                     # enter to htseq_count_dict
                     library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
                     # iterate
@@ -362,7 +400,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         try:
             if crypto_protein_coding_count == 0:
                 raise ValueError('NoGeneCountsDetected')
-        except ValueError:  #TODO: make this not a static method and add logger
+        except ValueError:  # TODO: make this not a static method and add logger
             print('No lines starting with CKF44 have gene counts')
 
         # rename some key/value pairs
@@ -382,7 +420,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             :params fastq_simplename: fastq filename minus any path and extention eg /path/to/my_reads_R1.fastq.gz would be my_reads_R1
             :returns: the number of reads (lines) aligning to protein coding coordinates
         """
-        #TODO: MAKE THE TRY/CATCH STATEMENT BELOW A FUNCTION AND REPLACE ALL INSTANCES WITH FUNCTION CALL
+        # TODO: MAKE THE TRY/CATCH STATEMENT BELOW A FUNCTION AND REPLACE ALL INSTANCES WITH FUNCTION CALL
 
         # extract bam file from bam_file_list using fastq simple name
         try:
@@ -391,7 +429,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             self.logger.debug('bam file not found for %s' % fastq_simplename)  # TODO: improve this logging
 
         # grep out lines that are ambiguous and map to CKF44 reads (and only CKF44 -- no CNAG)
-        extract_ambiguous_protein_coding_reads_cmd = 'samtools view %s| grep ambiguous | grep CKF44| grep -v CNAG| wc -l' %bam_file
+        extract_ambiguous_protein_coding_reads_cmd = 'samtools view %s| grep ambiguous | grep CKF44| grep -v CNAG| wc -l' % bam_file
         ambiguous_protein_coding_count = int(subprocess.getoutput(extract_ambiguous_protein_coding_reads_cmd))
 
         return ambiguous_protein_coding_count
@@ -412,17 +450,20 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         try:
             for index, row in qual_assess_df.iterrows():
-                print('...Assessing intergenic coverage for %s' %row['FASTQFILENAME'])
-                genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME']+'.fastq.gz')]['genotype'])[0]
+                print('...Assessing intergenic coverage for %s' % row['FASTQFILENAME'])
+                genotype = list(
+                    self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
+                        'genotype'])[0]
                 # set total_intergenic_bases and intergenic_region_bed by organism
                 # common error message for setting total_intergenic_bases. Requires %(attribute_name, organism) both strings eg %('kn99_total_intergenic_bases', 'KN99')
                 error_msg = 'No attribute %s. Check OrganismData_config.ini in %s'
                 if genotype.startswith('CNAG'):
                     try:
-                        intergenic_region_bed_path = os.path.join(self.genome_files, 'KN99', kn99_config['intergenic_region_bed'])
+                        intergenic_region_bed_path = os.path.join(self.genome_files, 'KN99',
+                                                                  kn99_config['intergenic_region_bed'])
                         total_intergenic_bases = int(kn99_config['total_intergenic_bases'])
                     except KeyError:
-                        kn99_error_msg = error_msg %('kn99_total_intergenic_bases', 'KN99')
+                        kn99_error_msg = error_msg % ('kn99_total_intergenic_bases', 'KN99')
                         self.logger.critical(kn99_error_msg)
                         print(kn99_error_msg)
 
@@ -431,7 +472,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     if not os.path.isfile(intergenic_region_bed_path):
                         raise FileNotFoundError('IntergenicRegionBedDoesNotExist')
                 except FileNotFoundError:
-                    intergenic_region_bed_error_msg = 'Intergenic region bed file does not exist at: %s' %intergenic_region_bed_path
+                    intergenic_region_bed_error_msg = 'Intergenic region bed file does not exist at: %s' % intergenic_region_bed_path
                     self.logger.critical(intergenic_region_bed_error_msg)
                     print(intergenic_region_bed_error_msg)
 
@@ -439,13 +480,17 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 try:
                     bam_file = [bam_file for bam_file in self.bam_file_list if str(row['FASTQFILENAME']) in bam_file][0]
                 except IndexError:
-                    self.logger.debug('bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
-                intergenic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' %(intergenic_region_bed_path, bam_file)
+                    self.logger.debug(
+                        'bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
+                intergenic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
+                intergenic_region_bed_path, bam_file)
                 num_intergenic_bases_covered = int(subprocess.getoutput(intergenic_bases_covered_cmd))
-                qual_assess_df.loc[index, 'INTERGENIC_COVERAGE'] = num_intergenic_bases_covered / float(total_intergenic_bases)
+                qual_assess_df.loc[index, 'INTERGENIC_COVERAGE'] = num_intergenic_bases_covered / float(
+                    total_intergenic_bases)
 
         except NameError:
-            self.logger.critical('Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
+            self.logger.critical(
+                'Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
         # return qual_assess_df with INTERGENIC_COVERAGE added
         return qual_assess_df
 
@@ -466,16 +511,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         kn99_config = kn99_config['OrganismData']
 
         try:
-            for index,row in exonic_df.iterrows():
+            for index, row in exonic_df.iterrows():
                 bam_file = row['fastqFileName']
-                print('...Assessing exonic coverage for %s' %bam_file)
+                print('...Assessing exonic coverage for %s' % bam_file)
                 error_msg = 'No attribute %s. Check OrganismData_config.ini in %s'
                 # get exon info from config file
                 try:
                     exon_region_bed_path = os.path.join(self.genome_files, 'KN99', kn99_config['exon_region_bed'])
                     total_exon_bases = int(kn99_config['total_exon_bases'])
                 except KeyError:
-                    kn99_error_msg = error_msg %('kn99_total_intergenic_bases', 'KN99')
+                    kn99_error_msg = error_msg % ('kn99_total_intergenic_bases', 'KN99')
                     self.logger.critical(kn99_error_msg)
                     print(kn99_error_msg)
 
@@ -484,24 +529,26 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     if not os.path.isfile(exon_region_bed_path):
                         raise FileNotFoundError('IntergenicRegionBedDoesNotExist')
                 except FileNotFoundError:
-                    exonic_region_bed_path_error_msg = 'Intergenic region bed file does not exist at: %s' %exon_region_bed_path
+                    exonic_region_bed_path_error_msg = 'Intergenic region bed file does not exist at: %s' % exon_region_bed_path
                     self.logger.critical(exonic_region_bed_path_error_msg)
                     print(exonic_region_bed_path_error_msg)
 
                 # extract exonic bases covered by at least one read
-                exonic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' %(exon_region_bed_path, bam_file)
+                exonic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
+                exon_region_bed_path, bam_file)
                 num_exonic_bases_covered = int(subprocess.getoutput(exonic_bases_covered_cmd))
 
                 # add to the df
                 exonic_df.loc[index, 'EXONIC_COVERAGE'] = num_exonic_bases_covered / float(total_exon_bases)
 
         except NameError:
-            self.logger.critical('Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
+            self.logger.critical(
+                'Cannot calculate INTERGENIC COVERAGE -- total_intergenic_bases or intergenic bed file not found as attribute for organism. Check genome_files/subdirs and each OrganismData_config.ini')
         # return qual_assess_df with INTERGENIC_COVERAGE added
 
         exonic_df['fastqFileName'] = exonic_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # write
-        output_path = os.path.join(output_directory, utils.pathBaseName(bam_file)+'_exonic_coverage.csv')
+        output_path = os.path.join(output_directory, utils.pathBaseName(bam_file) + '_exonic_coverage.csv')
         exonic_df.to_csv(output_path, index=False)
 
     def perturbedCheck(self):
@@ -523,7 +570,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
         # new column perturbation, if _over in genotype, put 'over' otherwise 'ko'
         genotype_df['perturbation'] = ['over' if '_over' in genotype_column else 'ko' for genotype_column in
-                                      genotype_df['genotype']]
+                                       genotype_df['genotype']]
         # remove _over from genotype
         genotype_df['genotype'] = genotype_df['genotype'].str.replace('_over', '')
         # split genotype on period. rename column 2 genotype2 if exists. if not, add genotype_2 with values None
@@ -540,7 +587,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # read in KN99 OrganismData_config.ini
         kn99_config_filepath = os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini')
         if not os.path.isfile(kn99_config_filepath):
-            self.logger.critical('kn99 config file not found at %s' %kn99_config_filepath)
+            self.logger.critical('kn99 config file not found at %s' % kn99_config_filepath)
             raise FileNotFoundError('KN99ConfigFilpathNotFound')
         config = configparser.ConfigParser()
         config.read(kn99_config_filepath)
@@ -548,7 +595,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # extract genome path
         kn99_annotation_path = os.path.join(self.genome_files, 'KN99', kn99_organism_data_dict['annotation_file'])
         if not os.path.isfile(kn99_config_filepath):
-            self.logger.critical('kn99 annotation file not found at %s' %kn99_config_filepath)
+            self.logger.critical('kn99 annotation file not found at %s' % kn99_config_filepath)
             raise FileNotFoundError('KN99AnnotationFileNotFound')
         nat_bases_in_cds = int(kn99_organism_data_dict['NAT_cds_length'])
         g418_bases_in_cds = int(kn99_organism_data_dict['G418_cds_length'])
@@ -575,10 +622,14 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 continue
 
             # calculate marker coverages
-            print('...calculation NAT coverage for %s' %fastq_simple_name)
-            genotype_df.loc[index, 'NAT_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_NAT', kn99_annotation_path, bam_file, nat_bases_in_cds)
-            print('...calculation G418 coverage for %s' %fastq_simple_name)
-            genotype_df.loc[index, 'G418_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_G418', kn99_annotation_path, bam_file, g418_bases_in_cds)
+            print('...calculation NAT coverage for %s' % fastq_simple_name)
+            genotype_df.loc[index, 'NAT_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_NAT',
+                                                                                          kn99_annotation_path,
+                                                                                          bam_file, nat_bases_in_cds)
+            print('...calculation G418 coverage for %s' % fastq_simple_name)
+            genotype_df.loc[index, 'G418_coverage'] = self.calculatePercentFeatureCoverage(feature, 'CNAG_G418',
+                                                                                           kn99_annotation_path,
+                                                                                           bam_file, g418_bases_in_cds)
 
             # if perturbed, calculate perturbed gene coverage
             if not row['genotype_1'] == 'CNAG_00000' and not row['perturbation'] == 'over':
@@ -586,17 +637,25 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 genotype_2 = row['genotype_2']
                 # determine which genome to use -- if CNAG, use kn99
                 if not genotype_1.startswith('CNAG'):
-                    raise ValueError('%sNotRecognizedCryptoGenotype' %genotype_1)
+                    raise ValueError('%sNotRecognizedCryptoGenotype' % genotype_1)
                 # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
                 genotype_1 = genotype_1.replace('CNAG', 'CKF44')
                 if genotype_2 is not None and genotype_2.startswith('CNAG'):
                     genotype_2 = genotype_2.replace('CNAG', 'CKF44')
                 print('...checking coverage of %s %s in %s' % (genotype_1, genotype_2, fastq_simple_name))
-                genotype_df.loc[index, 'genotype_1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype_1, kn99_annotation_path, bam_file)
+                genotype_df.loc[index, 'genotype_1_coverage'] = self.calculatePercentFeatureCoverage(feature,
+                                                                                                     genotype_1,
+                                                                                                     kn99_annotation_path,
+                                                                                                     bam_file)
                 # do the same for genotype_2 if it exists
                 if genotype_2 is not None:
-                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype_2, kn99_annotation_path, bam_file)
+                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentFeatureCoverage(feature,
+                                                                                                         genotype_2,
+                                                                                                         kn99_annotation_path,
+                                                                                                         bam_file)
 
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
-        return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'G418_COVERAGE']]
+        return genotype_df[
+            ['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE',
+             'G418_COVERAGE']]
