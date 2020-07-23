@@ -211,7 +211,7 @@ if ${organism} == 'KN99':
 else:
     annotation_file = od.annotation_file
 # include the head of the gff/gtf in pipeline_info
-cmd_annotation_info = "head {} >> {}".format(annotation_file, pipeline_info_txt_file_path)
+cmd_annotation_info = 'head %s >> %s' %s(annotation_file, pipeline_info_txt_file_path)
 utils.executeSubProcess(cmd_annotation_info)
 
 # TODO: try copying nextflow jobscript to pipeline_info
