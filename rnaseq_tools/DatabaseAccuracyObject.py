@@ -252,7 +252,7 @@ class metadataSpecificationObject:
                                     's1cDNAPreparer': name_format or r"Retrofit_\d+",
                                     's1cDNASampleNumber': int_format or r"Retrofit_\d+",
                                     'polyAIsolationProtocol': r"E7490L_\d+\.\d+X|E7490L|catcher|None|Retrofit_\d+",
-                                    's1cDNAProtocol': r"E7420L_\d+\.\d+X|E7420L|Retrofit_\d+",
+                                    's1cDNAProtocol': r"E7420L_\d+\.\d+X|E7420L|Retrofit_\d+|SuperScriptIII",
                                     'roboticS1Prep': boolean_format or r"Retrofit_\d+",
                                     's1PrimerSeq': r"^[ACGT]+$|random|Retrofit_\d+"}
 
