@@ -212,87 +212,87 @@ class metadataSpecificationObject:
         sequencer_model_options = r"NextSeq|MiSeq|MiniSeq"
         flowcell_options = r"V3|Standard|Nano|MiniSeq|HighOutput|MidOutput"
         purpose_options = r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq"
-        s2cDNA_options = r"E7420L|SolexaPrep|E7420L_0.5X"
+        s2cDNA_options = r"SolexaPrep|E7420L\d+.\d+X|E7420L"
 
         bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        bioSample_column_dict = {'harvestDate': date_format,
-                                 'harvester': name_format,
-                                 'bioSampleNumber': int_format,
-                                 'experimentDesign': atleast_one_non_space_format,
-                                 'experimentObservations': atleast_one_non_space_format,
-                                 'strain': atleast_one_non_space_format,
-                                 'genotype': capital_underscore_digit_format,
-                                 'floodmedia': flood_media_options,
-                                 'inductionDelay': int_format,
-                                 'treatment': biosample_treatment,
-                                 'timePoint': int_format,
-                                 'replicate': int_format,
+        bioSample_column_dict = {'harvestDate': date_format or r"Retrofit_\d+",
+                                 'harvester': name_format or r"Retrofit_\d+",
+                                 'bioSampleNumber': int_format or r"Retrofit_\d+",
+                                 'experimentDesign': atleast_one_non_space_format or r"Retrofit_\d+",
+                                 'experimentObservations': atleast_one_non_space_format or r"Retrofit_\d+",
+                                 'strain': atleast_one_non_space_format or r"Retrofit_\d+",
+                                 'genotype': capital_underscore_digit_format or r"Retrofit_\d+",
+                                 'floodmedia': flood_media_options or r"Retrofit_\d+",
+                                 'inductionDelay': int_format or r"Retrofit_\d+",
+                                 'treatment': biosample_treatment or r"Retrofit_\d+",
+                                 'timePoint': int_format or r"Retrofit_\d+",
+                                 'replicate': int_format or r"Retrofit_\d+",
                                  'marker_1': marker_format or None,
                                  'marker_2': marker_format or None}
 
         rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        rnaSample_column_dict = {'harvestDate': date_format,
-                                 'harvester': name_format,
-                                 'bioSampleNumber': int_format,
-                                 'rnaDate': date_format,
-                                 'rnaPreparer': name_format,
-                                 'rnaSampleNumber': int_format,
-                                 'rnaPrepMethod': rna_prep_method,  # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
-                                 'roboticRNAPrep': boolean_format,
-                                 'RIBOSOMAL_BAND': boolean_format,
-                                 'RIBOSOMAL_BAND_SHAPE': ribosomal_band_shape_options,
-                                 'SMALL_RNA_BANDS': boolean_format,
-                                 'RIN': one_through_ten_format}
+        rnaSample_column_dict = {'harvestDate': date_format or r"Retrofit_\d+",
+                                 'harvester': name_format or r"Retrofit_\d+",
+                                 'bioSampleNumber': int_format or r"Retrofit_\d+",
+                                 'rnaDate': date_format or r"Retrofit_\d+",
+                                 'rnaPreparer': name_format or r"Retrofit_\d+",
+                                 'rnaSampleNumber': int_format or r"Retrofit_\d+",
+                                 'rnaPrepMethod': rna_prep_method or r"Retrofit_\d+",  # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
+                                 'roboticRNAPrep': boolean_format or r"Retrofit_\d+",
+                                 'RIBOSOMAL_BAND': boolean_format or r"Retrofit_\d+",
+                                 'RIBOSOMAL_BAND_SHAPE': ribosomal_band_shape_options or r"Retrofit_\d+",
+                                 'SMALL_RNA_BANDS': boolean_format or r"Retrofit_\d+",
+                                 'RIN': one_through_ten_format or r"Retrofit_\d+"}
 
         s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        s1cDNASample_column_dict = {'rnaDate': date_format,
-                                    'rnaPreparer': name_format,
-                                    'rnaSampleNumber': int_format,
-                                    's1cDNADate': date_format,
-                                    's1cDNAPreparer': name_format,
-                                    's1cDNASampleNumber': int_format,
-                                    'polyAIsolationProtocol': r"E7490L|E7490L_\d+\.\d+X|catcher|None",
-                                    's1cDNAProtocol': r"E7420L|E7420L_\d+\.\d+X",
-                                    'roboticS1Prep': boolean_format,
-                                    's1PrimerSeq': r"^[ACGT]+$|random"}
+        s1cDNASample_column_dict = {'rnaDate': date_format or r"Retrofit_\d+",
+                                    'rnaPreparer': name_format or r"Retrofit_\d+",
+                                    'rnaSampleNumber': int_format or r"Retrofit_\d+",
+                                    's1cDNADate': date_format or r"Retrofit_\d+",
+                                    's1cDNAPreparer': name_format or r"Retrofit_\d+",
+                                    's1cDNASampleNumber': int_format or r"Retrofit_\d+",
+                                    'polyAIsolationProtocol': r"E7490L_\d+\.\d+X|E7490L|catcher|None|Retrofit_\d+",
+                                    's1cDNAProtocol': r"E7420L_\d+\.\d+X|E7420L|Retrofit_\d+",
+                                    'roboticS1Prep': boolean_format or r"Retrofit_\d+",
+                                    's1PrimerSeq': r"^[ACGT]+$|random|Retrofit_\d+"}
 
         s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        s2cDNASample_column_dict = {'s1cDNADate': date_format,
-                                    's1cDNAPreparer': name_format,
-                                    's1cDNASampleNumber': int_format,
-                                    's2cDNADate': date_format,
-                                    's2cDNAPreparer': name_format,
-                                    's2cDNASampleNumber': int_format,
-                                    's2cDNAProtocol': s2cDNA_options,
-                                    'PooledSecondStrand': boolean_format,
-                                    'roboticS2Prep': boolean_format}
+        s2cDNASample_column_dict = {'s1cDNADate': date_format or r"Retrofit_\d+",
+                                    's1cDNAPreparer': name_format or r"Retrofit_\d+",
+                                    's1cDNASampleNumber': int_format or r"Retrofit_\d+",
+                                    's2cDNADate': date_format or r"Retrofit_\d+",
+                                    's2cDNAPreparer': name_format or r"Retrofit_\d+",
+                                    's2cDNASampleNumber': int_format or r"Retrofit_\d+",
+                                    's2cDNAProtocol': s2cDNA_options or r"Retrofit_\d+",
+                                    'PooledSecondStrand': boolean_format or r"Retrofit_\d+",
+                                    'roboticS2Prep': boolean_format or r"Retrofit_\d+"}
 
         library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        library_column_dict = {'s2cDNADate': date_format,
-                               's2cDNAPreparer': name_format,
-                               's2cDNASampleNumber': int_format,
-                               'libraryDate': date_format,
-                               'libraryPreparer': name_format,
-                               'librarySampleNumber': int_format,
+        library_column_dict = {'s2cDNADate': date_format or r"Retrofit_\d+",
+                               's2cDNAPreparer': name_format or r"Retrofit_\d+",
+                               's2cDNASampleNumber': int_format or r"Retrofit_\d+",
+                               'libraryDate': date_format or r"Retrofit_\d+",
+                               'libraryPreparer': name_format or r"Retrofit_\d+",
+                               'librarySampleNumber': int_format or r"Retrofit_\d+",
                                'index1Name': r"Index\d_\d+",
-                               'index1Sequence': dna_alphabet_format,
-                               'index2Name': r"^SIC_Index2_\d+$|universal|Universal",
-                               'index2Sequence': dna_alphabet_format,
-                               'libraryProtocol': 'E7420L|E7420L_\d.\d+X',
-                               'roboticLibraryPrep': boolean_format}
+                               'index1Sequence': dna_alphabet_format or r"Retrofit_\d+",
+                               'index2Name': r"^SIC_Index2_\d+$|universal|Universal|Retrofit_\d+",
+                               'index2Sequence': dna_alphabet_format or r"Retrofit_\d+",
+                               'libraryProtocol': r"E7420L_\d+\.\d+X|E7420L" or r"Retrofit_\d+",
+                               'roboticLibraryPrep': boolean_format or r"Retrofit_\d+"}
 
         fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
-        fastqFilename_column_dict = {'libraryDate': date_format,
-                                     'libraryPreparer': name_format,
-                                     'librarySampleNumber': int_format,
-                                     'runNumber': int_format,
-                                     'laneNumber': int_format,
-                                     'sequencerModel': sequencer_model_options,
-                                     'flowcellType': flowcell_options,
-                                     'purpose': purpose_options,
-                                     'tapestationConc': float_format or None,
-                                     'volumePooled': float_format or None,
-                                     'readsObtained': int_format or None,
+        fastqFilename_column_dict = {'libraryDate': date_format or r"Retrofit_\d+",
+                                     'libraryPreparer': name_format or r"Retrofit_\d+",
+                                     'librarySampleNumber': int_format or r"Retrofit_\d+",
+                                     'runNumber': int_format or r"Retrofit_\d+",
+                                     'laneNumber': int_format or r"Retrofit_\d+",
+                                     'sequencerModel': sequencer_model_options or r"Retrofit_\d+",
+                                     'flowcellType': flowcell_options or r"Retrofit_\d+",
+                                     'purpose': purpose_options or r"Retrofit_\d+",
+                                     'tapestationConc': float_format or None or r"Retrofit_\d+",
+                                     'volumePooled': float_format or None or r"Retrofit_\d+",
+                                     'readsObtained': int_format or None or r"Retrofit_\d+",
                                      'fastqFileName': atleast_one_non_space_format}
 
         # collect above specs into dictionary

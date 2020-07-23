@@ -270,7 +270,7 @@ class QualityAssessmentObject(StandardData):
                 genotype, annotation_path, feature)
             num_bases_in_region = int(subprocess.getoutput(num_bases_in_region_cmd))
         # extract number of bases with depth != 0
-        num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -a -b - %s | cut -f3 | grep -v 0 | wc -l" % (
+        num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -aa -Q 10 -b - %s | cut -f3 | grep -v 0 | wc -l" % (
             genotype, annotation_path, feature, bam_file)
         num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
 
