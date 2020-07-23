@@ -1,13 +1,10 @@
 import os
 import subprocess
-import re
 import pandas as pd
 import configparser
-from glob import glob
 import sys
 from rnaseq_tools import utils
 from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
-from rnaseq_tools.DatabaseObject import DatabaseObject
 import numpy as np
 
 # turn off SettingWithCopyWarning in pandas
@@ -117,18 +114,12 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         protein_coding_total_threshold = int(qual_assess_1_dict['PROTEIN_CODING_TOTAL_THRESHOLD'])
         not_aligned_total_percent_threshold = float(qual_assess_1_dict['NOT_ALIGNED_TOTAL_PERCENT_THRESHOLD'])
         perturbed_coverage_threshold = float(qual_assess_1_dict['PERTURBED_COVERAGE_THRESHOLD'])
-        nat_probability_threshold = float(qual_assess_1_dict['NAT_PROBABILITY_THRESHOLD'])
+        expected_nat_coverage_threshold = float(qual_assess_1_dict['EXPECTED_NAT_COVERAGE_THRESHOLD'])
+        expected_nat_log2cpm_threshold = float(qual_assess_1_dict['EXPECTED_NAT_LOG2CPM_THRESHOLD'])
+        unexpected_nat_coverage_threshold = float(qual_assess_1_dict['UNEXPECTED_NAT_COVERAGE_THRESHOLD'])
+        unexpected_nat_log2cpm_threshold = float(qual_assess_1_dict['UNEXPECTED_NAT_LOG2CPM_THRESHOLD'])
         g418_log2cpm_threshold = float(qual_assess_1_dict['G418_LOG2CPM_THRESHOLD'])
         overexpression_fow_threshold = float(qual_assess_1_dict['OVEREXPRESSION_FOW_THRESHOLD'])
-
-        # extract NAT coefficients and create glm model
-        intercept = float(qual_assess_1_dict['NAT_INTERCEPT'])
-        coverage_coefficient = float(qual_assess_1_dict['NAT_COVERAGE_COEFFICIENT'])
-        log2cpm_coefficient = float(qual_assess_1_dict['NAT_LOG2CPM_COEFFICIENT'])
-
-        # NOTE: logit(p) = intercept + COVERAGE_COEFFICIENT * nat_coverage + LOG2_CPM_COEFFICIENT * log2_cpm_coefficient
-        # input to nat_glm will need to be in order: (coverage, log2cpm)
-        nat_glm = utils.twoParameterGlmTemplate(intercept, coverage_coefficient, log2cpm_coefficient)
 
 
         # extract status
@@ -148,17 +139,22 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         for index, row in qual_assess_df.iterrows():
             # extract fastq simple name
             fastq_simple_name = str(row['FASTQFILENAME'])
+
             # extract treatment # TODO: MAKE EXTRACTING INFO FROM QUERY_DF FROM QUAL_ASSES A FUNCTION IN QUALITYASSESSMENTOBJECT
             try:
                 sample_treatment = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['treatment'])[0]
             except AttributeError:
                 sys.exit('You must pass a query df')
+
             # extract timePoint
             sample_timepoint = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['timePoint'])[0]
+
             # extract genotype
             genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+
             # split on period to separate double KO. note that this is now a list, even if one item
             genotype = genotype.split('.')
+
             # get markers
             marker_1 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_1'])[0])
             marker_2 = str(list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['marker_2'])[0])
@@ -193,14 +189,11 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
-
             not_aligned_total_percent = float(row['NOT_ALIGNED_TOTAL_PERCENT'])
-
             if row['GENOTYPE_1_COVERAGE'] is not None:
                 library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
             else:
                 library_genotype_1_coverage = -1
-
             if row['GENOTYPE_2_COVERAGE'] is not None:
                 library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
             else:
@@ -208,25 +201,19 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # extract NAT log2cpm
             nat_log2cpm = self.extractLog2cpm('CNAG_NAT', fastq_simple_name, log2_cpm_path)
+            # extract NAT coverage
+            nat_coverage = float(row['NAT_COVERAGE'])
             # extract G418 log2cpm
             g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
 
-            # extract marker coverage
-            nat_coverage = float(row['NAT_COVERAGE'])
-            g418_coverage = float(row['G418_COVERAGE'])
-
-            nat_logit = nat_glm(nat_coverage, nat_log2cpm)
-            nat_probability = utils.logit2probability(nat_logit)
-
             # set status_total to 0
             status_total = 0
+
             # check values against thresholds, add status to flag
             if library_protein_coding_total < protein_coding_total_threshold:
                 status_total += protein_coding_total_bit_status
-
             if not_aligned_total_percent > not_aligned_total_percent_threshold:
                 status_total += not_aligned_total_percent_bit_status
-
             # if the overexpression_flag is set, eval based on expression
             if overexpression_flag:
                 overexpression_fow = overexpression_log2cpm - wt_log2cpm
@@ -240,7 +227,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # test wildtypes for marker coverage and expression
             if genotype[0] == 'CNAG_00000':
-                if nat_probability > nat_probability_threshold:
+                if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
                     status_total += nat_unexpected_marker_status
                 if g418_log2cpm > g418_log2cpm_threshold:
                     status_total += g418_unexpected_marker_status
@@ -251,20 +238,22 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 # if perturbed, and marker information is present, test the markers
                 else:
                     if marker_1 == 'NAT':
-                        if nat_probability < nat_probability_threshold:
+                        if nat_coverage < expected_nat_coverage_threshold or nat_log2cpm < expected_nat_log2cpm_threshold:
                             status_total += nat_expected_marker_status
                         if g418_log2cpm > g418_log2cpm_threshold:
                             status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < g418_log2cpm_threshold:
                             status_total += g418_expected_marker_status
-                        if nat_probability > nat_probability_threshold:
+                        if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
                             status_total += nat_unexpected_marker_status
-                    if len(genotype) > 1:  # note: unentered 2nd markers for double KO should be caught in the if statement above
+                    # TODO: THIS NEEDS TO BE FIXED FOR THE INSTANCE IN WHICH A SINGLE MARKER IS NOTED WITH BOTH MARKERS B/C OF MANUAL ENTRY (SEE STRAINS 2274 AND 1351)
+                    # TEST THIS WITH THE STRAINS ABOVE
+                    if len(genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
                             if marker_1 == 'NAT':
                                 self.logger.critical('%s has two NAT markers in the metadata' %fastq_simple_name)
-                            if nat_probability < nat_probability_threshold:
+                            if nat_coverage < expected_nat_coverage_threshold or nat_log2cpm < expected_nat_log2cpm_threshold:
                                 status_total += nat_expected_marker_status
                             if g418_log2cpm > g418_log2cpm_threshold:
                                 status_total += g418_unexpected_marker_status
@@ -273,7 +262,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                                 self.logger.critical('%s has two G418 markers in the metadata' %fastq_simple_name)
                             if g418_log2cpm < g418_log2cpm_threshold:
                                 status_total += g418_expected_marker_status
-                            if nat_probability > nat_probability_threshold:
+                            if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
                                 status_total += nat_unexpected_marker_status
 
             status_column_list.append(status_total)
@@ -508,12 +497,6 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # write
         output_path = os.path.join(output_directory, utils.pathBaseName(bam_file)+'_exonic_coverage.csv')
         exonic_df.to_csv(output_path, index=False)
-
-    def calculateMarkerCoverage(self, qual_asses_df):
-        """
-
-        """
-        raise NotImplementedError
 
     def perturbedCheck(self):
         """
