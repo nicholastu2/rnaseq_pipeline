@@ -194,7 +194,7 @@ utils.mkdirp(pipeline_info_subdir_path)
 
 # write version info from the module .lua file (see the .lua whatis statements)
 pipeline_info_txt_file_path = os.path.join(pipeline_info_subdir_path, 'pipeline_info.txt')
-cmd_pipeline_info = "module whatis rnaseq_pipeline 2> %s" %pipeline_info_txt_file_path)
+cmd_pipeline_info = 'module whatis rnaseq_pipeline 2> %s' %pipeline_info_txt_file_path
 utils.executeSubProcess(cmd_pipeline_info)
 
 # include the date processed in pipeline_info_subdir_path/pipeline_into.txt
