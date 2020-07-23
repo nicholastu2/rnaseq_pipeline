@@ -184,6 +184,7 @@ process writePipelineInfo {
 
 from rnaseq_tools.OrganismDataObject import OrganismData
 from rnaseq_tools import utils
+import os
 
 # instantiate OrganismDataObject (see brentlab rnaseq_pipeline)
 od = OrganismData(organism = "${organism}", interactive=True)
