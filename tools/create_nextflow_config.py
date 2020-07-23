@@ -154,7 +154,7 @@ def main(argv):
         nextflow_config_file.write(config_header)
         nextflow_config_file.write(params_section)
 
-    sbatch_script_name = args.name + '_nextflow_sbatch'
+    sbatch_script_name = args.name + '_nextflow'
     nextflow_sbatch_path = os.path.join(db.job_scripts, sbatch_script_name + '.sbatch')
     # write sbatch script to submit nextflow job
     print('...writing sbatch script to %s' %nextflow_sbatch_path)
