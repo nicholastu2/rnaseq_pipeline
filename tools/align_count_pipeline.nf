@@ -202,11 +202,11 @@ utils.executeSubProcess(cmd_pipeline_info)
 with open(pipeline_info_txt_file_path, "a+") as file:
     file.write('')
     current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
-    file.write('Date processed: %s' % current_datetime)
+    file.write('Date processed: %s' %current_datetime)
     file.write('')
 
 # set annotation_file
-if ${organism} == 'KN99':
+if "${organism}" == 'KN99':
     if ${strandedness} == 'no':
         annotation_file = od.annotation_file_no_strand
 else:
