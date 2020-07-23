@@ -206,7 +206,7 @@ process writePipelineInfo {
 
         # set annotation_file
         if ${organism} == 'KN99':
-            if ${stranded} == 'no':
+            if ${strandedness} == 'no':
                 annotation_file = od.annotation_file_no_strand
         else:
             annotation_file = od.annotation_file
