@@ -202,7 +202,10 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # extract NAT log2cpm
             nat_log2cpm = self.extractLog2cpm('CNAG_NAT', fastq_simple_name, log2_cpm_path)
             # extract NAT coverage
-            nat_coverage = float(row['NAT_COVERAGE'])
+            try:
+                nat_coverage = float(row['NAT_COVERAGE'])
+            except KeyError:
+                self.logger.critical('%s no nat coverage' %row)
             # extract G418 log2cpm
             g418_log2cpm = self.extractLog2cpm('CNAG_G418', fastq_simple_name, log2_cpm_path)
 
