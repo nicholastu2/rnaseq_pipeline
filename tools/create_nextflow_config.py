@@ -171,7 +171,7 @@ def main(argv):
     sbatch_cmd = 'sbatch %s' %nextflow_sbatch_path
     utils.executeSubProcess(sbatch_cmd)
 
-    print('\nSbatch submitted. Check progress by entering:\n\ttail sbatch_log/%s.out' %sbatch_script_name)
+    print('\nSbatch submitted. Check progress by entering:\n\ttail %s/%s.out' %(db.sbatch_log, sbatch_script_name))
     print('To run this in an interactive session, do the following:\n\t'
           'interactive\n\tnextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n' % nextflow_config_path)
 
