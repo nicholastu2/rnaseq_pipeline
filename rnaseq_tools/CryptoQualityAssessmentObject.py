@@ -275,31 +275,30 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     if marker_1 == 'NAT':
                         if nat_coverage < expected_nat_coverage_threshold or nat_log2cpm < expected_nat_log2cpm_threshold:
                             status_total += nat_expected_marker_status
-                        if g418_log2cpm > g418_log2cpm_threshold:
+                        if g418_log2cpm > g418_log2cpm_threshold and len(genotype) ==1:
                             status_total += g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < g418_log2cpm_threshold:
                             status_total += g418_expected_marker_status
-                        if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
+                        if (nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold) and len(genotype) ==1:
                             status_total += nat_unexpected_marker_status
                     # TODO: THIS NEEDS TO BE FIXED FOR THE INSTANCE IN WHICH A SINGLE MARKER IS NOTED WITH BOTH MARKERS B/C OF MANUAL ENTRY (SEE STRAINS 2274 AND 1351)
                     # TEST THIS WITH THE STRAINS ABOVE
-                    if len(
-                            genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
+                    if len(genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
                             if marker_1 == 'NAT':
                                 self.logger.critical('%s has two NAT markers in the metadata' % fastq_simple_name)
                             if nat_coverage < expected_nat_coverage_threshold or nat_log2cpm < expected_nat_log2cpm_threshold:
                                 status_total += nat_expected_marker_status
-                            if g418_log2cpm > g418_log2cpm_threshold:
+                            if g418_log2cpm > g418_log2cpm_threshold and len(genotype) == 1:
                                 status_total += g418_unexpected_marker_status
                         elif marker_2 == 'G418':
                             if marker_1 == 'G418':
                                 self.logger.critical('%s has two G418 markers in the metadata' % fastq_simple_name)
-                            if g418_log2cpm < g418_log2cpm_threshold:
+                            if g418_log2cpm < g418_log2cpm_threshold and len(genotype) == 1:
                                 status_total += g418_expected_marker_status
-                            if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
-                                status_total += nat_unexpected_marker_status
+                            # if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
+                            #     status_total += nat_unexpected_marker_status
 
             status_column_list.append(status_total)
 
@@ -482,7 +481,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 except IndexError:
                     self.logger.debug(
                         'bam file not found for %s' % str(row['FASTQFILENAME']))  # TODO: improve this logging
-                intergenic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
+                intergenic_bases_covered_cmd = 'samtools depth -aa -Q 10 -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
                 intergenic_region_bed_path, bam_file)
                 num_intergenic_bases_covered = int(subprocess.getoutput(intergenic_bases_covered_cmd))
                 qual_assess_df.loc[index, 'INTERGENIC_COVERAGE'] = num_intergenic_bases_covered / float(
@@ -534,7 +533,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                     print(exonic_region_bed_path_error_msg)
 
                 # extract exonic bases covered by at least one read
-                exonic_bases_covered_cmd = 'samtools depth -a -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
+                exonic_bases_covered_cmd = 'samtools depth -aa -Q 10 -b %s %s | cut -f3 | grep -v 0 | wc -l' % (
                 exon_region_bed_path, bam_file)
                 num_exonic_bases_covered = int(subprocess.getoutput(exonic_bases_covered_cmd))
 
