@@ -99,7 +99,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                     if not short_report or (short_report and column_heading in self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))]):
                         lines_to_write.append('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
                 # if no columns found to have inconsistencies, remove the header line for this section from the lines_to_write list
-                if lines_to_write[-1].endswith('only key columns are checked:\n')
+                if lines_to_write[-1].endswith('only key columns are checked:\n'):
                     lines_to_write.pop(-1)
                 # if no column headings are found to be inconsistent, don't write at all. otherwise, write out the lines
                 if not lines_to_write[-1].endswith('this should be fixed when found).\n'):
