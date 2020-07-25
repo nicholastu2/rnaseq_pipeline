@@ -82,7 +82,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % self.last_git_change)
 
             for subdirectory_filepath in subdir_filepath_list:
-                subdirectory_report.write('Checking %s:\n' % subdirectory_filepath)
+                self.logger.debug('Checking %s:\n' % subdirectory_filepath)
                 # extract dictionaries of inconsistencies in column names and rows
                 col_inconsistencies_dict, row_inconsistencies_dict = self.checkColumns(self.specification_dict[subdirectory_name], subdirectory_filepath)
                 # check the format of the filename
