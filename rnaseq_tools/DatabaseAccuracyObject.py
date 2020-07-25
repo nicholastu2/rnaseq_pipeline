@@ -37,7 +37,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             pass
         # create specification dict -- see class metadataSpecificationObject below this class
         self.specification_dict = metadataSpecificationObject().specification_dict
-        self.database_files='/home/chase/code/brentlab/database-files'
+        # self.database_files='/home/chase/code/brentlab/database-files'
         # set last_git_change
         try:
             self.last_git_change = self.getLastGitChange()
