@@ -89,17 +89,22 @@ class DatabaseAccuracyObject(DatabaseObject):
                 if not self.checkFileName(subdirectory_name, subdirectory_filepath):
                     subdirectory_report.write('\tThe filename %s does not adhere to the specifications. Please correct.\n\n' % os.path.basename(subdirectory_filepath))
                 # check column headings
-                lines_to_write = 'In sheet %s:\n\tThe items below are column headings in a given sheet that do not match ' \
-                                 'the specifications (key and non-key, this should be fixed when found).\n' %subdirectory_filepath
+                lines_to_write = ['In sheet %s:\n\tThe items below are column headings in a given sheet that do not match ' \
+                                 'the specifications (key and non-key, this should be fixed when found).\n' %subdirectory_filepath]
                 for spec_column, sheet_column in col_inconsistencies_dict.items():
-                    lines_to_write = lines_to_write + '\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column)
-                lines_to_write = lines_to_write + '\n\tThe items below are numbered by row (eg 1: inductionDelay means a problem in row 1 of inductionDelay). If shortReport, only key columns are checked:\n'
+                    lines_to_write.appnd('\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
+                lines_to_write.append('\n\tThe items below are numbered by row (eg 1: inductionDelay means a problem in row 1 of inductionDelay). If shortReport, only key columns are checked:\n')
                 for row_index, column_heading in row_inconsistencies_dict.items():
                     # if short_report flag == True, only write out if the column_heading is a key column
                     if not short_report or (short_report and column_heading in self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))]):
-                        lines_to_write = lines_to_write + '\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading)
-                lines_to_write = lines_to_write + '\n\n\n\n'
-            subdirectory_report.write(lines_to_write)
+                        lines_to_write.append('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
+                # if no columns found to have inconsistencies, remove the header line for this section from the lines_to_write list
+                if lines_to_write[-1].endswith('only key columns are checked:\n')
+                    lines_to_write.pop(-1)
+                # if no column headings are found to be inconsistent, don't write at all. otherwise, write out the lines
+                if not lines_to_write[-1].endswith('this should be fixed when found).\n'):
+                    lines_to_write.append('\n\n\n\n')
+                    subdirectory_report.write(''.join(lines_to_write))
 
     def keyColumnReport(self):
         """
