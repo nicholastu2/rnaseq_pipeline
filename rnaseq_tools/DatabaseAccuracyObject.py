@@ -110,7 +110,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             subdirectories may be passed up to all of the subdirectories in database_files
         """
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
-            self.subdirectoryReport(subdirectory_name, self, subdirectory_path_list)
+            self.subdirectoryReport(subdirectory_name, subdirectory_path_list)
 
     def getLastGitChange(self):
         """
