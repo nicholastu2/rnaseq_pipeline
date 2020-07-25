@@ -122,7 +122,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             utils.executeSubProcess(remove_cmd)
 
         if key_columns_only:
-            self.accuracy_check_output_file = self.accuracyCheckFilename('keyColumnsOnly')
+            self.accuracy_check_output_file = self.accuracyCheckFilename('keyColumn')
 
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
             self.subdirectoryReport(subdirectory_name, subdirectory_path_list, key_columns_only)
