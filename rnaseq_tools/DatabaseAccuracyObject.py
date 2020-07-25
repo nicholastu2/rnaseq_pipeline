@@ -78,9 +78,6 @@ class DatabaseAccuracyObject(DatabaseObject):
         """
         print('Checking %s column name formatting and entries' % subdirectory_name)
         specs_website = 'https://github.com/BrentLab/database_files/wiki'
-        if os.path.isfile(self.accuracy_check_output_file):
-            remove_cmd = 'rm %s'%self.accuracy_check_output_file
-            utils.executeSubProcess(remove_cmd)
         with open(self.accuracy_check_output_file, 'a') as subdirectory_report:
             subdirectory_report.write('Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
             subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % self.last_git_change)
@@ -118,6 +115,9 @@ class DatabaseAccuracyObject(DatabaseObject):
         """
             Write out short form of full report for only key column inconsistencies
         """
+        if os.path.isfile(self.accuracy_check_output_file):
+            remove_cmd = 'rm %s'%self.accuracy_check_output_file
+            utils.executeSubProcess(remove_cmd)
         self.accuracy_check_output_file = self.accuracyCheckFilename('keyColumn')
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
             self.subdirectoryReport(subdirectory_name, subdirectory_path_list, short_report=True)
@@ -127,6 +127,9 @@ class DatabaseAccuracyObject(DatabaseObject):
             The intent is for this to be used to generate a full report on the entire database. However, any number of
             subdirectories may be passed up to all of the subdirectories in database_files
         """
+        if os.path.isfile(self.accuracy_check_output_file):
+            remove_cmd = 'rm %s'%self.accuracy_check_output_file
+            utils.executeSubProcess(remove_cmd)
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
             self.subdirectoryReport(subdirectory_name, subdirectory_path_list)
 
