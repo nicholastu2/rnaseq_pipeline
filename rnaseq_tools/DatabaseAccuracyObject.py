@@ -37,7 +37,6 @@ class DatabaseAccuracyObject(DatabaseObject):
             pass
         # create specification dict -- see class metadataSpecificationObject below this class
         self.specification_dict = metadataSpecificationObject().specification_dict
-        # self.database_files='/home/chase/code/brentlab/database-files'
         # set last_git_change
         try:
             self.last_git_change = self.getLastGitChange()
@@ -72,7 +71,7 @@ class DatabaseAccuracyObject(DatabaseObject):
         # append the timestamp and return
         return accuracy_check_filename + time_stamp + '.txt'
 
-    def subdirectoryReport(self, subdirectory_name, subdir_filepath_list, short_report=False):
+    def subdirectoryReport(self, subdirectory_name, subdir_filepath_list, key_column_only_report=False):
         """
 
         """
@@ -101,7 +100,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                     current_column_heading_set = set(column_heading)
                     # determine if column heading is in key column set
                     key_set_diff_length = len(subdir_key_set - current_column_heading_set)
-                    if not short_report or (len(subdir_key_set) != key_set_diff_length):
+                    if not key_column_only_report or (len(subdir_key_set) != key_set_diff_length):
                         lines_to_write.append('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
                 # if no columns found to have inconsistencies, remove the header line for this section from the lines_to_write list
                 if lines_to_write[-1].endswith('only key columns are checked:\n'):
@@ -111,27 +110,19 @@ class DatabaseAccuracyObject(DatabaseObject):
                     lines_to_write.append('\n\n\n\n')
                     subdirectory_report.write(''.join(lines_to_write))
 
-    def keyColumnReport(self):
-        """
-            Write out short form of full report for only key column inconsistencies
-        """
-        if os.path.isfile(self.accuracy_check_output_file):
-            remove_cmd = 'rm %s'%self.accuracy_check_output_file
-            utils.executeSubProcess(remove_cmd)
-        self.accuracy_check_output_file = self.accuracyCheckFilename('keyColumn')
-        for subdirectory_name, subdirectory_path_list in self.database_dict.items():
-            self.subdirectoryReport(subdirectory_name, subdirectory_path_list, short_report=True)
-
-    def fullReport(self):
+    def report(self, key_columns_only=False):
         """
             The intent is for this to be used to generate a full report on the entire database. However, any number of
             subdirectories may be passed up to all of the subdirectories in database_files
+            :params key_columns_only: only check actual filename and key columns for adherence to specs
         """
+        # remove old sheets from the same day if they exist
         if os.path.isfile(self.accuracy_check_output_file):
-            remove_cmd = 'rm %s'%self.accuracy_check_output_file
+            remove_cmd = 'rm %s' %self.accuracy_check_output_file
             utils.executeSubProcess(remove_cmd)
+
         for subdirectory_name, subdirectory_path_list in self.database_dict.items():
-            self.subdirectoryReport(subdirectory_name, subdirectory_path_list)
+            self.subdirectoryReport(subdirectory_name, subdirectory_path_list, key_columns_only)
 
     def getLastGitChange(self):
         """
