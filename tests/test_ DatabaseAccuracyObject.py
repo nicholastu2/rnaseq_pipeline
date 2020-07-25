@@ -45,7 +45,7 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(os.path.isfile())
 
     def test_fullReport(self):
-        dba = DatabaseAccuracyObject(config_file='/home/chase/code/brentlab/rnaseq_pipeline/config/test_rnaseq_pipeline_config.ini')
+        dba = DatabaseAccuracyObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini', interactive=True)
         dba.fullReport()
 
     def test_metadataAccuracyObject(self):
