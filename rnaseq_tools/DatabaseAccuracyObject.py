@@ -60,12 +60,16 @@ class DatabaseAccuracyObject(DatabaseObject):
             :params descriptor: default, none. Enter a single word to insert into filename after check_ before _yearMonthDay
             :returns: filepath for accuracy check output
         """
+        # create beginning of path
         time_stamp = str(self.year_month_day)
+        accuracy_check_filename = os.path.join(self.reports,'database_accuracy_check_')
+
+        # if descriptor is passed, add it here
         if descriptor:
-            accuracy_check_filename = self.reports, 'database_accuracy_check_' + descriptor + '_' + time_stamp + '.txt'
-        else:
-            accuracy_check_filename = self.reports, 'database_accuracy_check_' + '_' + time_stamp + '.txt'
-        return accuracy_check_filename
+            accuracy_check_filename =  accuracy_check_filename + descriptor + '_'
+
+        # append the timestamp and return
+        return accuracy_check_filename + time_stamp + '.txt'
 
     def subdirectoryReport(self, subdirectory_name, subdir_filepath_list, short_report=False):
         """
