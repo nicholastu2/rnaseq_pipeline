@@ -37,6 +37,7 @@ class DatabaseAccuracyObject(DatabaseObject):
             pass
         # create specification dict -- see class metadataSpecificationObject below this class
         self.specification_dict = metadataSpecificationObject().specification_dict
+        self.database_files='/home/chase/code/brentlab/database-files'
         # set last_git_change
         try:
             self.last_git_change = self.getLastGitChange()
@@ -101,6 +102,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                     # if short_report flag == True, only write out if the column_heading is a key column
                     subdir_key_set = set(self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))])
                     current_column_heading_set = set(column_heading)
+                    # determine if column heading is in key column set
                     key_set_diff_length = len(subdir_key_set - current_column_heading_set)
                     if not short_report or (len(subdir_key_set) != key_set_diff_length):
                         lines_to_write.append('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
