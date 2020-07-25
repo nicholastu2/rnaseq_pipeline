@@ -77,7 +77,7 @@ class DatabaseAccuracyObject(DatabaseObject):
         """
         print('Checking %s column name formatting and entries' % subdirectory_name)
         specs_website = 'https://github.com/BrentLab/database_files/wiki'
-        with open(self.accuracy_check_output_file, 'a') as subdirectory_report:
+        with open(self.accuracy_check_output_file, 'w') as subdirectory_report:
             subdirectory_report.write('Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
             subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % self.last_git_change)
 
