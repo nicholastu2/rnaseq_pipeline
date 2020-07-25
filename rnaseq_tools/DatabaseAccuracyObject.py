@@ -37,6 +37,8 @@ class DatabaseAccuracyObject(DatabaseObject):
             pass
         # create specification dict -- see class metadataSpecificationObject below this class
         self.specification_dict = metadataSpecificationObject().specification_dict
+        # TEMP
+        self.database_files = '/home/chase/code/brentlab/database-files'
         # set last_git_change
         try:
             self.last_git_change = self.getLastGitChange()
@@ -96,7 +98,10 @@ class DatabaseAccuracyObject(DatabaseObject):
                 lines_to_write.append('\n\tThe items below are numbered by row (eg 1: inductionDelay means a problem in row 1 of inductionDelay). If shortReport, only key columns are checked:\n')
                 for row_index, column_heading in row_inconsistencies_dict.items():
                     # if short_report flag == True, only write out if the column_heading is a key column
-                    if not short_report or (short_report and column_heading in self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))]):
+                    subdir_key_set = set(self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))])
+                    current_column_heading_set = set(column_heading)
+                    key_set_diff_length = len(subdir_key_set - current_column_heading_set)
+                    if not short_report or (len(subdir_key_set) != key_set_diff_length):
                         lines_to_write.append('\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
                 # if no columns found to have inconsistencies, remove the header line for this section from the lines_to_write list
                 if lines_to_write[-1].endswith('only key columns are checked:\n'):

@@ -46,7 +46,8 @@ class MyTestCase(unittest.TestCase):
 
     def test_fullReport(self):
         dba = DatabaseAccuracyObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini', interactive=True)
-        dba.fullReport()
+        dba.keyColumnReport()
+        #dba.fullReport()
 
     def test_metadataAccuracyObject(self):
         raise NotImplementedError
