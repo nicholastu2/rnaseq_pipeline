@@ -46,52 +46,63 @@ class DatabaseAccuracyObject(DatabaseObject):
         except AttributeError:
             print('.git/FETCH_HEAD is empty. Make a commit and try again.')
         # set accuracyCheckFilename (expecting to be overwritten by @property method below when needed)
-        self.accuracy_check_output_file = self.setAccuracyCheckFilename()
+        self.accuracy_check_output_file = self.accuracyCheckFilename()
+        self.key_column_dict = {"fastqFiles": ['libraryDate', 'libraryPreparer', 'librarySampleNumber'],
+                                "library": ['libraryDate', 'libraryPreparer', 'librarySampleNumber'],
+                                "s2cDNASample": ['s2cDNADate', 's2cDNAPreparer', 's2cDNASampleNumber'],
+                                "s1cDNASample": ['s1cDNADate', 's1cDNAPreparer', 's1cDNASampleNumber'],
+                                "rnaSample": ['rnaDate', 'rnaPreparer', 'rnaSampleNumber'],
+                                "bioSample": ['harvestDate', 'harvester', 'bioSampleNumber']}
 
-    def setAccuracyCheckFilename(self):
-        time_stamp = str(self.year_month_day) + '_' + utils.hourMinuteSecond()
-        return os.path.join(self.reports, 'database_accuracy_check_' + time_stamp + '.txt')
+    def accuracyCheckFilename(self, descriptor = None):
+        """
+            create an accuracy check filename in rnaseq_pipeline/reports. All filenames will have format database_accuracy_check_optionsDescriptor_yearMonthDay.txt
+            :params descriptor: default, none. Enter a single word to insert into filename after check_ before _yearMonthDay
+            :returns: filepath for accuracy check output
+        """
+        time_stamp = str(self.year_month_day)
+        if descriptor:
+            accuracy_check_filename = self.reports, 'database_accuracy_check_' + descriptor + '_' + time_stamp + '.txt'
+        else:
+            accuracy_check_filename = self.reports, 'database_accuracy_check_' + '_' + time_stamp + '.txt'
+        return accuracy_check_filename
 
-    @staticmethod
-    def subdirectoryReport(subdirectory_name, database_assessment_object, subdir_filepath_list):
+    def subdirectoryReport(self, subdirectory_name, subdir_filepath_list, short_report=False):
         """
 
         """
         print('Checking %s column name formatting and entries' % subdirectory_name)
         specs_website = 'https://github.com/BrentLab/database_files/wiki'
-        dba = database_assessment_object
-        dba.setAccuracyCheckFilename()
-        with open(dba.accuracy_check_output_file, 'a') as subdirectory_report:
-            subdirectory_report.write(
-                'Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
-            subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % dba.last_git_change)
+        with open(self.accuracy_check_output_file, 'a') as subdirectory_report:
+            subdirectory_report.write('Checking %s for adherence to specifications found at: %s\n' % (subdirectory_name, specs_website))
+            subdirectory_report.write('Last update (likely git pull) to directory: %s\n\n' % self.last_git_change)
 
             for subdirectory_filepath in subdir_filepath_list:
                 subdirectory_report.write('Checking %s:\n' % subdirectory_filepath)
                 # extract dictionaries of inconsistencies in column names and rows
-                col_inconsistencies_dict, row_inconsistencies_dict = dba.checkColumns(
-                    dba.specification_dict[subdirectory_name],
-                    subdirectory_filepath, dba.logger)
-                # check filename
-                filename_check = dba.checkFileName(dba.specification_dict[subdirectory_name]['filename_regex'],
-                                                   subdirectory_filepath)
+                col_inconsistencies_dict, row_inconsistencies_dict = self.checkColumns(self.specification_dict[subdirectory_name], subdirectory_filepath)
                 # check the format of the filename
-                if not isinstance(filename_check, bool):
-                    subdirectory_report.write(
-                        '\tThe filename %s does not adhere to the specifications. Please correct.\n\n' % filename_check)
+                if not self.checkFileName(subdirectory_name, subdirectory_filepath):
+                    subdirectory_report.write('\tThe filename %s does not adhere to the specifications. Please correct.\n\n' % os.path.basename(subdirectory_filepath))
                 # check column headings
-                subdirectory_report.write(
-                    '\tThe items below are column headings in a given sheet that do not match the specifications.\n')
+                lines_to_write = '\tThe items below are column headings in a given sheet that do not match the specifications (key and non-key, this should be fixed when found).\n'
                 for spec_column, sheet_column in col_inconsistencies_dict.items():
-                    subdirectory_report.write(
-                        '\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
-                subdirectory_report.write(
-                    '\n\tThe items below are numbered by row (eg 0: inductionDelay means a problem in row 0 (first row) in column inductionDelay):\n')
+                    lines_to_write = lines_to_write + '\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column)
+                lines_to_write = lines_to_write + '\n\tThe items below are numbered by row (eg 1: inductionDelay means a problem in row 1 of inductionDelay). If shortReport, only key columns are checked:\n'
                 for row_index, column_heading in row_inconsistencies_dict.items():
-                    subdirectory_report.write(
-                        '\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading))
-                subdirectory_report.write('\n\n')
-            subdirectory_report.write('\n\n')
+                    # if short_report flag == True, only write out if the column_heading is a key column
+                    if not short_report or (short_report and column_heading in self.key_column_dict[utils.pathBaseName(utils.dirPath(subdirectory_filepath))]):
+                        lines_to_write = lines_to_write + '\tRow %s has an inconsistency in column %s\n' % (row_index, column_heading)
+                lines_to_write = lines_to_write + '\n\n\n\n'
+            subdirectory_report.write(lines_to_write)
+
+    def keyColumnReport(self):
+        """
+            Write out short form of full report for only key column inconsistencies
+        """
+        self.accuracy_check_output_file = self.accuracyCheckFilename('keyColumn')
+        for subdirectory_name, subdirectory_path_list in self.database_dict.items():
+            self.subdirectoryReport(subdirectory_name, subdirectory_path_list, short_report=True)
 
     def fullReport(self):
         """
@@ -119,21 +130,31 @@ class DatabaseAccuracyObject(DatabaseObject):
             else:
                 return stat_output.stdout.strip()
 
-    @staticmethod
-    def checkFileName(filename_regex, subdirectory_filepath):
+    def checkFileName(self, subdirectory_name, subdirectory_filepath):
         """
             check that filename matches filename_regex.
-            :param filename_regex: see DatabaseAccuracy Object filename_regexes
+            :param subdirectory_name: name of a subdirectory in database files
             :param subdirectory_filepath: filename of a individual sheet in a given database_files subdirectory
         """
-        subdirectory_basename = os.path.basename(subdirectory_filepath)
-        if not re.match(filename_regex, subdirectory_basename):  # TODO: ERROR CHECKING PATH
-            return subdirectory_basename
-        else:
-            return True
+        # error check filepath
+        try:
+            if not os.path.isfile(subdirectory_filepath):
+                raise FileNotFoundError('NotValidPath - %s' %subdirectory_filepath)
+        except FileNotFoundError:
+            error_msg = '%s not a valid path' % subdirectory_filepath
+            print(error_msg)
+            self.logger.critical(error_msg)
 
-    @staticmethod
-    def checkColumns(subdirectory_specs_dict, subdirectory_filepath, logger=None):
+        # test filename for adherence to filename specs
+        filename_regex = self.specification_dict[subdirectory_name]['filename_regex']
+        subdirectory_basename = os.path.basename(subdirectory_filepath)
+        file_check_flag = True
+        if not re.match(filename_regex, subdirectory_basename):  # TODO: ERROR CHECKING PATH
+            file_check_flag = False
+
+        return file_check_flag
+
+    def checkColumns(self, subdirectory_specs_dict, subdirectory_filepath):
         """
             check column heading names and entries in each row/column for adherence to the specs at:
             https://github.com/BrentLab/database_files/wiki
@@ -143,11 +164,11 @@ class DatabaseAccuracyObject(DatabaseObject):
             :return: colname_inconsistencies_dict, a dict in structure {specification_heading: nearest_match_to_heading, ...}
                      row_inconsistencies_dict, a dict in structure {row_index: column_with_inconsistent_entry, ...}
         """
-        logger.info('path to sheet is %s' %subdirectory_filepath)
+        self.logger.info('path to sheet is %s' % subdirectory_filepath)
         # see :return: statement for structure
         colname_inconsistencies_dict = {}
         row_inconsistencies_dict = {}
-        # list to store inappropriately formated column names
+        # list to store inappropriately formatted column names
         skip_columns = []
 
         # read in subdirectory_filepath as dataframe
@@ -162,16 +183,13 @@ class DatabaseAccuracyObject(DatabaseObject):
                     column_specs_regex = subdirectory_specs_dict['column_specs_dict'][column_name]
                 except KeyError:
                     if column_name not in skip_columns:
-                        if logger:
-                            logger.info('Column name not found in specs: %s' % (column_name))
-                            logger.info('row for offending column is: %s'%row)
-                        nearest_match = \
-                        difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
+                        if self.logger:
+                            self.logger.info('Column name not found in specs: %s' % column_name)
+                            self.logger.info('row for offending column is: %s' % row)
+                        nearest_match = difflib.get_close_matches(column_name, subdirectory_specs_dict['column_specs_dict'].keys())[0]
                         colname_inconsistencies_dict.setdefault(nearest_match, column_name)
-                        print(
-                            '\tCannot check %s in %s. Either the format of the column is incorrect, or it is not in the specifications_dictionary.\n'
-                            '\tThe rest of this column could not be checked. Correct the column name, and re-run.' % (
-                            column_name, subdirectory_filepath))
+                        print('\tCannot check %s in %s. Either the format of the column is incorrect, or it is not in the specifications_dictionary.\n'
+                              '\tThe rest of this column could not be checked. Correct the column name, and re-run.' % (column_name, subdirectory_filepath))
                         skip_columns.append(column_name)
                 else:
                     if not re.match(column_specs_regex, column_entry):
@@ -214,7 +232,7 @@ class metadataSpecificationObject:
         purpose_options = r"Rebalancing|spikein|fullRNASeq|fullDNASeq|fullChIPSeq"
         s2cDNA_options = r"SolexaPrep|E7420L\d+.\d+X|E7420L"
 
-        bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        bioSample_regex = r"^bioSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|bioSample_\d+"
         bioSample_column_dict = {'harvestDate': date_format or r"Retrofit_\d+",
                                  'harvester': name_format or r"Retrofit_\d+",
                                  'bioSampleNumber': int_format or r"Retrofit_\d+",
@@ -230,21 +248,22 @@ class metadataSpecificationObject:
                                  'marker_1': marker_format or None,
                                  'marker_2': marker_format or None}
 
-        rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        rnaSample_regex = r"^rnaSample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|rnaSample_\d+"
         rnaSample_column_dict = {'harvestDate': date_format or r"Retrofit_\d+",
                                  'harvester': name_format or r"Retrofit_\d+",
                                  'bioSampleNumber': int_format or r"Retrofit_\d+",
                                  'rnaDate': date_format or r"Retrofit_\d+",
                                  'rnaPreparer': name_format or r"Retrofit_\d+",
                                  'rnaSampleNumber': int_format or r"Retrofit_\d+",
-                                 'rnaPrepMethod': rna_prep_method or r"Retrofit_\d+",  # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
+                                 'rnaPrepMethod': rna_prep_method or r"Retrofit_\d+",
+                                 # TODO: the next line in the specs is rnaPrepProtocol -- not in sheets
                                  'roboticRNAPrep': boolean_format or r"Retrofit_\d+",
                                  'RIBOSOMAL_BAND': boolean_format or r"Retrofit_\d+",
                                  'RIBOSOMAL_BAND_SHAPE': ribosomal_band_shape_options or r"Retrofit_\d+",
                                  'SMALL_RNA_BANDS': boolean_format or r"Retrofit_\d+",
                                  'RIN': one_through_ten_format or r"Retrofit_\d+"}
 
-        s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        s1cDNASample_filename_regex = r"^s1cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|s1cDNASample_\d+"
         s1cDNASample_column_dict = {'rnaDate': date_format or r"Retrofit_\d+",
                                     'rnaPreparer': name_format or r"Retrofit_\d+",
                                     'rnaSampleNumber': int_format or r"Retrofit_\d+",
@@ -256,7 +275,7 @@ class metadataSpecificationObject:
                                     'roboticS1Prep': boolean_format or r"Retrofit_\d+",
                                     's1PrimerSeq': r"^[ACGT]+$|random|Retrofit_\d+"}
 
-        s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        s2cDNASample_filename_regex = r"^s2cDNASample_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|s2cDNASample_\d+"
         s2cDNASample_column_dict = {'s1cDNADate': date_format or r"Retrofit_\d+",
                                     's1cDNAPreparer': name_format or r"Retrofit_\d+",
                                     's1cDNASampleNumber': int_format or r"Retrofit_\d+",
@@ -267,7 +286,7 @@ class metadataSpecificationObject:
                                     'PooledSecondStrand': boolean_format or r"Retrofit_\d+",
                                     'roboticS2Prep': boolean_format or r"Retrofit_\d+"}
 
-        library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        library_filename_regex = r"^library_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|library_\d+"
         library_column_dict = {'s2cDNADate': date_format or r"Retrofit_\d+",
                                's2cDNAPreparer': name_format or r"Retrofit_\d+",
                                's2cDNASampleNumber': int_format or r"Retrofit_\d+",
@@ -281,7 +300,7 @@ class metadataSpecificationObject:
                                'libraryProtocol': r"E7420L_\d+\.\d+X|E7420L" or r"Retrofit_\d+",
                                'roboticLibraryPrep': boolean_format or r"Retrofit_\d+"}
 
-        fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$"
+        fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|fastq_\d+"
         fastqFilename_column_dict = {'libraryDate': date_format or r"Retrofit_\d+",
                                      'libraryPreparer': name_format or r"Retrofit_\d+",
                                      'librarySampleNumber': int_format or r"Retrofit_\d+",
