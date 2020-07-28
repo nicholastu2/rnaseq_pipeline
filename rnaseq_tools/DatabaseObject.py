@@ -44,8 +44,8 @@ class DatabaseObject(StandardData):
         try:
             self.database_subdirectories = kwargs['database_subdirectories']
         except KeyError:
-            self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample',
-                                            'bioSample']
+            # self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
+            self.database_subdirectories = ['bioSample', 'rnaSample', 's1cDNASample', 's2cDNASample', 'library', 'fastqFiles']
 
         # see setter setFilterJson()
         self.filter_json = None

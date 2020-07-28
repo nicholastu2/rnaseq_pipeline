@@ -260,11 +260,18 @@ class QualityAssessmentObject(StandardData):
         """
         raise NotImplementedError('AbstractMethodMustBeOverwrittenByOrganismSpecificQA')
 
+    def createCoverageBedFile(self, bam_file):
+        """
+
+        """
+        raise NotImplementedError
+
     def calculatePercentFeatureCoverage(self, feature, genotype, annotation_path, bam_file, num_bases_in_region=None):
         """
             Calculate percent of given feature (regions summed, so all exon in gene, eg) of a gene (exon, CDS, etc) covered by 1 or more reads
             :param feature: annotation feature over which to take percentage, eg all exons in gene, or all CDS
             :param genotype: gene in annotation file
+            :param annotation_path: path to annotation file
             :param bam_file: a sorted, indexed alignment file (.bam)
             :param num_bases_in_region: pass number of bases in the region directly, this will skip the step of calculating this number from the annotation file
             :returns: the fraction of bases in the (summed over the number of features in the gene) feature region covered by at least one read
