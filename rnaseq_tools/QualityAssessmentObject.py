@@ -547,14 +547,6 @@ class QualityAssessmentObject(StandardData):
         """
             create the qorts multiplots
         """
-        try:
-            if not os.path.isfile(self.align_count_path):
-                raise NotADirectoryError('AlignCountPathNotValid')
-        except NotADirectoryError or AttributeError:
-            print(
-                'Align count path is either not set or not valid. align_count_path should be pointed toward a directory\n'
-                'with alignment files, typically the output of align_count.py or create_experiment.py')
-
         try:  # TODO: clean this up
             if not os.path.isfile(self.query_path):
                 raise FileExistsError('QueryPathNotValid')
