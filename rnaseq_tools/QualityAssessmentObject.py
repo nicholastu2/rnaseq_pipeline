@@ -603,13 +603,24 @@ class QualityAssessmentObject(StandardData):
 
             output_subdir = os.path.join(self.qorts_output, fastqfile_simplename + '_qorts')
             utils.mkdirp(output_subdir)
+
+            try:
+                if not os.path.exists(bamfilename_path):
+                    raise FileExistsError('BamfilePathNotValid')
+            except FileExistsError:
+                print('path from align_count_path to bamfile does not exist')
+            if not hasattr(self, 'annotation_file'):
+                annotation_file = organism_object.annotation_file
+            else:
+                annotation_file = self.annotation_file
+
             try:
                 if not os.path.exists(bamfilename_path):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
             qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (
-                bamfilename_path, self.annotation_file, output_subdir)
+                bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
         for fastqfile_simplename in pre_2015_sample_list:
@@ -636,6 +647,7 @@ class QualityAssessmentObject(StandardData):
                     annotation_file = organism_object.annotation_file
             else:
                 annotation_file = self.annotation_file
+
             qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
                 bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
