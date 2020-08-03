@@ -573,7 +573,7 @@ class QualityAssessmentObject(StandardData):
         try:
             if not os.path.isfile(self.annotation_file):
                 raise FileExistsError('AnnotationFilePathNotValid')
-        except FileExistsError | AttributeError:
+        except (FileExistsError or AttributeError):
             organism_object = OrganismData(organism=self.organism)
 
         try:
