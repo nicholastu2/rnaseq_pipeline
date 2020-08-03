@@ -648,7 +648,7 @@ class QualityAssessmentObject(StandardData):
             else:
                 annotation_file = self.annotation_file
 
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/QoRTs/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
                 bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
