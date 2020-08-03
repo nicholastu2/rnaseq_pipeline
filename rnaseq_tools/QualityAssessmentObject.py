@@ -577,30 +577,33 @@ class QualityAssessmentObject(StandardData):
         except FileExistsError or AttributeError:
             print('You must pass a correct path to an annotation file (see genome_files)')
 
-        sorted_bamfile_list = glob(os.path.join(self.align_count_path, '*_sorted_aligned_reads.bam'))
-        sorted_bamfile_list = [os.path.basename(x) for x in sorted_bamfile_list]
+        try:
+            if not hasattr(self, 'bam_file_list'):
+                raise AttributeError('NoBamFileList')
+        except AttributeError:
+            print('You must supply a list of bamfiles')
+
 
         # sort list of countfilenames pre and post 2015
         self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])
         pre_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] <= '2015-01-01']
-        pre_2015_countfilename_list = list(pre_2015_df['COUNTFILENAME'])
+        pre_2015_sample_list = list(pre_2015_df['FASTQFILENAME'])
         post_2015_df = self.standardized_database_df[self.standardized_database_df['LIBRARYDATE'] > '2015-01-01']
-        post_2015_countfilename_list = list(post_2015_df['COUNTFILENAME'])
+        post_2015_sample_list = list(post_2015_df['FASTQFILENAME'])
 
         cmd_list = []
 
-        for countfilename in post_2015_countfilename_list:
-            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+        for fastqfile_simplename in post_2015_sample_list:
+            bamfilename_path = [bam_file for bam_file in self.bam_file_list if fastqfile_simplename in bam_file][0]
             try:
-                if not bamfilename in sorted_bamfile_list:
+                if bamfilename_path not in self.bam_file_list:
                     raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
             except FileNotFoundError:
                 return ('A sample in the query could not be located in the directory with the alignment files.\n'
                         'Make sure the query provided corresponds to the align_count_path directory')
 
-            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
+            output_subdir = os.path.join(self.qorts_output, fastqfile_simplename + '_qorts')
             utils.mkdirp(output_subdir)
-            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
             try:
                 if not os.path.exists(bamfilename_path):
                     raise FileExistsError('BamfilePathNotValid')
@@ -610,18 +613,18 @@ class QualityAssessmentObject(StandardData):
                 bamfilename_path, self.annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
-        for countfilename in pre_2015_countfilename_list:
-            bamfilename = countfilename.replace('_read_count.tsv', '_sorted_aligned_reads.bam')
+        for fastqfile_simplename in pre_2015_sample_list:
+            bamfilename_path = [bam_file for bam_file in self.bam_file_list if fastqfile_simplename in bam_file][0]
             try:
-                if not bamfilename in sorted_bamfile_list:
+                if bamfilename_path not in self.bam_file_list:
                     raise FileNotFoundError('QuerySampleNotInAlignCountDirectory')
             except FileNotFoundError:
                 print('A sample in the query could not be located in the directory with the alignment files.\n'
                       'Make sure the query provided corresponds to the align_count_path directory')
 
-            output_subdir = os.path.join(self.qorts_output, '[' + bamfilename + ']' + '_qorts')
+            output_subdir = os.path.join(self.qorts_output, fastqfile_simplename + '_qorts')
             utils.mkdirp(output_subdir)
-            bamfilename_path = os.path.join(self.align_count_path, bamfilename)
+
             try:
                 if not os.path.exists(bamfilename_path):
                     raise FileExistsError('BamfilePathNotValid')
