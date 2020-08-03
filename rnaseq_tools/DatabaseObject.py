@@ -222,17 +222,12 @@ class DatabaseObject(StandardData):
             # use the filter_str formula to filter the dataframe
             self.filtered_database_df = self.database_df.query(filter_str)
 
-    @staticmethod
-    def standardizeDatabaseDataframe(rnaseq_metadata_df, prefix='', suffix='_read_count.tsv',
-                                     fastq_filename_rename='COUNTFILENAME', **kwargs):
+    @staticmethod  #TODO: THIS NEEDS TO BE CHANGED SO THAT THE STANDARD FASTQFILENAME --> SAMPLE WITH JUST THE BASENAME OF THE SAMPLE, NO PATH OR EXTENSION
+    def standardizeDatabaseDataframe(rnaseq_metadata_df, **kwargs):
         """
             convert a dataframe containing sample info to a 'standard form' -- capitalized column headings and FASTQFILENAME
-            renamed to COUNTFILENAME with appropriate prefix and suffix (pointing to count file in lts_align_expr)
-            replacing sequence/run_####_samples/ and .fastq.gz
+            is just the sample name -- no path, no extension
             :param rnaseq_metadata_df: pandas dataframe of the rnaseq_metadata
-            :param prefix: a prefix to attach to fastqFileName column (eg '/lts/mblab/Crypto/rnaseq_data/align_expr') default none
-            :param suffix: What to append to fastqFileName after stripping .fastq.gz. default _read_count.tsv
-            :param fastq_filename_rename: name to give the column fastqFileName. default COUNTFILENAME
             :param kwargs: arbitrary keyword arguments. provided to pass logger
             :returns: the dataframe with column variables cast to uppercase and fastqFileName converted to SAMPLE
         """
@@ -242,33 +237,12 @@ class DatabaseObject(StandardData):
         except AttributeError:
             print('standardizeDatabaseDataframe takes a dataframe, not a filepath, as an argument')
 
-        # regex to extract run_number, if needed
-        regex = r"(?<=sequence\/run_)\d*"
-
         # loop through rows
         for index, row in rnaseq_metadata_df.iterrows():
             # replace fastqfilename one by one so as to extract the run number appropriately
             fastq_file_path = rnaseq_metadata_df.loc[index, 'FASTQFILENAME']
             fastq_basename = utils.pathBaseName(fastq_file_path)
-            if prefix == 'align_expr/run_{}/':
-                try:
-                    run_number = re.search(regex, fastq_file_path)[0]
-                except TypeError:
-                    if kwargs['logger']:
-                        kwargs['logger'].error(
-                            'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
-                            'standardizeDatabaseDataframe')
-                    sys.exit(
-                        'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
-                        'standardizeDatabaseDataframe')
-                rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = prefix.format(run_number) + fastq_basename + suffix
-            else:
-                if prefix:  # if a prefix other than align_expr/run_{} is passed, test if forward slash is present
-                    prefix = utils.addForwardSlash(prefix)
-                rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = prefix + fastq_basename + suffix
-
-        # rename fastqfilename column to 'sample'
-        rnaseq_metadata_df.rename(columns={'FASTQFILENAME': fastq_filename_rename}, inplace=True)
+            rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = utils.pathBaseName(fastq_basename)
 
         return rnaseq_metadata_df
 
