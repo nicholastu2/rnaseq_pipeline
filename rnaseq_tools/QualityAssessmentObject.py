@@ -652,7 +652,8 @@ class QualityAssessmentObject(StandardData):
                 bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
-        with open(self.sbatch_script, 'w') as sbatch_file:
+        sbatch_script = os.path.join(self.job_scripts, 'qorts_job_script_' + self.year_month_day + '.sbatch')
+        with open(sbatch_script, 'w') as sbatch_file:
             sbatch_file.write('\n')
             sbatch_file.write('\n')
 
