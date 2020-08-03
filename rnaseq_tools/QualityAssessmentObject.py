@@ -8,6 +8,7 @@ import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
+from rnaseq_tools.OrganismDataObject import OrganismData
 import abc
 
 # turn off SettingWithCopyWarning in pandas
@@ -564,10 +565,16 @@ class QualityAssessmentObject(StandardData):
             print('qorts_output is either not passed as an argument, or does not exist.')
 
         try:
+            if not hasattr(self, 'organism'):
+                raise AttributeError('NoOrganismPassed')
+        except AttributeError:
+            print('The QualityAssessmentObject must have an attribute organism')
+
+        try:
             if not os.path.isfile(self.annotation_file):
                 raise FileExistsError('AnnotationFilePathNotValid')
         except FileExistsError or AttributeError:
-            print('You must pass a correct path to an annotation file (see genome_files)')
+            organism_object = OrganismData(organism=self.organism)
 
         try:
             if not hasattr(self, 'bam_file_list'):
@@ -622,8 +629,15 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
+            if not hasattr(self, 'annotation_file'):
+                if hasattr(organism_object, 'annotation_file_no_strand'):
+                    annotation_file = organism_object.annotation_file_no_strand
+                else:
+                    annotation_file = organism_object.annotation_file
+            else:
+                annotation_file = self.annotation_file
             qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --keepMultiMapped --generatePlots %s %s %s\n' % (
-                bamfilename_path, self.annotation_file, output_subdir)
+                bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
         with open(self.sbatch_script, 'w') as sbatch_file:
