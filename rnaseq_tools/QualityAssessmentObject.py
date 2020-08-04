@@ -619,7 +619,7 @@ class QualityAssessmentObject(StandardData):
                     raise FileExistsError('BamfilePathNotValid')
             except FileExistsError:
                 print('path from align_count_path to bamfile does not exist')
-            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (
+            qorts_cmd = 'java -Xmx1G -jar /opt/apps/labs/mblab/software/QoRTs/hartleys-QoRTs-099881f/scripts/QoRTs.jar QC --singleEnded --stranded --keepMultiMapped --generatePlots %s %s %s\n' % (
                 bamfilename_path, annotation_file, output_subdir)
             cmd_list.append(qorts_cmd)
 
