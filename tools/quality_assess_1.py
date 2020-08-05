@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 from rnaseq_tools.CryptoQualityAssessmentObject import CryptoQualityAssessmentObject
+from rnaseq_tools.S288C_R64QualityAssessmentObject import S288C_R64QualityAssessmentObject
 from rnaseq_tools import utils
 
 
@@ -12,6 +13,12 @@ def main(argv):
     args = parseArgs(argv)
     # parse cmd line arguments and error check paths/values
     print('...parsing cmd line input')
+    try:
+        if not args.organism in ['KN99', 'S288C_R64', 'H99']:
+            raise ValueError('InvalidOrganism: %s' %args.organism)
+        organism=args.organism
+    except ValueError:
+        print('The organism must be KN99, S288C_R64, or H99 (use that spelling/capitalization exactly)')
     try:
         if not os.path.isdir(args.align_count_dir):
             raise NotADirectoryError('OutputDirDoesNotExist')
@@ -62,21 +69,36 @@ def main(argv):
     quality_assessment_filename = "%s_quality_summary.csv" % filename_prefix
     output_path = os.path.join(output_directory, quality_assessment_filename)
 
-    # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
-    crypto_qa = CryptoQualityAssessmentObject(bam_file_list=bam_list,
-                                              count_file_list=count_list,
-                                              novoalign_log_list=novoalign_logs,
-                                              coverage_check_flag=True,
-                                              query_path=args.query_sheet_path,
-                                              config_file=args.config_file,
-                                              interactive=interactive_flag)
+    if organism == 'KN99':
+        # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
+        crypto_qa = CryptoQualityAssessmentObject(bam_file_list=bam_list,
+                                                  count_file_list=count_list,
+                                                  novoalign_log_list=novoalign_logs,
+                                                  coverage_check_flag=True,
+                                                  query_path=args.query_sheet_path,
+                                                  config_file=args.config_file,
+                                                  interactive=interactive_flag)
 
-    print('...compiling alignment information')
-    # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-    crypto_qual_assess_1_df = crypto_qa.compileAlignCountMetadata()
+        print('...compiling alignment information')
+        # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
+        crypto_qual_assess_1_df = crypto_qa.compileAlignCountMetadata()
 
-    print('writing output to %s' % output_path)
-    crypto_qual_assess_1_df.to_csv(output_path, index=False)
+        print('writing output to %s' % output_path)
+        crypto_qual_assess_1_df.to_csv(output_path, index=False)
+
+    elif organism == 'S288C_R64':
+        yeast_qa = S288C_R64QualityAssessmentObject(bam_file_list=bam_list,
+                                                    count_file_list=count_list,
+                                                    novoalign_log_list=novoalign_logs,
+                                                    query_path=args.query_sheet_path,
+                                                    config_file=args.config_file,
+                                                    interactive=interactive_flag)
+        print('...compiling alignment information')
+        # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
+        s288c_r64_qual_assess_1_df = yeast_qa.compileAlignCountMetadata()
+
+        print('writing output to %s' % output_path)
+        s288c_r64_qual_assess_1_df.to_csv(output_path, index=False)
 
 
 def parseArgs(argv):
@@ -87,6 +109,8 @@ def parseArgs(argv):
                         help="[REQUIRED] File path to the directory you wish to deposit the summary. Note: the summary will be called run_###_summary.csv")
     parser.add_argument("-qs", "--query_sheet_path",
                         help="[REQUIRED] Path to query sheet filtered for the files contained in the path passed to -r")
+    parser.add_argument("-g", "--organism",
+                        help="[REQUIRED] Either KN99, S288C_R64, or H99")
     parser.add_argument("-pc", "--perturbation_check", action='store_true',
                         help="[OPTIONAL] For Crypto experiments. Set this flag to add coverage and overexpression columns. Note: this makes the script take a long time to complete")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',

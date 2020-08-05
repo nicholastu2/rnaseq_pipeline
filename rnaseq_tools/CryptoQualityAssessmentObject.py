@@ -13,6 +13,7 @@ pd.options.mode.chained_assignment = None
 
 # TODO: CURRENTLY, ALWAYS CALCULATES COVERAGES -- CREATE FLAG TO SKIP THIS STEP IF PASSED
 # TODO: CALCULATE COVERAGE ONCE, STORE AS BED FILE, USE BED RATHER THAN QUANTIFYING BAM EVERYTIME
+# TODO: should also inheret from organismdata
 class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -41,6 +42,56 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # set organismdata_config.ini in genome_files
         crypto_genome_files_config_path = os.path.join(self.genome_files, 'KN99', 'OrganismData_config.ini')
         utils.configure(self, crypto_genome_files_config_path, 'OrganismData', os.path.join(self.genome_files, 'KN99'))
+
+    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+        """
+        get a list of the filenames in the run_#### file that correspond to a given type
+        :returns: a dataframe containing the files according to their suffix
+        """
+        # instantiate dataframe
+        align_df = pd.DataFrame()
+        htseq_count_df = pd.DataFrame()
+        # extract metadata from novoalign log files
+        for log_file in self.novoalign_log_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(log_file).replace('_novoalign', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting information from novoalign log for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseAlignmentLog(log_file))
+            align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing novoalign logs\n')
+        # extract metadata from count files
+        for count_file in self.count_file_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(count_file).replace('_read_count', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting count information from count file for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseGeneCount(count_file))
+            library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(
+                fastq_basename)
+            htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+        print('\nDone parsing count files\n')
+        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
+        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+        print('Quantifying noncoding rRNA (rRNA, tRNA and ncRNA)')
+        # extract rRNA, tRNA and ncRNA quantification for crypto from bam files -- this takes a long time
+        ncRNA_df = self.quantifyNonCodingRna(qual_assess_df)
+        # merge this into the qual_assess_df
+        qual_assess_df = pd.merge(qual_assess_df, ncRNA_df, on='FASTQFILENAME')
+        print('Quantifying intergenic coverage')
+        qual_assess_df = self.calculateIntergenicCoverage(qual_assess_df)
+        # if coverage_check_flag true, check coverage of perturbed genes
+        try:
+            if self.coverage_check_flag:
+                coverage_df = self.perturbedCheck()
+                qual_assess_df = pd.merge(qual_assess_df, coverage_df, how='left', on='FASTQFILENAME')
+        except AttributeError:
+            self.logger.info('query_df or coverage_check_flag not present -- no coverage check')
+        # format the qual_assess_df dataframe
+        qual_assess_df = self.formatQualAssessDataFrame(qual_assess_df)
+        return qual_assess_df
 
     def formatQualAssessDataFrame(self, qual_assess_df):
         """
@@ -323,6 +374,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         if hasattr(self, 'query_df'):
             for index, row in qual_assess_df.iterrows():
                 try:
+                    genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
                     genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
                 except ValueError:
                     self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
