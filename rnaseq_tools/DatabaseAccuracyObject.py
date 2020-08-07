@@ -92,7 +92,7 @@ class DatabaseAccuracyObject(DatabaseObject):
                 lines_to_write = ['In sheet %s:\n\tThe items below are column headings in a given sheet that do not match ' \
                                  'the specifications (key and non-key, this should be fixed when found).\n' %subdirectory_filepath]
                 for spec_column, sheet_column in col_inconsistencies_dict.items():
-                    lines_to_write.appnd('\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
+                    lines_to_write.append('\tThe specification is: %s, the sheet column is: %s\n' % (spec_column, sheet_column))
                 lines_to_write.append('\n\tThe items below are numbered by row (eg 1: inductionDelay means a problem in row 1 of inductionDelay). If shortReport, only key columns are checked:\n')
                 for row_index, column_heading in row_inconsistencies_dict.items():
                     # if short_report flag == True, only write out if the column_heading is a key column
