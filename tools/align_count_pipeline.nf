@@ -206,9 +206,8 @@ with open(pipeline_info_txt_file_path, "a+") as file:
     file.write('')
 
 # set annotation_file
-if "${organism}" == 'KN99':
-    if "${strandedness}" == 'no':
-        annotation_file = od.annotation_file_no_strand
+if "${organism}" == 'KN99' and "${strandedness}" == 'no':
+      annotation_file = od.annotation_file_no_strand
 else:
     annotation_file = od.annotation_file
 # include the head of the gff/gtf in pipeline_info

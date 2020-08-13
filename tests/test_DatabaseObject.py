@@ -9,38 +9,6 @@ from rnaseq_tools.DatabaseObject import DatabaseObject
 
 
 class MyTestCase(unittest.TestCase):
-    def setUp(self):
-        # for utils.extractTopmostFiles
-        files = ['database-files/bioSample/~bioSample_hbrown_07.24.19.xlsx',
-                 'database-files/bioSample/._bioSample_hbrown_09.13.19.xlsx',
-                 'database-files/bioSample/~$bioSample_J.PLAGGENBERG_01.10.20.xlsx',
-                 'database-files/bioSample/bioSample_J.PLAGGENBERG_07.24.19.xlsx',
-                 'database-files/bioSample/bioSample_hbrown_09.10.19.xlsx']
-
-        # set up logger to log to stdout
-        logger = logging.getLogger(__name__)
-        out_hdlr = logging.StreamHandler(sys.stdout)
-        out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
-        logger.addHandler(out_hdlr)
-        logger.setLevel(logging.DEBUG)
-
-        df_dict = {'col_1': [3, 2], 'col_2': ['a', 'b']}
-        df = pd.DataFrame.from_dict(df_dict)
-
-        self.patcher = patch('os.path.exists', return_value=True)
-        self.patcher.start()
-        self.patcher = patch('os.path.isfile', return_value=True)
-        self.patcher.start()
-        self.patcher = patch('pandas.read_csv', return_value=df)
-        self.patcher.start()
-        self.patcher = patch('pandas.read_excel', return_value=df)
-        self.patcher.start()
-        self.patcher = patch('rnaseq_tools.utils.extractTopmostFiles', return_value=files)
-        self.patcher.start()
-        self.patcher = patch('rnaseq_tools.utils.createLogger', return_value=logger)
-        self.patcher.start()
-        self.patcher = patch('rnaseq_tools.utils.readInDataframe', return_value=df)
-
     def test_DataObjectConstructor(self):
         db_object = DatabaseObject('/path/to/database/top')
         self.assertEqual(db_object.database_top, '/path/to/database/top')
@@ -52,7 +20,7 @@ class MyTestCase(unittest.TestCase):
         self.assertDictEqual({'known_key': known_file}, db_object.database_dict)
 
     def test_setConcatDatabaseDict(self):
-        db_object = DatabaseObject('/path/to/database/top', database_subdirectories=['known_key'])
+        db_object = DatabaseObject(config_file='/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline_config.ini', interactive=True)
         db_object.setDatabaseDict()
         db_object.setConcatDatabaseDict()
         known = {'col_1': [3,2,3,2], 'col_2': ['a','b','a','b']}
@@ -90,10 +58,6 @@ class MyTestCase(unittest.TestCase):
 
     def test_filterDatabaseDataframe(self):
         pass
-
-
-def tearDown(self):
-    self.patcher.stop()
 
 
 if __name__ == '__main__':
