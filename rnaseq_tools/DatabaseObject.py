@@ -12,11 +12,8 @@
 """
 import pandas as pd
 import os
-import re
-import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
-
 
 # TODO: more error handling in functions
 class DatabaseObject(StandardData):
@@ -44,7 +41,7 @@ class DatabaseObject(StandardData):
         try:
             self.database_subdirectories = kwargs['database_subdirectories']
         except KeyError:
-            # self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample']
+            # self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample'] # concat in reverse order
             self.database_subdirectories = ['bioSample', 'rnaSample', 's1cDNASample', 's2cDNASample', 'library', 'fastqFiles']
 
         # see setter setFilterJson()
@@ -108,9 +105,10 @@ class DatabaseObject(StandardData):
                 # associate subdirectory (key) with subdirectory_files (value) in data_dir_dict
                 self.database_dict.setdefault(subdirectory, []).extend(no_tmp_subdirectory_files)
 
-    def setDatabaseDataframe(self):
+    def setDatabaseDataframe(self, accuracy_check=False):
         """
             create joined data frame from the concatenated files in the subdirectories of the database_directory
+            :param accuracy_check: boolean flag to indicate whether the purpose of concatenating the database is checking the string format accuracy. If true, name keys are not cast to uppper
         """
         # check that database_dict, concat_database_dict and database_key_columns exist
         if len(self.database_dict) == 0:
@@ -123,12 +121,20 @@ class DatabaseObject(StandardData):
         # merge the first two (fastqFiles and Library) sets of data
         left_sheet = self.concat_database_dict[self.database_subdirectories[0]]
         right_sheet = self.concat_database_dict[self.database_subdirectories[1]]
+        # if not an accuracy check (default) cast the name column (the second item in the key list) to upper case
+        if not accuracy_check:
+            left_sheet[self.database_key_columns[0][1]] = left_sheet[self.database_key_columns[0][1]].str.upper()
+            right_sheet[self.database_key_columns[0][1]] = right_sheet[self.database_key_columns[0][1]].str.upper()
+        # merge
         self.database_df = pd.merge(left_sheet, right_sheet, how='left', on=list(self.database_key_columns[0]))
         # merge the subsequent sheets on the columns identified in key_cols
         for i in range(1, len(self.database_subdirectories) - 1):
             # store the following for readability
             subdirectory = self.database_subdirectories[i + 1]
             database_key_column = self.database_key_columns[i]
+            next_df = self.concat_database_dict[subdirectory]
+            if not accuracy_check:
+                next_df[database_key_column[1]] = next_df[database_key_column[1]].str.upper() # cast name column to upper
             # keep merging the next sheet to self.database_df
             self.database_df = pd.merge(self.database_df, self.concat_database_dict[subdirectory], how='left',
                                         on=list(database_key_column))

@@ -171,10 +171,10 @@ def main(argv):
     print('\nsubmitting sbatch script with cmd:\n\t%s' %sbatch_cmd)
     utils.executeSubProcess(sbatch_cmd)
 
-    print('\nSbatch submitted. Check progress by entering:\n\ttail %s/%s.out' %(db.sbatch_log, sbatch_script_name))
-    print('To run this in an interactive session, do the following:\n\t'
+    print('\nCheck progress by entering:\n\ttail %s/%s.out' %(db.sbatch_log, sbatch_script_name))
+    print('\nTo run this in an interactive session, do the following:\n\t'
           'interactive\n\tnextflow -C %s run $CODEBASE/tools/align_count_pipeline.nf\n' % nextflow_config_path)
-    print('\nIf this job fails or is interrupted, you can resume it from where it failed by adding the flag -r to the sbatch file and resubmitting to sbatch')
+    print('If this job fails or is interrupted, you can resume it from where it failed by adding the flag -r to the nextflow command in the .sbatch file and resubmitting to sbatch')
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(

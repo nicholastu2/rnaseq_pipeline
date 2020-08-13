@@ -5,7 +5,6 @@ import configparser
 import pandas as pd
 import sys
 from rnaseq_tools import utils
-from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools.DatabaseObject import DatabaseObject
 from rnaseq_tools.OrganismDataObject import OrganismData
 import abc
@@ -14,7 +13,7 @@ import abc
 pd.options.mode.chained_assignment = None
 
 # TODO: THIS SHOULD INHERIT FROM ORGANISMDATA
-class QualityAssessmentObject(StandardData):
+class QualityAssessmentObject(OrganismData):
 
     def __init__(self, expected_attributes=None, **kwargs):
         # add expected attributes to super._attributes
@@ -26,8 +25,8 @@ class QualityAssessmentObject(StandardData):
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(QualityAssessmentObject, self).__init__(self._add_expected_attributes, **kwargs)
-        # set standardDirectory structure
-        self.standardDirectoryStructure()
+        # # set standardDirectory structure
+        # self.standardDirectoryStructure() ## should already be done in StandardData constructor
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'QualityAssessmentObject'
 
