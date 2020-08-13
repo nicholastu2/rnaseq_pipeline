@@ -3,7 +3,6 @@ import subprocess
 import re
 import configparser
 import pandas as pd
-from glob import glob
 import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
@@ -14,7 +13,7 @@ import abc
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
-
+# TODO: THIS SHOULD INHERIT FROM ORGANISMDATA
 class QualityAssessmentObject(StandardData):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -47,6 +46,7 @@ class QualityAssessmentObject(StandardData):
             self.logger.critical('%s  --> query_path not valid' % self.query_path)
         except AttributeError:
             pass
+
     @abc.abstractmethod
     def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
         """
@@ -106,7 +106,9 @@ class QualityAssessmentObject(StandardData):
             try:
                 extracted_value = int(re.findall(regex_pattern, alignment_file_text)[0])
             except ValueError:
-                print('problem with file %s' % alignment_log_file_path)
+                msg = 'problem with file %s' % alignment_log_file_path
+                self.logger.info(msg)
+                print(msg)
             except IndexError:
                 print('No %s in %s. Value set to 0' % (alignment_category, alignment_log_file_path))
                 extracted_value = 0
@@ -118,6 +120,7 @@ class QualityAssessmentObject(StandardData):
 
         # close the alignment_file and return
         alignment_file.close()
+
         return library_metadata_dict
 
     @abc.abstractmethod
@@ -158,6 +161,7 @@ class QualityAssessmentObject(StandardData):
                 bam_path, rRNA_region)
         # as long as this is the first function called that needs an index, this will error check that samtools index has been run
         try:
+            self.logger.debug('samtools cmd to extract primary multi alignment reads to rRNA: %s' %cmd_primary_multi_alignment_rRNA)
             num_primary_alignment_rRNA = int(subprocess.getoutput(cmd_primary_multi_alignment_rRNA))
         except ValueError:
             sys.exit('You must first index the alignment files with samtools index')
@@ -168,6 +172,7 @@ class QualityAssessmentObject(StandardData):
             cmd_unique_rRNA = 'samtools view -F 16 %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
         else:
             cmd_unique_rRNA = 'samtools view %s %s | grep -v ZS:Z:R | wc -l' % (bam_path, rRNA_region)
+        self.logger.debug('samtools cmd to extract unique alignment reads to rRNA: %s' %cmd_unique_rRNA)
         unique_rRNA = int(subprocess.getoutput(cmd_unique_rRNA))
 
         # add for total rRNA
@@ -193,6 +198,7 @@ class QualityAssessmentObject(StandardData):
             # no -s means this will count intersects regardless of strand
             bedtools_cmd = 'bedtools intersect -f .90 -a %s -b %s | samtools view | grep -v ZS:Z:R | wc -l' % (
                 bam_path, trna_ncrna_annotation_gff)
+        self.logger.info('bedtools cmd: %s' %bedtools_cmd)
 
         # extract unique_alignments to nc and t RNA
         unique_align_tRNA_ncRNA = int(subprocess.getoutput(bedtools_cmd))
@@ -220,7 +226,9 @@ class QualityAssessmentObject(StandardData):
 
     def createCoverageBedFile(self, bam_file):
         """
-
+             TODO: coverage is currently calculated separately for every function that needs it. Instead, calculate
+             coverage over entire genome, store as bed in rnaseq_pipeline/tmp, and use it as input to any function requiring
+             coverage calc
         """
         raise NotImplementedError
 
@@ -238,10 +246,12 @@ class QualityAssessmentObject(StandardData):
             # extract number of bases in CDS of given gene. Credit: https://www.biostars.org/p/68283/#390427
             num_bases_in_region_cmd = "grep %s %s | grep %s | bedtools merge | awk -F\'\t\' \'BEGIN{SUM=0}{ SUM+=$3-$2 }END{print SUM}\'" % (
                 genotype, annotation_path, feature)
+            self.logger.info(' num bases in region cmd: %s' %num_bases_in_region_cmd)
             num_bases_in_region = int(subprocess.getoutput(num_bases_in_region_cmd))
         # extract number of bases with depth != 0
         num_bases_depth_not_zero_cmd = "grep %s %s | grep %s | gff2bed | samtools depth -aa -Q 10 -b - %s | cut -f3 | grep -v 0 | wc -l" % (
             genotype, annotation_path, feature, bam_file)
+        self.logger.info(' num bases depth not zero over region cmd: %s' % num_bases_depth_not_zero_cmd)
         num_bases_in_cds_with_one_or_more_read = int(subprocess.getoutput(num_bases_depth_not_zero_cmd))
 
         return num_bases_in_cds_with_one_or_more_read / float(num_bases_in_region)
@@ -360,8 +370,6 @@ class QualityAssessmentObject(StandardData):
                 # extract log2cpm and return
                 return log2cpm_df.loc[gene, column_name]
 
-
-
     def indexBamFileBathScript(self, bam_files_to_index):
         """
 
@@ -385,7 +393,7 @@ class QualityAssessmentObject(StandardData):
 
     def createIgvLookupFromGeneList(self, organism, bam_list, gene_list, gene_offset=500):
         """
-
+         # todo: if QualityAssessmentObject inherits from OrganismData, this will need to be changed
         :returns: path to the lookup file for createIgvBatchscript
         """
         organism_genome_files = os.path.join(self.genome_files, organism)
@@ -538,7 +546,6 @@ class QualityAssessmentObject(StandardData):
                 raise AttributeError('NoBamFileList')
         except AttributeError:
             print('You must supply a list of bamfiles')
-
 
         # sort list of countfilenames pre and post 2015
         self.standardized_database_df['LIBRARYDATE'] = pd.to_datetime(self.standardized_database_df['LIBRARYDATE'])

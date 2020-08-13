@@ -119,6 +119,7 @@ class DatabaseObject(StandardData):
             self.setConcatDatabaseDict()
         if len(self.database_key_columns) == 0:
             self.setKeyColumns()
+        # TODO: CAST ALL KEY COLUMNS TO UPPERCASE PRIOR TO MERGE
         # merge the first two (fastqFiles and Library) sets of data
         left_sheet = self.concat_database_dict[self.database_subdirectories[0]]
         right_sheet = self.concat_database_dict[self.database_subdirectories[1]]
