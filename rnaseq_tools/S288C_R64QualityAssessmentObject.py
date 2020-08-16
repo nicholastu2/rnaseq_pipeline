@@ -21,7 +21,7 @@ class S288C_R64QualityAssessmentObject(QualityAssessmentObject):
         # recall that this will check for and/or create the directory structure found at
         super(S288C_R64QualityAssessmentObject, self).__init__(self._add_expected_attributes, **kwargs)
         # overwrite super.self_type with object type of child (this object)
-        self.self_type = 'CryptoQualityAssessmentObject'
+        self.self_type = 'S288C_R64QualityAssessmentObject'
 
         # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
         self.column_order = ['FASTQFILENAME', 'LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT',
@@ -34,46 +34,7 @@ class S288C_R64QualityAssessmentObject(QualityAssessmentObject):
                              'NAT_COVERAGE', 'G418_COVERAGE', 'OVEREXPRESSION_FOW', 'NO_MAP_PERCENT',
                              'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
                              'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
-        # set organismdata_config.ini in genome_files
-        S288C_R642_genome_files_config_path = os.path.join(self.genome_files, 'S288C_R642', 'OrganismData_config.ini')
-        utils.configure(self, S288C_R642_genome_files_config_path, 'OrganismData', os.path.join(self.genome_files, 'S288C_R642'))
 
-    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
-        """
-        get a list of the filenames in the run_#### file that correspond to a given type
-        :returns: a dataframe containing the files according to their suffix
-        """
-        # instantiate dataframe
-        align_df = pd.DataFrame()
-        htseq_count_df = pd.DataFrame()
-
-        # extract metadata from novoalign log files
-        for log_file in self.novoalign_log_list:
-            # extract fastq filename
-            fastq_basename = utils.pathBaseName(log_file).replace('_novoalign', '')
-            # set sample name in library_metadata_dict
-            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
-            print('...extracting information from novoalign log for %s' % fastq_basename)
-            library_metadata_dict.update(self.parseAlignmentLog(log_file))
-            align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-        print('\nDone parsing novoalign logs\n')
-
-        # extract metadata from count files
-        for count_file in self.count_file_list:
-            # extract fastq filename
-            fastq_basename = utils.pathBaseName(count_file).replace('_read_count', '')
-            # set sample name in library_metadata_dict
-            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
-            print('...extracting count information from count file for %s' % fastq_basename)
-            library_metadata_dict.update(self.parseGeneCount(count_file))
-            htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
-        print('\nDone parsing count files\n')
-
-        # concat df_list dataframes together on the common column. CREDIT: https://stackoverflow.com/a/56324303/9708266
-        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
-        qual_assess_df = self.formatQualAssessDataFrame(qual_assess_df)
-
-        return qual_assess_df
 
     def parseGeneCount(self, htseq_counts_path):
         """
@@ -87,11 +48,11 @@ class S288C_R64QualityAssessmentObject(QualityAssessmentObject):
         htseq_file = open(htseq_counts_path, 'r')
         htseq_file_reversed = reversed(htseq_file.readlines())
 
-        crypto_protein_coding_count = 0
+        # protein_coding_count = 0 add this in later
         line = next(htseq_file_reversed)
         try:
             while True:
-                if line.startswith('--'):
+                if line.startswith('__'):
                     # strip newchar, split on tab
                     line = line.strip().split('\t')
                     # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)

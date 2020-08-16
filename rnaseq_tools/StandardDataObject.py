@@ -41,6 +41,10 @@ class StandardData:
         # list of organisms with configured subdirectory in genome_files
         self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
 
+        # used in checkGenomefiles() and in OrganismDataObject
+        self._no_file_organism_attributes = {'strings': ['organism_genome_file', 'feature_type'],
+                                             'ints': ['total_exon_bases', 'total_intergenic_bases', 'nat_cds_length', 'g418_cds_length']} # NOTE: reading in the config seems to cast these to lower?
+
         # set year_month_day
         self.year_month_day = utils.yearMonthDay()
 
@@ -84,7 +88,7 @@ class StandardData:
         # set/check standardDirectoryStructure # TODO: CHECK SUBDIRECTORIES AND FILES EG GENOME_FILES
         self.standardDirectoryStructure()
 
-    def standardDirectoryStructure(self):
+    def standardDirectoryStructure(self): # TODO: MAKE ALL DIRECTORIES DIRECTLY CONFIGURABLE IN CONFIG FILE -- CHECK THIS FIRST
         """
         checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
@@ -189,9 +193,9 @@ class StandardData:
             If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths
         """
-        # rename organism_genome_file to organism_genome_file_subdir and change this  #TODO: just make it so no int values are checked?
-        no_file_organism_attributes = ['organism_genome_file', 'feature_type', 'total_exon_bases', 'total_intergenic_bases',
-                                       'NAT_cds_length', 'G418_cds_length']
+        # list of attributes not to be checked for file existence as they are not files
+        no_check_organism_attribute_list = self._no_file_organism_attributes.values()
+        no_check_organism_attribute_list = [x for sublist in no_check_organism_attribute_list for x in sublist]
         for organism in self._configured_organisms_list:
             # check if directory exists
             organism_genome_files_subdir_path = os.path.join(self.genome_files, organism)
@@ -210,12 +214,12 @@ class StandardData:
                 organism_config_dict.read(organism_config_file_path)
                 for organism_attribute, filename in organism_config_dict['OrganismData'].items():
                     # skip attributes that do not have a corresponding filename
-                    if organism_attribute in no_file_organism_attributes:
+                    if organism_attribute in no_check_organism_attribute_list: #TODO: just make it so no int values are checked?
                         continue
                     organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
                     if not os.path.isfile(organism_attribute_filepath):
                         self.logger.warning('%s not found in %s subdirectory of genome_files' % (organism_attribute, organism))
-                        raise FileNotFoundError('OrganismFileNotFound')
+                        raise FileNotFoundError('OrganismFileNotFound: %s for %s' %(organism_attribute, organism))
 
     def createStandardDataLogger(self):
         """

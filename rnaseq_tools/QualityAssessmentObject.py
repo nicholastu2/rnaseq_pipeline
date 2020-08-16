@@ -29,7 +29,17 @@ class QualityAssessmentObject(OrganismData):
         # self.standardDirectoryStructure() ## should already be done in StandardData constructor
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'QualityAssessmentObject'
-
+        # create logger
+        utils.createStandardObjectChildLogger(self, __name__)
+        try:
+            self.logger = None
+            self.createOrganismDataLogger()
+        except NotADirectoryError:
+            print('Cannot create OrganismData logger. Check code and config file.')
+            exit(1)
+        else:
+            if not os.path.isfile(self.log_file_path):
+                raise FileNotFoundError('LoggerNotSuccessfullyCreated')
         # if query_path passed, read in as dataframe
         try:
             self.query_df = utils.readInDataframe(self.query_path)
@@ -46,16 +56,101 @@ class QualityAssessmentObject(OrganismData):
         except AttributeError:
             pass
 
-    @abc.abstractmethod
-    def compileAlignCountMetadata(self):  # TODO: clean up this, parseAlignmentLog and parseCountFile
+
+        print('...extracting alignment information from novoalign logs')
+        align_log_df = self.parseAlignmentLogs()
+        print('...extracting count information from htseq count files')
+        if self.organism == 'KN99':
+            count_summary_df = self.parseCountFiles(count_ambiguous_unique=True)
+        else:
+            count_summary_df = self.parseCountFiles()
+        print('...compiling alignment and count information')
+        self.qual_assess_df = self.compileAlignCountMetadata(align_log_df, count_summary_df)
+        self.formatLibrarySizeColumns()
+
+    def formatLibrarySizeColumns(self):
         """
-        get a list of the filenames in the run_#### file that correspond to a given type
-        :returns: a dataframe containing the files according to their suffix
+            format columns which are fractions of library size (this will be common to all organisms)
         """
-        raise NotImplementedError
+        self.qual_assess_df['MULTI_MAP_PERCENT'] = self.qual_assess_df['MULTI_MAP'] / self.qual_assess_df['LIBRARY_SIZE'].astype(
+            'float')
+        self.qual_assess_df['NO_MAP_PERCENT'] = self.qual_assess_df['NO_MAP'] / self.qual_assess_df['LIBRARY_SIZE'].astype('float')
+        self.qual_assess_df['HOMOPOLY_FILTER_PERCENT'] = self.qual_assess_df['HOMOPOLY_FILTER'] / self.qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
+        self.qual_assess_df['READ_LENGTH_FILTER_PERCENT'] = self.qual_assess_df['READ_LENGTH_FILTER'] / self.qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
+        # htseq output not_aligned_total_percent is no_map + homopoly_filter + read_length filter. present as fraction of library_size
+        self.qual_assess_df['NOT_ALIGNED_TOTAL_PERCENT'] = self.qual_assess_df['NOT_ALIGNED_TOTAL'] / self.qual_assess_df[
+            'LIBRARY_SIZE'].astype('float')
+
+    def extractInfoFromQuerySheet(self, sample_name, extract_column):
+        """
+            extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
+            :param sample_name: name of sample -- basename of fastq.gz, no containing directory, no extension
+            :param extract_column: column from which to extract a value from the query_df based on sample_name
+            :returns: value extracted from query_df based on sample name and extract column
+        """
+        try:
+            extract_value = list(self.query_df[self.query_df['fastqFileName'].str.contains(sample_name + '.fastq.gz')][extract_column])[
+                0]
+        except AttributeError:
+            print('You must pass a query df')
+
+        return str(extract_value)
+
+    def parseAlignmentLogs(self):
+        """
+
+        """
+        # instantiate dataframe
+        align_df = pd.DataFrame()
+
+        # extract metadata from novoalign log files
+        for log_file in self.novoalign_log_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(log_file).replace('_novoalign', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting information from novoalign log for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseAlignmentLog(log_file))
+            align_df = align_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+
+        return align_df
+
+    def parseCountFiles(self, count_ambiguous_unique=False):
+        """
+            get a list of the filenames in the run_#### file that correspond to a given type
+            :param count_ambiguous_unique: boolean flag indicating whether to call uniqueAmbiguousProteinCodingCount()
+            :returns: a dataframe containing the files according to their suffix
+        """
+        # instantiate dataframe
+        htseq_count_df = pd.DataFrame()
+
+        # extract metadata from count files
+        for count_file in self.count_file_list:
+            # extract fastq filename
+            fastq_basename = utils.pathBaseName(count_file).replace('_read_count', '')
+            # set sample name in library_metadata_dict
+            library_metadata_dict = {"FASTQFILENAME": fastq_basename}
+            print('...extracting count information from count file for %s' % fastq_basename)
+            library_metadata_dict.update(self.parseGeneCount(count_file))
+            if count_ambiguous_unique:
+                library_metadata_dict['AMBIGUOUS_UNIQUE_PROTEIN_CODING_READS'] = self.uniqueAmbiguousProteinCodingCount(
+                    fastq_basename)
+            htseq_count_df = htseq_count_df.append(pd.Series(library_metadata_dict), ignore_index=True)
+
+        return htseq_count_df
+
+    def compileAlignCountMetadata(self, align_df, htseq_count_df):
+        """
+            Gather information from the novoalign logs and count files
+        """
+        # concat df_list dataframes together on the common column
+        qual_assess_df = pd.merge(align_df, htseq_count_df, on='FASTQFILENAME')
+        return qual_assess_df
 
     @abc.abstractmethod
-    def auditQualAssessDataFrame(self, qual_assess_df):
+    def auditQualAssessDataFrame(self, query_df_path, qual_assess_df, bam_file_list):
         """
             read in appropriate key/values from config file, add status and auto_audit columns to qual_asses_df
             :params qual_assess_df: the quality assessment dataframe with all appropriate columns for values in quality_assess thresholds in config file
@@ -331,7 +426,7 @@ class QualityAssessmentObject(OrganismData):
            extract log2cpm
            :param gene: log2cpm of gene you wish to extract
            :param fastq_simple_name: name of the fastq_file, no ext, no path
-           :param log2cpm_csv_path: created by raw_counts.py --> log2_cpm.R. index in gene_name, columns are fastq_simple_name_read_count.tsv
+           :param log2cpm_csv_path: created by raw_count.py --> log2_cpm.R. index in gene_name, columns are fastq_simple_name_read_count.tsv
            :returns: log2cpm of a gene in a given library
         """
         # read in log2cpm dataframe
@@ -339,9 +434,9 @@ class QualityAssessmentObject(OrganismData):
             log2cpm_df = utils.readInDataframe(log2cpm_csv_path)
             log2cpm_df = log2cpm_df.set_index('gene_id')
         except FileNotFoundError:
-            error_msg = 'path to log2_cpm not valid: %s' %log2cpm_csv_path
+            error_msg = 'ERROR: path to log2_cpm not valid: %s' %log2cpm_csv_path
             self.logger.critical(error_msg)
-            print(error_msg)
+            sys.exit(error_msg)
 
         # create column name corresponding to log2cpm_df from fastq_simple_name
         column_name = fastq_simple_name + '_read_count.tsv'
@@ -368,6 +463,35 @@ class QualityAssessmentObject(OrganismData):
             else:
                 # extract log2cpm and return
                 return log2cpm_df.loc[gene, column_name]
+
+    def foldOverWildtype(self, perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint):
+        """
+
+        """
+        # read in median_wt_expression_by_timepoint_treatment_df
+        try:
+            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(
+                self.median_wt_expression_by_timepoint_treatment)
+            # SET INDEX ON (gene_id, TREATMENT, TIMEPOINT) note: timepoint is read in as an int
+            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(
+                ['gene_id', 'TREATMENT', 'TIMEPOINT'])
+        except AttributeError:
+            self.logger.critical('genome files config in constructor did not work')
+            print('genome files config in constructor did not work') # set this as attr in crypto organismData
+        # extract overexpression log2_cpm # TODO: READ IN LOG2_CPM AS ATTR OF QUAL ASSESS
+        overexpression_log2cpm = float(self.extractLog2cpm(perturbed_gene, sample_name, log2cpm_path))
+        # get wildtype log2_cpm from median_wt-expression_by_timepoint_treatment
+        try:
+            wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
+                                   (perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
+        except KeyError:
+            perturbed_gene = perturbed_gene.replace('CNAG', 'CKF44')
+            wt_log2cpm = float(median_wt_expression_by_timepoint_treatment_df.loc[
+                                   (perturbed_gene, sample_treatment, int(sample_timepoint)), 'MEDIAN_LOG2CPM'])
+
+        overexpression_fow = overexpression_log2cpm - wt_log2cpm
+
+        return overexpression_fow
 
     def indexBamFileBathScript(self, bam_files_to_index):
         """
