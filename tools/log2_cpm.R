@@ -20,7 +20,6 @@ main = function(args){
   print('...parsing cmd line input')
   path_to_raw_counts = parsed$raw_counts
   organism = parsed$organism
-  output_full_path=parsed$output_FULL_path
 
   sprintf('...Reading in raw counts %s', path_to_raw_counts)
   # read in raw counts data.frame
@@ -48,6 +47,7 @@ main = function(args){
   colnames(log2_cpm)[1] = 'gene_id'
 
   # write to output path -- NOTE: in cmd line input, the -o is the FULL output path (including filename and extension)
+  output_full_path = str_replace(path_to_raw_counts, 'raw_count.csv', 'log2_cpm.csv')
   sprintf("Writing log2_cpm matrix to: %s", output_full_path)
   write_csv(log2_cpm, output_full_path)
 
@@ -57,10 +57,8 @@ parseArguments = function() {
   option_list = list(
     make_option(c('-r', '--raw_counts'),
                 help='raw count matrix produced by raw_counts.py'),
-    make_option(c('-g', '--organism',
-                 help='Currently, this only matters for KN99 (with that exact formatting). If not KN99, enter None')),
-    make_option(c('-o', '--output_FULL_path'),
-                help='path to file (full, from current directory through the filename and .csv extension'))
+    make_option(c('-g', '--organism'),
+                 help='Currently, this only matters for KN99 (with that exact formatting). If not KN99, enter None'))
   args = parse_args(OptionParser(option_list=option_list))
   return(args)
 } # end parseArguments()

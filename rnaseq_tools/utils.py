@@ -272,7 +272,7 @@ def extractTopmostFiles(path_to_directory):
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
         submit raw_count_path to log2_cpm.R (in tools/)
-        :param raw_count_path: path to output of raw_counts.py
+        :param raw_count_path: path to output of raw_count.py
         :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R.
         eg <experiment_name>_log2_cpm.csv
     """

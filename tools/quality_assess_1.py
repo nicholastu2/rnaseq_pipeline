@@ -3,8 +3,8 @@ import sys
 import os
 import argparse
 import pandas as pd
-from rnaseq_tools.CryptoQualityAssessmentObject import CryptoQualityAssessmentObject
-from rnaseq_tools.S288C_R64QualityAssessmentObject import S288C_R64QualityAssessmentObject
+from rnaseq_tools.CryptoQualAssessAuditObject import CryptoQualAssessAuditObject
+from rnaseq_tools.S288C_R54QualAssessAuditObject import S288C_R54QualAssessAuditObject
 from rnaseq_tools import utils
 
 
@@ -53,34 +53,42 @@ def main(argv):
     novoalign_logs = utils.extractFiles(align_count_path, 'novoalign.log')
     # extract count file list
     count_list = utils.extractFiles(align_count_path, 'read_count.tsv')
+    # from count_list, get convert to a list of fastq.gz names
+    fastq_list = [os.path.basename(x.replace('_read_count.tsv', '.fastq.gz')) for x in count_list]
     if len(bam_list) != len(count_list) or len(bam_list) != len(novoalign_logs):
         sys.exit('The number of bam_files, count_files and/or log_files does not match. Check file contents')
 
-    # read in query sheet
+    # read in query sheet # TODO: GENERALIZE THIS INTO EITHER STANDARDDATA OR UTILS. RETURN AS DICT. DO THIS AFTER ADDING ORGANISM COLUMN TO METADATA SPECS
     query_df = utils.readInDataframe(query_sheet_path)
     # all crypto records will have genotype beginning with CNAG_
-    crypto_query_df = query_df[query_df.genotype.str.startswith('CNAG')]
-    yeast_query_df = query_df[~crypto_query_df]
+    crypto_query_df = query_df[~query_df.genotype.isna() & query_df.genotype.str.startswith('CNAG') & query_df.fastqFileName.isin(fastq_list)]
+    yeast_query_df = query_df[(~(query_df.genotype.isna() | query_df.fastqFileName.isin(crypto_query_df.fastqFileName)) & query_df.fastqFileName.isin(fastq_list))]
 
     # create list to store qual_assess dataframes
     qual_assess_df_list = []
 
     if len(crypto_query_df) > 0:
         # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
-        crypto_qa_object = CryptoQualityAssessmentObject(organism = 'KN99',
-                                                         bam_file_list=bam_list,
-                                                         count_file_list=count_list,
-                                                         novoalign_log_list=novoalign_logs,
-                                                         coverage_check_flag=True,
-                                                         query_df=query_sheet_path,
-                                                         config_file=args.config_file,
-                                                         interactive=interactive_flag)
-        print('...compiling KN99 samples alignment information')
-        # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-        qual_assess_df_list.append(crypto_qa_object.compileAlignCountMetadata())
+        print('...compiling KN99 samples information')
+        crypto_qa_object = CryptoQualAssessAuditObject(organism = 'KN99',
+                                                       bam_file_list=bam_list,
+                                                       count_file_list=count_list,
+                                                       novoalign_log_list=novoalign_logs,
+                                                       coverage_check_flag=True,
+                                                       query_df=crypto_query_df,
+                                                       config_file=args.config_file,
+                                                       interactive=interactive_flag)
+
+        # add dataframe to list
+        try:
+            qual_assess_df_list.append(crypto_qa_object.qual_assess_df)
+        except AttributeError:
+            error_msg = 'There was an error appending the KN99 qual assess dataframe. Check the paths in the query sheet and align_counts directory'
+            crypto_qa_object.logger.debug(error_msg)
+            print(error_msg)
 
     if len(yeast_query_df) > 0:
-        yeast_qa_object = S288C_R64QualityAssessmentObject(organism='S288C_R64',
+        yeast_qa_object = S288C_R54QualAssessAuditObject(organism='S288C_R64',
                                                            bam_file_list=bam_list,
                                                            count_file_list=count_list,
                                                            novoalign_log_list=novoalign_logs,
@@ -89,14 +97,19 @@ def main(argv):
                                                            interactive=interactive_flag)
         print('...compiling S288C_R64 alignment information')
         # create dataframes storing the relevant alignment and count metadata from the novoalign and htseq logs
-        qual_assess_df_list.append(yeast_qa_object.compileAlignCountMetadata())
+        try:
+            qual_assess_df_list.append(yeast_qa_object.qual_assess_df)
+        except AttributeError:
+            error_msg = 'There was an error appending the S288C_R64 qual assess dataframe. Check the paths in the query sheet and align_counts directory'
+            crypto_qa_object.logger.debug(error_msg)
+            print(error_msg)
 
     # combine dataframes, if both organisms present
     print('...creating quality_assessment sheet for %s' %filename_prefix)
     combined_qual_assess_1_df = pd.concat(qual_assess_df_list)
 
     # create filename
-    quality_assessment_filename = "%s_quality_summary.csv" % filename_prefix
+    quality_assessment_filename = "%s_sequence_quality_summary.csv" % filename_prefix
     output_path = os.path.join(output_directory, quality_assessment_filename)
     print('writing output to %s' % output_path)
     combined_qual_assess_1_df.to_csv(output_path, index=False)
@@ -105,7 +118,7 @@ def main(argv):
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="This script summarizes the output from pipeline wrapper.")
     parser.add_argument("-ac", "--align_count_dir", required=True,
-                        help="[REQUIRED] Directory for alignment log (novoalign) and count (htseq) files.")
+                        help="[REQUIRED] Directory with files in the following subdirectories: align, count, logs. Output from raw_count.py and log2cpm.R must be in count directory.")
     parser.add_argument("-qs", "--query_sheet_path",
                         help="[REQUIRED] Path to query sheet filtered for the files contained in the path passed to -r")
     parser.add_argument("-pc", "--perturbation_check", action='store_true',
