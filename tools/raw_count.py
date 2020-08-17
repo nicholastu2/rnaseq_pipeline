@@ -56,7 +56,7 @@ def parseArgs(argv):
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file. Note: this is for StandardData, not nextflow")
-    parser.add_argument('-i', '--interactive', default='store_true',
+    parser.add_argument('--interactive', action='store_true',
                         help="[OPTIONAL] This flag functions to disable StandardData from attempting to soft link to /lts on htcf."
                              " Default is True, which is the setting for running this script in an interactive session. You should run"
                              " this is an interactive session. To do so, simply enter the command interactive and hit enter before running"
