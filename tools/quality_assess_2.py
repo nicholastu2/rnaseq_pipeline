@@ -13,6 +13,13 @@ import os
 def main(argv):
     # parse cmd line input and instantiate OrganismData
     parsed = parse_args(argv)
+
+    # use query sheet to extract files from /lts to scratch
+
+    # compile metadata + qa
+
+    #
+
     od = OrganismData(organism=parsed.organism, query_sheet_path=parsed.query_sheet_path,
                       experiment_dir=parsed.experiment_dir, norm_count_path=parsed.norm_count_path,
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,

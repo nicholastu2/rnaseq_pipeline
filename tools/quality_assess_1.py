@@ -120,9 +120,7 @@ def parseArgs(argv):
     parser.add_argument("-ac", "--align_count_dir", required=True,
                         help="[REQUIRED] Directory with files in the following subdirectories: align, count, logs. Output from raw_count.py and log2cpm.R must be in count directory.")
     parser.add_argument("-qs", "--query_sheet_path",
-                        help="[REQUIRED] Path to query sheet filtered for the files contained in the path passed to -r")
-    parser.add_argument("-pc", "--perturbation_check", action='store_true',
-                        help="[OPTIONAL] For Crypto experiments. Set this flag to add coverage and overexpression columns. Note: this makes the script take a long time to complete")
+                        help="[REQUIRED] Path to query sheet")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file")
