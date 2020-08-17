@@ -129,11 +129,18 @@ class StandardData:
         # TODO: priority (see other comment)
         # set attr scratch_sequence and database_files if not exist already. check config file for explicit path first, then search in htcf structure
         try:
-            mblab_shared_dirs = ['scratch_sequence', 'database_files']
+            mblab_shared_dirs = ['scratch_sequence']
             utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)
         except FileNotFoundError:
             print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
                   "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
+        try:
+            database_files_path = os.path.join(self.user_rnaseq_pipeline_directory, 'database_files')
+            if not os.path.isdir(database_files_path):
+                raise NotADirectoryError('DatabaseFilesNotFound: %s' %database_files_path)
+        except NotADirectoryError:
+            cmd = 'git clone https://github.com/BrentLab/database_files.git'
+            utils.executeSubProcess(cmd)
         if self.interactive:
             print('Remember you will not be able to access lts_align_expr or lts_sequence in an interactive session on htcf')
             self.setGenomeFiles()
