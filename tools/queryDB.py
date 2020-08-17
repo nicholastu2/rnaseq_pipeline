@@ -43,7 +43,7 @@ def main(argv):
     if database_path is not None and not os.path.exists(database_path):
         raise FileNotFoundError('DatabaseFileDoesNotExist')
     elif database_path is None:
-        database_path = sd.scratch_database_files
+        database_path = sd.database_files
     filter_json_path = args.json
     if filter_json_path is not None and not os.path.isfile(filter_json_path):
         raise FileNotFoundError('QueryJsonDoesNotExist')
