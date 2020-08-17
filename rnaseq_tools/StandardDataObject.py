@@ -141,6 +141,8 @@ class StandardData:
         except NotADirectoryError:
             cmd = 'git clone https://github.com/BrentLab/database_files.git'
             utils.executeSubProcess(cmd)
+        finally:
+            setattr(self, 'database_files', database_files_path)
         if self.interactive:
             print('Remember you will not be able to access lts_align_expr or lts_sequence in an interactive session on htcf')
             self.setGenomeFiles()
