@@ -161,68 +161,73 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             :returns: a dictionary with the keys FEATURE_ALIGN_NOT_UNIQUE, TOO_LOW_AQUAL, AMBIGUOUS_FEATURE, NO_FEATURE, NOT_ALIGNED_TOTAL
         """
 
-        library_metadata_dict = {}
-        # TODO: error checking on keys
-        htseq_file = open(htseq_counts_path, 'r')
-        htseq_file_reversed = reversed(htseq_file.readlines())
-
-        crypto_protein_coding_count = 0
-        line = next(htseq_file_reversed)
-        try:
-            while True:
-                line_strip_split = line.strip().split('\t')
-                if line.startswith('CKF44'):
-                    # split the line, take the entry in the second column, which is the gene count, and add to crypto_protein_coding_effective_count
-                    gene_count = int(line_strip_split[1])
-                    crypto_protein_coding_count += gene_count
-                if not (line.startswith('CNAG') or line.startswith('CKF44')):
-                    # strip newchar, split on tab
-                    line = line.strip().split('\t')
-                    # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
-                    htseq_count_metadata_category = line_strip_split[0][
-                                                    2:].upper()  # drop the __ in front of the category
-                    # enter to htseq_count_dict
-                    library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
-                    # iterate
-                line = next(htseq_file_reversed)
-        except StopIteration:
-            pass
-
-        # error check gene count
-        try:
-            if crypto_protein_coding_count == 0:
-                raise ValueError('NoGeneCountsDetected')
-        except ValueError:
-            self.logger.debug('no lines start with CKF44 -- check organism: %s' %htseq_file)
-            print('No lines starting with CKF44 have gene counts')
-
-        # rename some key/value pairs
-        library_metadata_dict['NOT_ALIGNED_TOTAL'] = library_metadata_dict.pop('NOT_ALIGNED')
-        library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
-        library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
-
-        # add PROTEIN_CODING_COUNTED
-        library_metadata_dict['PROTEIN_CODING_COUNTED'] = crypto_protein_coding_count
-        # add log2cpm data
-        log2cpm_path = os.path.join(utils.dirPath(htseq_counts_path), '%s_log2_cpm.csv' %self.organism)
-        try:
-            if not os.path.isfile(log2cpm_path):
-                raise FileNotFoundError('log2cpm_pathDNE: %s' %log2cpm_path)
-        except FileNotFoundError:
-            print('output of log2cpm.R, which requires output of %s_raw_counts.py, must be in count directory containing the htseq count file' %self.organism)
-
         sample_name = utils.pathBaseName(htseq_counts_path).replace('_read_count','')
-        library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
-        library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
-        genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
-        if '_over' in genotype:
-            sample_treatment = self.extractInfoFromQuerySheet(sample_name, 'treatment')
-            sample_timepoint = self.extractInfoFromQuerySheet(sample_name, 'timePoint')
-            perturbed_gene = genotype.replace('_over', '').replace('CNAG', 'CKF44')
-            library_metadata_dict['OVEREXPRESSION_FOW'] = self.foldOverWildtype(perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint)
+        try:
+            genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
+        except IndexError:
+            self.logger('Not in query sheet: %s' %htseq_counts_path)
+        else:
 
-        htseq_file.close()
-        return library_metadata_dict
+            library_metadata_dict = {}
+            # TODO: error checking on keys
+            htseq_file = open(htseq_counts_path, 'r')
+            htseq_file_reversed = reversed(htseq_file.readlines())
+
+            crypto_protein_coding_count = 0
+            line = next(htseq_file_reversed)
+            try:
+                while True:
+                    line_strip_split = line.strip().split('\t')
+                    if line.startswith('CKF44'):
+                        # split the line, take the entry in the second column, which is the gene count, and add to crypto_protein_coding_effective_count
+                        gene_count = int(line_strip_split[1])
+                        crypto_protein_coding_count += gene_count
+                    if not (line.startswith('CNAG') or line.startswith('CKF44')):
+                        # strip newchar, split on tab
+                        line = line.strip().split('\t')
+                        # extract the category of metadata count (eg __alignment_not_unique --> ALIGNMENT_NOT_UNIQUE)
+                        htseq_count_metadata_category = line_strip_split[0][
+                                                        2:].upper()  # drop the __ in front of the category
+                        # enter to htseq_count_dict
+                        library_metadata_dict.setdefault(htseq_count_metadata_category, int(line[1]))
+                        # iterate
+                    line = next(htseq_file_reversed)
+            except StopIteration:
+                pass
+
+            # error check gene count
+            try:
+                if crypto_protein_coding_count == 0:
+                    raise ValueError('NoGeneCountsDetected')
+            except ValueError:
+                self.logger.debug('no lines start with CKF44 -- check organism: %s' %htseq_file)
+                print('No lines starting with CKF44 have gene counts')
+
+            # rename some key/value pairs
+            library_metadata_dict['NOT_ALIGNED_TOTAL'] = library_metadata_dict.pop('NOT_ALIGNED')
+            library_metadata_dict['FEATURE_ALIGN_NOT_UNIQUE'] = library_metadata_dict.pop('ALIGNMENT_NOT_UNIQUE')
+            library_metadata_dict['AMBIGUOUS_FEATURE'] = library_metadata_dict.pop('AMBIGUOUS')
+
+            # add PROTEIN_CODING_COUNTED
+            library_metadata_dict['PROTEIN_CODING_COUNTED'] = crypto_protein_coding_count
+            # add log2cpm data
+            log2cpm_path = os.path.join(utils.dirPath(htseq_counts_path), '%s_log2_cpm.csv' %self.organism)
+            try:
+                if not os.path.isfile(log2cpm_path):
+                    raise FileNotFoundError('log2cpm_pathDNE: %s' %log2cpm_path)
+            except FileNotFoundError:
+                print('output of log2cpm.R, which requires output of %s_raw_counts.py, must be in count directory containing the htseq count file' %self.organism)
+
+            library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
+            library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
+            if '_over' in genotype:
+                sample_treatment = self.extractInfoFromQuerySheet(sample_name, 'treatment')
+                sample_timepoint = self.extractInfoFromQuerySheet(sample_name, 'timePoint')
+                perturbed_gene = genotype.replace('_over', '').replace('CNAG', 'CKF44')
+                library_metadata_dict['OVEREXPRESSION_FOW'] = self.foldOverWildtype(perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint)
+
+            htseq_file.close()
+            return library_metadata_dict
 
     def addMarkerCoverageColumns(self, log2cpm_path):
         """
