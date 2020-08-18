@@ -19,21 +19,31 @@ def main(argv):
     # parse cmd line arguments
     args = parseArgs(argv)
     print('...parsing cmd line arguments')
-    run_list = args.run_list
-    query_path = args.query_path
+    query_sheet_path = args.query_sheet
     try:
-        if not os.path.isfile(query_path):
-            raise FileNotFoundError('DNE: %s' %query_path)
+        if not os.path.isfile(query_sheet_path):
+            raise FileNotFoundError('DNE: %s' %query_sheet_path)
     except FileNotFoundError:
         print('The query sheet path is not valid. Check and try again')
+    else:
+        query_df = utils.readInDataframe(query_sheet_path)
+
+    # store interactive flag
+    try:
+        interactive_flag = args.interactive
+    except AttributeError:
+        interactive_flag = False
+
+
+    run_list = list(query_df.runNumber.unique())
 
     # create paths from /scratch to the run directory
-    sd = StandardData()
+    sd = StandardData(config_file=args.config_file, interactive=interactive_flag)
     run_path_list = [os.path.join(sd.align_count_results, 'run_'+str(x)+'_samples') for x in run_list]
 
     # check that paths exist TODO: CHECK CONTENTS OF SUBDIRECTORY FOR COMPLETENESS
     print('...validating paths to run directories')
-    validated_run_path_list = validatePaths(run_path_list)
+    validated_run_path_list = validatePaths(sd, run_list, run_path_list)
 
     # write lookup file of run number paths for the sbatch cmd (see https://htcfdocs.readthedocs.io/en/latest/runningjobs/)
     lookup_filename = 'qual_assess_1_lookup_' + str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond()) + '.txt'
@@ -43,7 +53,7 @@ def main(argv):
         file.write('\n'.join(map(str, validated_run_path_list)))
 
     # write sbatch script to run qual_assess on all runs in lookup file above
-    script = writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_path)
+    script = writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_sheet_path)
     sbatch_filename = 'qual_assess_1_batch_' + str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond())
     qual_assess_job_script_path = os.path.join(os.job_scripts, sbatch_filename)
     print('...writing sbatch script to: %s' %qual_assess_job_script_path)
@@ -53,15 +63,19 @@ def main(argv):
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
         description="create a lookup file and sbatch script from a user inputted list of runs")
-    parser.add_argument("-r", "--run_list", nargs='+', required=True,
-                        help="a list of run numbers (number only)")
-    parser.add_argument("-q", "--query_sheet", required=True,
-                        help="query sheet containing AT LEAST the samples in the run numbers (may have more -- you can submit the entire combined_df")
+    parser.add_argument("-qs", "--query_sheet", required=True,
+                        help="[REQUIRED] A query sheet containing exactly the runs you wish to QA")
+    parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
+                        help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
+                             "Use this flag to replace that config file")
+    parser.add_argument('--interactive', action='store_true',
+                        help="[OPTIONAL] set this flag (only --interactive, no input necessary) to tell StandardDataObject not\n"
+                             "to attempt to look in /lts if on a compute node on the cluster")
 
     args = parser.parse_args(argv[1:])
     return args
 
-def validatePaths(sd, run_path_list):
+def validatePaths(sd, run_list, run_path_list):
     """
         check that run files exist where expected, in rnaseq_pipeline/align_count_results
         :param sd: a standard data object
@@ -74,7 +88,7 @@ def validatePaths(sd, run_path_list):
         try:
             if not os.path.isdir(path):
                 try:
-                    run_num_with_leading_zero = sd._run_numbers_with_zeros(run_path_list[i])
+                    run_num_with_leading_zero = sd._run_numbers_with_zeros[run_list[i]]
                 except KeyError:
                     sd.logger.info('%s not in leading zero run number list')
                     raise NotADirectoryError('DoesNotExist: %s' %path)
@@ -85,7 +99,7 @@ def validatePaths(sd, run_path_list):
                     else:
                         run_path_list[i] = path_with_zero
         except NotADirectoryError:
-            msg='the runnumbers must be subdirectories like so: rnaseq_pipeline/align_count_results/run_####_samples'
+            msg='Cant find the run directory. The runnumbers must be subdirectories like so: rnaseq_pipeline/align_count_results/run_####_samples'
             sd.logger.info(msg)
             print(msg)
 
