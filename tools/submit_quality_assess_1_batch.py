@@ -124,7 +124,7 @@ def writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_pat
                       "#SBATCH -J qual_assess_1_batch\n\n" %(str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond()))
     script = script + 'ml rnaseq_pipeline\n\n'
     script = script + 'read run_path < <( sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' %lookup_output_path
-    script = script + 'qual_assess_1.py -ac ${run_path} -qs %s --interactive' %query_path
+    script = script + 'quality_assess_1.py -ac ${run_path} -qs %s --interactive' %query_path
 
     return script
 
