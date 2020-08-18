@@ -47,22 +47,28 @@ def main(argv):
     except AttributeError:
         interactive_flag = False
 
+    # read in query sheet # TODO: GENERALIZE THIS INTO EITHER STANDARDDATA OR UTILS. RETURN AS DICT. DO THIS AFTER ADDING ORGANISM COLUMN TO METADATA SPECS
+    query_df = utils.readInDataframe(query_sheet_path)
+    query_fastq_list = list(query_df.fastqFileName)
+
     # extract bam file names
     bam_list = utils.extractFiles(align_count_path, '.bam')
+    # filter bam_list for files in the query sheet
+    filtered_bam_list = [x for x in bam_list if os.path.basename(x).replace('_sorted_aligned_reads_with_annote.bam', '.fastq.gz') in query_fastq_list]
     # extract novoalign logs
     novoalign_logs = utils.extractFiles(align_count_path, 'novoalign.log')
+    filtered_novoalign_logs = [x for x in novoalign_logs if os.path.basename(x).replace('_novoalign.log', '.fastq.gz') in query_fastq_list]
     # extract count file list
     count_list = utils.extractFiles(align_count_path, 'read_count.tsv')
+    filtered_count_list =  [x for x in count_list if os.path.basename(x).replace('_read_count.tsv', '.fastq.gz') in query_fastq_list]
     # from count_list, get convert to a list of fastq.gz names
-    fastq_list = [os.path.basename(x.replace('_read_count.tsv', '.fastq.gz')) for x in count_list]
+    extracted_sample_fastq_list = [os.path.basename(x.replace('_read_count.tsv', '.fastq.gz')) for x in count_list]
     if len(bam_list) != len(count_list) or len(bam_list) != len(novoalign_logs):
         sys.exit('The number of bam_files, count_files and/or log_files does not match. Check file contents')
 
-    # read in query sheet # TODO: GENERALIZE THIS INTO EITHER STANDARDDATA OR UTILS. RETURN AS DICT. DO THIS AFTER ADDING ORGANISM COLUMN TO METADATA SPECS
-    query_df = utils.readInDataframe(query_sheet_path)
     # all crypto records will have genotype beginning with CNAG_
-    crypto_query_df = query_df[~query_df.genotype.isna() & query_df.genotype.str.startswith('CNAG') & query_df.fastqFileName.isin(fastq_list)]
-    yeast_query_df = query_df[(~(query_df.genotype.isna() | query_df.fastqFileName.isin(crypto_query_df.fastqFileName)) & query_df.fastqFileName.isin(fastq_list))]
+    crypto_query_df = query_df[~query_df.genotype.isna() & query_df.genotype.str.startswith('CNAG') & query_df.fastqFileName.isin(extracted_sample_fastq_list)]
+    yeast_query_df = query_df[(~(query_df.genotype.isna() | query_df.fastqFileName.isin(crypto_query_df.fastqFileName)) & query_df.fastqFileName.isin(extracted_sample_fastq_list))]
 
     # create list to store qual_assess dataframes
     qual_assess_df_list = []
@@ -71,9 +77,9 @@ def main(argv):
         # if coverage_check is passed in cmd line, include query and coverage_check_flag in constructor (automatically sets some values #TODO make this a function with arugmnets to pass so as not to repeat entire constructor)
         print('...compiling KN99 samples information')
         crypto_qa_object = CryptoQualAssessAuditObject(organism = 'KN99',
-                                                       bam_file_list=bam_list,
-                                                       count_file_list=count_list,
-                                                       novoalign_log_list=novoalign_logs,
+                                                       bam_file_list=filtered_bam_list,
+                                                       count_file_list=filtered_count_list,
+                                                       novoalign_log_list=filtered_novoalign_logs,
                                                        coverage_check_flag=True,
                                                        query_df=crypto_query_df,
                                                        config_file=args.config_file,
@@ -89,9 +95,9 @@ def main(argv):
 
     if len(yeast_query_df) > 0:
         yeast_qa_object = S288C_R54QualAssessAuditObject(organism='S288C_R64',
-                                                           bam_file_list=bam_list,
-                                                           count_file_list=count_list,
-                                                           novoalign_log_list=novoalign_logs,
+                                                           bam_file_list=filtered_bam_list,
+                                                           count_file_list=filtered_count_list,
+                                                           novoalign_log_list=filtered_novoalign_logs,
                                                            query_path=args.query_sheet_path,
                                                            config_file=args.config_file,
                                                            interactive=interactive_flag)

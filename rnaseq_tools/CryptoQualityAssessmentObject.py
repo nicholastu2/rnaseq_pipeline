@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import pandas as pd
 from rnaseq_tools import utils
@@ -166,6 +167,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
         except IndexError:
             self.logger.info('Not in query sheet: %s' %htseq_counts_path)
+            sys.exit('Count file passed to one of the quality assessment objects was not in the query sheet. These * should be * filtered out in the qual_assess_1 script')
         else:
 
             library_metadata_dict = {}
