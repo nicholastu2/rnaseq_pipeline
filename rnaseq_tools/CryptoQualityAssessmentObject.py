@@ -200,7 +200,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 if crypto_protein_coding_count == 0:
                     raise ValueError('NoGeneCountsDetected')
             except ValueError:
-                self.logger.debug('no lines start with CKF44 -- check organism: %s' %htseq_file)
+                self.logger.info('no lines start with CKF44 -- check organism: %s' %htseq_file)
                 print('No lines starting with CKF44 have gene counts')
 
             # rename some key/value pairs
