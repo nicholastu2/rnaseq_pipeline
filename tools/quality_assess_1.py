@@ -63,7 +63,7 @@ def main(argv):
     filtered_count_list =  [x for x in count_list if os.path.basename(x).replace('_read_count.tsv', '.fastq.gz') in query_fastq_list]
     # from count_list, get convert to a list of fastq.gz names
     extracted_sample_fastq_list = [os.path.basename(x.replace('_read_count.tsv', '.fastq.gz')) for x in count_list]
-    if len(bam_list) != len(count_list) or len(bam_list) != len(novoalign_logs):
+    if len(filtered_bam_list) != len(filtered_count_list) or len(filtered_bam_list) != len(filtered_novoalign_logs):
         sys.exit('The number of bam_files, count_files and/or log_files does not match. Check file contents')
 
     # all crypto records will have genotype beginning with CNAG_
