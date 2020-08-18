@@ -53,7 +53,7 @@ def main(argv):
         file.write('\n'.join(map(str, validated_run_path_list)))
 
     # write sbatch script to run qual_assess on all runs in lookup file above
-    script = writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_sheet_path)
+    script = writeSbatchScript(sd, args.user_name, validated_run_path_list, lookup_output_path, query_sheet_path)
     sbatch_filename = 'qual_assess_1_batch_' + str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond() + '.sbatch')
     qual_assess_job_script_path = os.path.join(sd.job_scripts, sbatch_filename)
     print('...writing sbatch script to: %s' %qual_assess_job_script_path)
@@ -67,6 +67,8 @@ def parseArgs(argv):
         description="create a lookup file and sbatch script from a user inputted list of runs")
     parser.add_argument("-qs", "--query_sheet", required=True,
                         help="[REQUIRED] A query sheet containing exactly the runs you wish to QA")
+    parser.add_argument("-u", "--user_name", required=True,
+                        help="[REQUIRED] this MUST BE EXACTLY your htcf user name. you can use the variable $USER to be sure you have it right")
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file")
@@ -107,7 +109,7 @@ def validatePaths(sd, run_list, run_path_list):
 
         return run_path_list
 
-def writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_path):
+def writeSbatchScript(sd, user_name, validated_run_path_list, lookup_output_path, query_path):
     """
         write sbatch script to qual assess runs
         :param sd: a standard data object
@@ -121,9 +123,9 @@ def writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_pat
              "#SBATCH --cpus-per-task=8\n"
              "#SBATCH --mem=12G\n"
              "#SBATCH --array=1-{0}%{1}\n".format(len(validated_run_path_list), min(len(validated_run_path_list), 50)))
-    script = script + "#SBATCH -D /scratch/mblab/${USER}/rnaseq_pipeline\n" \
+    script = script + "#SBATCH -D /scratch/mblab/%s/rnaseq_pipeline\n" \
                       "#SBATCH -o sbatch_log/qual_assess_%s.out\n" \
-                      "#SBATCH -J qual_assess_1_batch\n\n" %(str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond()))
+                      "#SBATCH -J qual_assess_1_batch\n\n" %(user_name, str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond()))
     script = script + 'ml rnaseq_pipeline\n\n'
     script = script + 'read run_path < <( sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' %lookup_output_path
     script = script + 'quality_assess_1.py -ac ${run_path} -qs %s --interactive\n' %query_path
