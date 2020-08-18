@@ -55,7 +55,7 @@ def main(argv):
     # write sbatch script to run qual_assess on all runs in lookup file above
     script = writeSbatchScript(sd, validated_run_path_list, lookup_output_path, query_sheet_path)
     sbatch_filename = 'qual_assess_1_batch_' + str(sd.year_month_day) + '_' + str(utils.hourMinuteSecond())
-    qual_assess_job_script_path = os.path.join(os.job_scripts, sbatch_filename)
+    qual_assess_job_script_path = os.path.join(sd.job_scripts, sbatch_filename)
     print('...writing sbatch script to: %s' %qual_assess_job_script_path)
     with open(qual_assess_job_script_path, "w") as f:
         f.write(script)
