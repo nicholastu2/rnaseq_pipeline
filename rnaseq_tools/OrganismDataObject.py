@@ -1,7 +1,7 @@
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
 import pandas as pd
-import numpy as np
+import sys
 import os
 import configparser
 
@@ -47,13 +47,19 @@ class OrganismData(StandardData):
         config = configparser.ConfigParser()
         config.read(self.organism_config_file)
         # set attributes for StandardData
-        for key, value in config[self.self_type].items():
-            if key in self._no_file_organism_attributes['strings']:
-                setattr(self, key, str(value))
-            elif key in self._no_file_organism_attributes['ints']:
-                setattr(self, key, int(value))
-            else:
-                setattr(self, key, os.path.join(self.organism_directory, value))
+        try:
+            for key, value in config[self.self_type].items():
+                if key in self._no_file_organism_attributes['strings']:
+                    setattr(self, key, str(value))
+                elif key in self._no_file_organism_attributes['ints']:
+                    setattr(self, key, int(value))
+                else:
+                    setattr(self, key, os.path.join(self.organism_directory, value))
+        except KeyError:
+            sys.exit('Check the contents of your genomes_files. \n'
+                  'It is probable that they were erased by the evil scratch garbage collector. \n'
+                  'If so, delete the whole genome_files and re-launch. As long as you are not in interactive, \n'
+                  'it will re download in full')
 
     def createOrganismDataLogger(self):
         """
