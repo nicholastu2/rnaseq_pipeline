@@ -165,7 +165,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         try:
             genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
         except IndexError:
-            self.logger('Not in query sheet: %s' %htseq_counts_path)
+            self.logger.info('Not in query sheet: %s' %htseq_counts_path)
         else:
 
             library_metadata_dict = {}
