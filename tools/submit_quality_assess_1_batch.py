@@ -61,6 +61,7 @@ def main(argv):
         f.write(script)
     cmd = 'sbatch %s' %qual_assess_job_script_path
     utils.executeSubProcess(cmd)
+    print('\nCheck status by cat\'ing the sbatch file above and then cat\'ing the .out file in the sbatch script')
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser(
