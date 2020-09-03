@@ -315,7 +315,7 @@ class metadataSpecificationObject:
                                'libraryProtocol': r"E7420L_\d+\.\d+X|E7420L" or r"Retrofit_\d+",
                                'roboticLibraryPrep': boolean_format or r"Retrofit_\d+"}
 
-        fastqFilename_filename_regex = r"^fastqFiles_[A-Z]\.[A-Z]+_\d+\.\d+\.\d+.[csvxlsx]+$|fastq_\d+"
+        fastqFilename_filename_regex = r"^fastqFiles_\d+\.\d+\.\d+.[csvxlsx]+$|fastq_\d+"
         fastqFilename_column_dict = {'libraryDate': date_format or r"Retrofit_\d+",
                                      'libraryPreparer': name_format or r"Retrofit_\d+",
                                      'librarySampleNumber': int_format or r"Retrofit_\d+",
