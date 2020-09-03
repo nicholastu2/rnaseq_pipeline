@@ -327,7 +327,12 @@ class metadataSpecificationObject:
                                      'tapestationConc': float_format or None or r"Retrofit_\d+",
                                      'volumePooled': float_format or None or r"Retrofit_\d+",
                                      'readsObtained': int_format or None or r"Retrofit_\d+",
-                                     'fastqFileName': atleast_one_non_space_format}
+                                     'fastqFileName': atleast_one_non_space_format,
+                                     'MANUAL_AUDIT_20200520': r"^(0|1)",
+                                     'FAIL_REASON_20200520': r"[0-9]*",
+                                     'MANUAL_AUDIT_20207230': r"^(0|1)",
+                                     'FAIL_REASON_20200723': r"[0-9]*",
+                                     'NOTES': r'[a-zA-Z]*'}
 
         # collect above specs into dictionary
         self.specification_dict = {
