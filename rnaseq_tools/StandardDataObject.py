@@ -125,15 +125,6 @@ class StandardData:
             else:
                 setattr(self, directory, path)
 
-        # TODO: priority (see other comment)
-        # set attr scratch_sequence and database_files if not exist already. check config file for explicit path first, then search in htcf structure
-        # try:
-        #     mblab_shared_dirs = ['scratch_sequence']
-        #     utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)
-        # except FileNotFoundError:
-        #     print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
-        #           "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
-
         try:
             database_files_path = os.path.join(self.user_rnaseq_pipeline_directory, 'database_files')
             if not os.path.isdir(database_files_path):
