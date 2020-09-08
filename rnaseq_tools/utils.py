@@ -11,6 +11,7 @@ import configparser
 import time
 import logging
 import logging.config
+import math
 
 
 def getRunNumber(fastq_path):
@@ -136,7 +137,7 @@ def checkCSV(file_path):
         :returns: True if .csv, false otherwise
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         # test whether a given file is a .csv or .xlsx
         if re.search('\.csv', file_path):
@@ -153,7 +154,7 @@ def checkTSV(file_path):
         :raises: FileNotFoundError
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         if re.search('\.tsv', file_path):
             return True
@@ -168,7 +169,7 @@ def checkExcel(file_path):
         :returns: True if .tsv, false otherwise
     """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError('path_to_columnar_data_dne')
+        raise FileNotFoundError('PathToColumnarDataDNE')
     else:
         # test whether a given file is a .xlsx
         if re.search('\.xlsx', file_path):
@@ -183,6 +184,10 @@ def readInDataframe(path_to_csv_tsv_or_excel):
         :param path_to_csv_tsv_or_excel: path to a .csv, .tsv .xlsx
         :returns: a pandas dataframe
     """
+    if not (path_to_csv_tsv_or_excel.endswith('csv') or
+            path_to_csv_tsv_or_excel.endswith('tsv') or
+            path_to_csv_tsv_or_excel.endswith('xlsx')):
+        raise ValueError('UnrecognizedFileExtension')
     try:
         if checkCSV(path_to_csv_tsv_or_excel):
             return pd.read_csv(path_to_csv_tsv_or_excel)
@@ -190,9 +195,8 @@ def readInDataframe(path_to_csv_tsv_or_excel):
             return pd.read_csv(path_to_csv_tsv_or_excel, sep='\t')
         elif checkExcel(path_to_csv_tsv_or_excel):
             return pd.read_excel(path_to_csv_tsv_or_excel)
-
     except FileNotFoundError:
-        print('file %s does not exist' % path_to_csv_tsv_or_excel)
+        raise FileNotFoundError('PathToColumnarDataDNE')
 
 
 def fileBaseName(file_name):
@@ -268,11 +272,11 @@ def extractTopmostFiles(path_to_directory):
 def countsPerMillion(raw_count_path, output_FULL_path):
     """ TODO: re-write this with python subprocess to control input/output of R script
         submit raw_count_path to log2_cpm.R (in tools/)
-        :param raw_count_path: path to output of raw_counts.py
+        :param raw_count_path: path to output of raw_count.py
         :param output_FULL_path: the full path (including the file and extension) of the output of log2_cpm.R.
         eg <experiment_name>_log2_cpm.csv
     """
-    cmd = 'log2_cpm.R -r %s -o %s' %(raw_count_path, output_FULL_path)
+    cmd = 'log2_cpm.R -r %s -o %s' % (raw_count_path, output_FULL_path)
     executeSubProcess(cmd)
 
 
@@ -283,7 +287,7 @@ def executeSubProcess(cmd):
     """
     exit_status = subprocess.call(cmd, shell=True)
     if exit_status == 1:
-        raise IOError('%s failed to execute. check the code' %cmd)
+        raise IOError('%s failed to execute. check the code' % cmd)
 
 
 def configure(object_instance, config_file, config_header, prefix=''):
@@ -448,6 +452,7 @@ def createLogger(log_file_path, logger_name, logger_level, logging_conf=None):
     # return an instance of the configured logger
     return logging.getLogger(logger_name)
 
+
 def createStandardObjectChildLogger(StandardDataObjectChild, name):
     """
         create logger for StandardDataObjectChild
@@ -489,7 +494,9 @@ def createStdOutLogger(**kwargs):
 
     return logger
 
-def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
+
+def getFileListFromDirectory(dir_path,
+                             list_of_file_suffixes_to_extract):  # TODO: currently set up to work specifically for align_counts. re-write usage and make more flexible
     """
     write fastq filepaths in a list stored as a .txt. Used in slurm job script
     :param dir_path: path to a diretory with files you wish to extract
@@ -500,10 +507,92 @@ def getFileListFromDirectory(dir_path, list_of_file_suffixes_to_extract): # TODO
         if not isinstance(list_of_file_suffixes_to_extract, list):
             raise TypeError('NotAList')
     except TypeError:
-        print('You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
+        print(
+            'You must pass a list, even if it is just one item, to getFileListFromDirectory for list_of_file_suffixes_to_extract')
     else:
         file_paths = []
         for suffix in list_of_file_suffixes_to_extract:
             file_paths += glob(dir_path + "/*." + suffix)
         return file_paths
 
+
+def extractFiles(containing_directory, file_pattern):
+    """
+        extract a list of files, expected to be non-empty, from containing_directory. NOTE: this is recursive, so be
+        specific in your pattern or risk returning everyting in a given containing_directory that matches
+        :params containing_directory: a path to the directory expected to contain the files with a given pattern
+        :params file_pattern: a pattern to search the containing directory for
+        :raises: UserWarning if file_pattern starts with astrisk, NotADirectoryError if containig_directory dne, FileNotFoundError if list is length zero
+        :returns: a list of files matching the file_pattern in the containing_directory
+    """
+    try:
+        if file_pattern.startswith('*'):
+            raise UserWarning('DoNotStartPatternWithAstrisk')
+    except UserWarning:
+        print(
+            'When using utils.extractFiles, the argument file_pattern should not start with an astrisk. That is added in the method.')
+
+    try:
+        if os.path.isdir(containing_directory):
+            file_list = glob('%s/**/*%s' % (containing_directory, file_pattern), recursive=True)
+        else:
+            raise NotADirectoryError('AlignDirectoryDoesNotExist')
+        if len(file_list) == 0:
+            raise FileNotFoundError('NoFileFoundMatchingPatternInContainingDirectory')
+    except NotADirectoryError:
+        print('Directory %s does not exist' % containing_directory)
+    except FileNotFoundError:
+        print(
+            'No Files found matching the pattern %s in containing directory %s' % (file_pattern, containing_directory))
+    else:
+        return file_list
+
+
+def logit2probability(log_odds):
+    """
+        convert log odds to probability
+        params log_odds: a log odds score
+        :returns: probability converted from input
+        credit: https://sebastiansauer.github.io/convert_logit2prob/
+    """
+    # convert log odds to odds
+    odds = math.exp(log_odds)
+    # return probability
+    return odds / float(1 + odds)
+
+def twoParameterGlmTemplate(intercept, coefficient_1, coefficient_2):
+    """
+        factory function to create a two parameter glm formula.
+        usage: to create the formula, first call twoParameterGlmTemplate:
+            my_glm = twoParameterGlmTemplate(1,2,3)
+        then, you can use my_glm to return x if x = 1 + 2*x_1 + 3*x_2 where x_1 and x_2 are inputs to my_glm
+            for example, my_glm(1,1) == 6
+        :params intercept: intercept of the model you wish to create
+        :params coefficient_1: first coefficient of the model you wish to create
+        :params coefficient_2: second coefficient of the model you wish to create
+        :returns: a two parameter glm with the intercept and two coefficients
+    """
+    # define a specific instance of a two parameter glm
+    def twoParameterGlm(x_1, x_2):
+        if not testNumeric(x_1):
+            raise ValueError('VariablesNonNumeric %s' %x_1)
+        if not testNumeric(x_2):
+            raise ValueError('VariablesNonNumeric %s' %x_2)
+        x_1 = float(x_1)
+        x_2 = float(x_2)
+        return intercept + (coefficient_1*x_1) + (coefficient_2*x_2)
+
+    return twoParameterGlm
+
+def testNumeric(var):
+    """
+    test if var is numeric
+    :params var: any variable
+    :returns: true if var is int or float, false otherwise
+    """
+    if isinstance(var, int):
+        return True
+    elif isinstance(var, float):
+        return True
+    else:
+        return False

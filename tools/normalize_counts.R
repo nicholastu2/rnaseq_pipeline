@@ -5,10 +5,8 @@ suppressMessages(library(DESeq2))
 
 parse_arguments <- function() {
 	option_list <- list(
-		make_option(c('-c', '--file_count_mtx'),
-					help='Read count matrix (genes x samples).'),
-		make_option(c('-o', '--output'), 
-					help='FULL!! Filepath to normalized count file(s). This includes filename and extension Suggested use: <path>/<experiment_norm_count.csv>'))
+		make_option(c('-c', '--raw_counts'),
+					help='path to output created by raw_counts.py'))
 	args <- parse_args(OptionParser(option_list=option_list))
 	return(args)
 }
@@ -76,11 +74,13 @@ write_indiv_count_file <- function(dirpath_output, count_mtx, samples, gene_leng
 ## main
 parsed <- parse_arguments()
 cat('... Loading count matrix\n')
-count_mtx <- read_count_matrix(parsed$file_count_mtx)
+count_mtx <- read_count_matrix(parsed$raw_counts)
 samples <- colnames(count_mtx)
 genes <- rownames(count_mtx)
 cat('... Normalizing count matrix\n')
 norm_count_mtx <- normalize_count(count_mtx, samples)
-cat('... Writing output\n')
-write_count_matrix_file(parsed$output, norm_count_mtx)
+norm_count_path = str_replace(parsed$raw_counts, '_read_count.csv', '_normalized_count.csv')
+output_message = paste0('...Writing output to: ', norm_count_path)
+cat(output_message)
+write_count_matrix_file(norm_count_path, norm_count_mtx)
 # write_indiv_count_file(parsed$output, norm_count_mtx, samples)

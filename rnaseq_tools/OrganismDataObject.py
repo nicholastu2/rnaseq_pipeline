@@ -1,6 +1,9 @@
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
+import pandas as pd
+import sys
 import os
+import configparser
 
 
 class OrganismData(StandardData):
@@ -11,17 +14,19 @@ class OrganismData(StandardData):
         # TODO: This is a messy and repetitive way of adding expected attributes from children of OrganismData to add to StandardData
         if isinstance(expected_attributes, list):
             self._add_expected_attributes.extend(expected_attributes)
-        # set list of known organisms
-        self._configured_organisms_list = ['H99', 'KN99', 'S288C_R64']
         # initialize Standard data with the extended _attributes
         # recall that this will check for and/or create the directory structure found at
         super(OrganismData, self).__init__(self._add_expected_attributes, **kwargs)
-
         # overwrite super.self_type with object type of child (this object)
         self.self_type = 'OrganismData'
 
         # set organism, if an organism is passed
         if hasattr(self, 'organism'):
+            # set organism directory
+            self.organism_directory = os.path.join(self.user_rnaseq_pipeline_directory, self.genome_files,
+                                                   self.organism)
+            # set OrganismData config found in rnaseq_pipeline/genome_files/<organism>/OrganismData_config.ini
+            self.organism_config_file = os.path.join(self.organism_directory, 'OrganismData_config.ini')
             if self.organism in self._configured_organisms_list:
                 self.setOrganismData()
             else:
@@ -34,28 +39,27 @@ class OrganismData(StandardData):
                 utils.configure(self, self.config_file, self.self_type)
 
         # create OrganismData logger
-        try:
-            self.logger = None
-            self.createOrganismDataLogger()
-        except NotADirectoryError:
-            print('Cannot create OrganismData logger. Check code and config file.')
-            exit(1)
-        else:
-            if not os.path.isfile(self.log_file_path):
-                raise FileNotFoundError('LoggerNotSuccessfullyCreated')
+        self.logger = utils.createStandardObjectChildLogger(self, __name__)
 
-    # noinspection PyAttributeOutsideInit
     def setOrganismData(self):
-        # first, run standard directory structure to check that file structure exists, attributes set, etc
-        self.standardDirectoryStructure()
-        # set OrganismData config found in rnaseq_pipeline/genome_files/<organism>/OrganismData_config.ini
-        setattr(self, 'organism_config_file', os.path.join(self.user_rnaseq_pipeline_directory, self.genome_files,
-                                                           self.organism, 'OrganismData_config.ini'))
         # read configuration file at path stored in organism_config_file
-        utils.configure(self, self.organism_config_file, self.self_type, os.path.join(self.genome_files,
-                                                                                      self.organism))
-        # remove '' after taking basename (see todo regarding basename)
-        self.feature_type = utils.pathBaseName(self.feature_type).replace('\'', '')  # TODO: fix!! this is a problem. All other features are being set to paths, but not this one. this is an issue with using utils.configure, it seems
+        # read config file
+        config = configparser.ConfigParser()
+        config.read(self.organism_config_file)
+        # set attributes for StandardData
+        try:
+            for key, value in config[self.self_type].items():
+                if key in self._no_file_organism_attributes['strings']:
+                    setattr(self, key, str(value))
+                elif key in self._no_file_organism_attributes['ints']:
+                    setattr(self, key, int(value))
+                else:
+                    setattr(self, key, os.path.join(self.organism_directory, value))
+        except KeyError:
+            sys.exit('Check the contents of your genomes_files. \n'
+                  'It is probable that they were erased by the evil scratch garbage collector. \n'
+                  'If so, delete the whole genome_files and re-launch. As long as you are not in interactive, \n'
+                  'it will re download in full')
 
     def createOrganismDataLogger(self):
         """
@@ -64,6 +68,32 @@ class OrganismData(StandardData):
         """
         logger_directory_path = utils.dirPath(self.log_file_path)
         if os.path.isdir(logger_directory_path):
-            utils.createStandardObjectChildLogger(self, __name__)
+            self.logger = utils.createStandardObjectChildLogger(self, __name__)
         else:
             raise NotADirectoryError('LogDirectoryDoesNotExist')
+
+    def createCountSheet(self, count_file_list):
+        """
+            create count matrix with list of genes as rows and samples as columns
+            :param exp_dir: experiment directory created by create_experiment.py
+            :param gene_list: see the OrganismData_config.ini in genome_files/<organism>
+            :returns: A count matrix of all genes (rows) by all samples (columns)
+        """
+        # instantiate count_df with columns gene_id, <sample_name_1...>, <sample_name_2...>
+        count_df = pd.DataFrame(columns=['gene_id'])
+        # add gene names to column gene_id
+        with open(self.gene_list) as gene_file:
+            gene_list_generator = gene_file.readlines()
+            gene_list = [gene_name.rstrip() for gene_name in gene_list_generator]
+        # add gene names to gene_id
+        count_df.gene_id = gene_list
+
+        # ensure that items in column_list are only basenames, not paths
+        column_list = [os.path.basename(x) for x in count_file_list]
+        for i in range(len(count_file_list)):  # note: column_list is list of basepaths, count_file_list is list of full paths. need count_file_list item to read in file, but column names are in column_list
+            # append sample column counts
+            print('...working on %s' % column_list[i])
+            count_file_df = pd.read_csv(count_file_list[i], sep='\t', names=['gene_id', column_list[i]])
+            count_df = pd.merge(count_df, count_file_df, on='gene_id')
+
+        return count_df

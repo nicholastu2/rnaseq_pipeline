@@ -69,8 +69,8 @@ def parseArgs(argv):
         description="copy with rsync")
     parser.add_argument("-s", "--source", required=True,
                         help='the source of the copy (either a directory, all files in the directory, of a file. Don\'t'
-                             'worry about the forward slash and do not add a *. The script will ask you question to figure'
-                             'all of this out.')
+                             ' worry about the forward slash and do not add a *. The script will ask you question to figure'
+                             ' all of this out.')
     parser.add_argument('-d', '--destination', required=True,
                         help='The destination of the copy (a directory)')
 

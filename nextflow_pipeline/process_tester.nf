@@ -1,79 +1,4 @@
-#!/usr/bin/env nextflow
-
-// split columns/rows of fastq_file_list for processing
-Channel
-    .fromPath(params.fastq_file_list)
-    .splitCsv(header:true)
-    .map{row-> tuple(row.runDirectory, file(row.fastqFileName), row.organism, row.strandedness) }
-    .set { fastq_filelist }
-
-
-scratch_sequence = file(params.scratch_sequence)
-
-process novoalign {
-
-    scratch true
-    executor "slurm"
-    cpus 8
-    memory "20G"
-    beforeScript "ml novoalign samtools"
-    stageInMode "copy"
-    stageOutMode "move"
-    publishDir "$params.align_count_results/$run_directory/logs", mode:"copy", overwite: true, pattern: "*.log"
-
-
-    input:
-        tuple val(run_directory), file(fastq_file), val(organism), val(strandedness) from fastq_filelist
-    output:
-        tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads.bam") into bam_align_ch
-        tuple val(run_directory), file("${fastq_simple_name}_novoalign.log"), file("${fastq_simple_name}_novosort.log") into novoalign_log_ch
-
-    script:
-        fastq_simple_name = fastq_file.getSimpleName()
-        if (organism == 'S288C_R64')
-            """
-            novoalign -r All \\
-                      -c 8 \\
-                      -o SAM \\
-                      -d ${params.S288C_R64_novoalign_index} \\
-                      -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \\
-            samtools view -bS | \\
-            novosort - \\
-                     --threads 8 \\
-                     --markDuplicates \\
-                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-
-            """
-        else if (organism == 'KN99')
-            """
-            novoalign -r All \\
-                      -c 8 \\
-                      -o SAM \\
-                      -d ${params.KN99_novoalign_index} \\
-                      -f ${fastq_file} 2> ${fastq_simple_name}_novoalign.log | \\
-            samtools view -bS | \\
-            novosort - \\
-                     --threads 8 \\
-                     --markDuplicates \\
-                     --index \\
-                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-            """
-        else if (organism == 'H99')
-            """
-            novoalign -r All \\
-                      -c 8 \\
-                      -o SAM \\
-                      -d ${params.H99_novoalign_index} \\
-                      -f ${fastq_file} \\
-                      2> ${fastq_simple_name}_novoalign.log | \\
-            samtools view -bS | \\
-            novosort - \\
-                     --threads 8 \\
-                     --markDuplicates \\
-                     -o ${fastq_simple_name}_sorted_aligned_reads.bam 2> ${fastq_simple_name}_novosort.log
-
-            """
-}
+// need to figure out pipeline info process
 
 process htseq_count {
 
@@ -95,7 +20,7 @@ process htseq_count {
         tuple val(run_directory), val(fastq_simple_name), val(organism), val(strandedness), file("${fastq_simple_name}_sorted_aligned_reads_with_annote.bam") into bam_align_with_htseq_annote_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_read_count.tsv") into htseq_count_ch
         tuple val(run_directory), val(fastq_simple_name), file("${fastq_simple_name}_htseq.log") into htseq_log_ch
-        tuple val(run_directory), val(organism), val(strandedness) into pipeline_info_ch
+        tuple val(run_directory), val(organism), val(strandedness) pipeline_info_ch
 
     script:
         if (organism == 'S288C_R64')
@@ -179,42 +104,42 @@ process writePipelineInfo {
         tuple val(run_directory), val(organism), val(strandedness) from pipeline_info_ch
 
     script:
-"""
-#!/usr/bin/env python
+        """
+        #!/usr/bin/env python
 
-from rnaseq_tools.OrganismDataObject import OrganismData
-from rnaseq_tools import utils
-import os
+        from rnaseq_tools.OrganismDataObject import OrganismDataObject
+        from rnaseq_tools import utils
 
-# instantiate OrganismDataObject (see brentlab rnaseq_pipeline)
-od = OrganismData(organism = "${organism}", interactive=True)
+        # instantiate OrganismDataObject (see brentlab rnaseq_pipeline)
+        od = OrganismDataObject(organism = ${organism}, interactive=True)
 
-# create pipeline_info subdir of in rnaseq_pipeline/align_count_results/${organism}_pipeline_info
-pipeline_info_subdir_path = os.path.join(od.align_count_results, "${run_directory}", "${organism}_pipeline_info")
-utils.mkdirp(pipeline_info_subdir_path)
+        # create pipeline_info subdir of in rnaseq_pipeline/align_count_results/${organism}_pipeline_info
+        pipeline_info_subdir_path = os.path.join(od.align_count_results, ${run_directory}, "${organism}_pipeline_info")
+        utils.mkdirp(pipeline_info_subdir_path)
 
-# write version info from the module .lua file (see the .lua whatis statements)
-pipeline_info_txt_file_path = os.path.join(pipeline_info_subdir_path, 'pipeline_info.txt')
-cmd_pipeline_info = 'module whatis rnaseq_pipeline 2> %s' %pipeline_info_txt_file_path
-utils.executeSubProcess(cmd_pipeline_info)
+        # write version info from the module .lua file (see the .lua whatis statements)
+        pipeline_info_txt_file_path = os.path.join(pipeline_info_subdir_path, 'pipeline_info.txt')
+        cmd_pipeline_info = "module whatis rnaseq_pipeline 2> {}".format(pipeline_info_txt_file_path)
+        utils.executeSubProcess(cmd_pipeline_info)
 
-# include the date processed in pipeline_info_subdir_path/pipeline_into.txt
-with open(pipeline_info_txt_file_path, "a+") as file:
-    file.write('')
-    current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
-    file.write('Date processed: %s' %current_datetime)
-    file.write('')
+        # include the date processed in pipeline_info_subdir_path/pipeline_into.txt
+        with open(pipeline_info_txt_file_path, "a+") as file:
+            file.write("\n")
+            current_datetime = od.year_month_day + '_' + utils.hourMinuteSecond()
+            file.write('Date processed: %s' % current_datetime)
+            file.write("\n")
 
-# set annotation_file
-if "${organism}" == 'KN99' and "${strandedness}" == 'no':
-      annotation_file = od.annotation_file_no_strand
-else:
-    annotation_file = od.annotation_file
-# include the head of the gff/gtf in pipeline_info
-cmd_annotation_info = 'head %s >> %s' %(annotation_file, pipeline_info_txt_file_path)
-utils.executeSubProcess(cmd_annotation_info)
+        # set annotation_file
+        if ${organism} == 'KN99':
+            if ${stranded} == 'no':
+                annotation_file = od.annotation_file_no_strand
+        else:
+            annotation_file = od.annotation_file
+        # include the head of the gff/gtf in pipeline_info
+        cmd_annotation_info = "head {} >> {}".format(annotation_file, pipeline_info_txt_file_path)
+        utils.executeSubProcess(cmd_annotation_info)
 
-# TODO: try copying nextflow jobscript to pipeline_info
+        # TODO: try copying nextflow jobscript to pipeline_info
 
-"""
+        """
 }

@@ -13,11 +13,18 @@ import os
 def main(argv):
     # parse cmd line input and instantiate OrganismData
     parsed = parse_args(argv)
+
+    # use query sheet to extract files from /lts to scratch
+
+    # compile metadata + qa
+
+    #
+
     od = OrganismData(organism=parsed.organism, query_sheet_path=parsed.query_sheet_path,
                       experiment_dir=parsed.experiment_dir, norm_count_path=parsed.norm_count_path,
                       max_replicates=parsed.max_replicates, output_dir=parsed.output_dir,
                       wildtype=parsed.wildtype, drug_marker=parsed.drug_marker, qc_config=parsed.qc_config,
-                      experiment_conditions=parsed.experimental_conditions.split(' '), interactive=True)  # TODO -- deal with multiple inputs better than this. point of weakness
+                      experiment_conditions=parsed.experimental_conditions.split(' '))  # TODO -- deal with multiple inputs better than this. point of weakness
     # create standardized_database_df from query_sheet_path
     query_df = utils.readInDataframe(od.query_sheet_path)
     od.standardized_database_df = DatabaseObject.standardizeDatabaseDataframe(query_df)
@@ -56,7 +63,7 @@ def main(argv):
     else:
         drug_markers = od.drug_marker
         drug_marker_columns = [drug_marker + '_FOM' for drug_marker in od.drug_marker]
-    df_columns = ['GENOTYPE', 'REPLICATE', 'COUNTFILENAME'] \
+    df_columns = ['GENOTYPE', 'REPLICATE', 'FASTQFILENAME'] \
                  + od.experiment_conditions \
                  + ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
                  + ['TOTAL', 'ALIGN_PCT', 'MUT_FOW'] \
@@ -66,7 +73,7 @@ def main(argv):
     qual_assess_df, rep_max = initializeQualAssesDf(od.standardized_database_df, df_columns, od.experiment_conditions)
     if rep_max != od.max_replicates:
         print(
-            'The max number of replicates in the query sheet is {}. Please re-launch this script with -r {}. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
+            'The max number of replicates in the query sheet is {}. Continuing with correct replicate count. However, calculating CoV with greater than 7 samples is not possible currently.'.format(
                 rep_max, rep_max))
     if rep_max > 7:
         print(
@@ -74,25 +81,25 @@ def main(argv):
         user_response = input()
         if user_response == 'n':
             sys.exit()
-        else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
-            norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
-                                                            od.experiment_conditions)
-            print('... Assessing reads mapping')
-            qual_assess_df = assessMappingQuality(qual_assess_df, od.experiment_dir)
-            print('... Assessing efficiency of gene mutation')
-            if parsed.descriptors_specific_fow:
-                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
-                                                         od.experiment_conditions)
-            else:
-                qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
-            print('... Assessing insertion of resistance cassette')
-            qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
-            print('... Assessing concordance among replicates') # TODO: MAKE THIS AN OPTION IN PARSEARGS
-            qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
-            print('... Auto auditing')
-            qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
-            print('...writing summary to %s' % output_name)
-            saveDataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
+    else:  # TODO: clean this up -- this is repeat code to avoid assess_replicate_concorndance if number of samples too large
+        norm_count_df, sample_dict = loadExpressionData(qual_assess_df, od.norm_count_path, od.gene_list,
+                                                        od.experiment_conditions)
+        # print('... Assessing reads mapping')
+        # qual_assess_df = assessMappingQuality(qual_assess_df, od.experiment_dir)
+        # print('... Assessing efficiency of gene mutation')
+        # if parsed.descriptors_specific_fow:
+        #     qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype,
+        #                                              od.experiment_conditions)
+        # else:
+        #     qual_assess_df = assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, od.wildtype)
+        # print('... Assessing insertion of resistance cassette')
+        # qual_assess_df = assessResistanceCassettes(qual_assess_df, norm_count_df, od.drug_marker, od.wildtype)
+        # print('... Assessing concordance among replicates') # TODO: MAKE THIS AN OPTION IN PARSEARGS
+        qual_assess_df = assessReplicateConcordance(qual_assess_df, norm_count_df, sample_dict, od.experiment_conditions)
+        print('... Auto auditing')
+        qual_assess_df = updateAutoAudit(qual_assess_df, parsed.auto_audit_threshold)
+        print('...writing summary to %s' % output_name)
+        saveDataframe(output_name, qual_assess_df, df_columns, od.experiment_conditions, len(od.experiment_conditions))
 
 
 def parse_args(argv):
@@ -148,7 +155,7 @@ def initializeQualAssesDf(standardized_query_df, df_cols, conditions):
     if conditions:
         conditions = [x.upper() for x in conditions]
 
-    standardized_query_df = standardized_query_df[['GENOTYPE', 'REPLICATE', 'COUNTFILENAME'] + conditions]
+    standardized_query_df = standardized_query_df[['GENOTYPE', 'REPLICATE', 'FASTQFILENAME'] + conditions]
     standardized_query_df = standardized_query_df.reset_index().drop(['index'], axis=1)
     standardized_query_df = pd.concat(
         [standardized_query_df, pd.Series([0] * standardized_query_df.shape[0], name='STATUS')], axis=1)
@@ -177,7 +184,11 @@ def loadExpressionData(qual_assess_df, norm_count_matrix, gene_list, experiment_
     """
     # load count matrix
     norm_count_df = pd.read_csv(norm_count_matrix)
-    norm_count_df = norm_count_df.rename(columns={'Unnamed: 0': 'gene'})
+    norm_count_df.reset_index(inplace=True)
+    if "Unnamed: 0" in norm_count_df.columns:
+        norm_count_df = norm_count_df.rename(columns={'Unnamed: 0': 'gene'})
+    elif "protein_coding_gene_id_column" in norm_count_df.columns: #TODO: adapting this for interquartile range EDA -- clean up eventually
+        norm_count_df = norm_count_df.rename(columns={'protein_coding_gene_id_column': 'gene'})
 
     # intersect gene list with the count matrix, remove genes from count matrix that are not in gene list
     if gene_list is not None:
@@ -190,7 +201,7 @@ def loadExpressionData(qual_assess_df, norm_count_matrix, gene_list, experiment_
         # remove genes NOT IN the gene list from the count matrix
         norm_count_df = norm_count_df.loc[norm_count_df['gene'].isin(gene_list)]
 
-    # make sample dict with structure {(genotype, condition1, condition2, ...): {rep#: countfilename}} eg { ('CNAG_00883', '37C.CO2', 90): {1: 'Brent_3_GTAC_2_SIC_Index2_07_GCTTAGAA_GAGTTGGT_S4_R1_001_read_count.tsv', 2: 'Brent_4_GTAC_4_SIC_Index2_07_CACCTCCA_GAGTTGGT_S5_R1_001_read_count.tsv', 3: 'Brent_5_GTAC_5_SIC_Index2_07_ATCGAGCA_GAGTTGGT_S6_R1_001_read_count.tsv'}}
+    # make sample dict with structure {(genotype, condition1, condition2, ...): {rep#: fastqfilename}} eg { ('CNAG_00883', '37C.CO2', 90): {1: 'Brent_3_GTAC_2_SIC_Index2_07_GCTTAGAA_GAGTTGGT_S4_R1_001_read_count.tsv', 2: 'Brent_4_GTAC_4_SIC_Index2_07_CACCTCCA_GAGTTGGT_S5_R1_001_read_count.tsv', 3: 'Brent_5_GTAC_5_SIC_Index2_07_ATCGAGCA_GAGTTGGT_S6_R1_001_read_count.tsv'}}
     sample_dict = {}
     for index, row in qual_assess_df.iterrows():
         genotype = row['GENOTYPE']
@@ -199,7 +210,7 @@ def loadExpressionData(qual_assess_df, norm_count_matrix, gene_list, experiment_
             sample_description = tuple([genotype])
         else:
             sample_description = tuple([genotype] + [row[c] for c in experiment_conditions])
-        count_file_name = str(row['COUNTFILENAME'])
+        count_file_name = str(row['FASTQFILENAME'])
 
         # that the count_file_name is in fact in the norm counts
         if count_file_name in norm_count_df.columns.values:
@@ -221,7 +232,7 @@ def assessMappingQuality(qual_assess_df, experiment_directory, aligner_tool='nov
     :returns: updated quality_assess_df
     """
     for i, row in qual_assess_df.iterrows():
-        sample = str(row['COUNTFILENAME']).replace('_read_count.tsv', '_%s.log' % aligner_tool)
+        sample = str(row['FASTQFILENAME']) + '_%s.log' % aligner_tool
         filepath = os.path.join(experiment_directory, sample)
 
         # read alignment log
@@ -274,7 +285,7 @@ def assessEfficientMutation(qual_assess_df, norm_count_df, sample_dict, wt, cond
         wt_expr = pd.concat([norm_count_df, wt_expr], axis=1)
     # calculate efficiency of gene deletion, ignoring overexpression(*_over)
     for i, row in qual_assess_df[qual_assess_df['GENOTYPE'] != wt].iterrows():
-        sample = str(row['COUNTFILENAME'])
+        sample = str(row['FASTQFILENAME'])
         print('... calculating MUT_FOW in %s' % sample)
         # extract list of mutated genes (there will be multiple if double KO)
         perturbed_genotype_list = row['GENOTYPE'].split('.')
@@ -337,7 +348,7 @@ def assessResistanceCassettes(qual_assess_df, norm_count_df, drug_marker_list, w
         return qual_assess_df
     drug_marker_median_expression_dict = {}
     # list of perturbed samples (not wildtype)
-    perturbed_samples = list(qual_assess_df[qual_assess_df.GENOTYPE != wt].COUNTFILENAME)
+    perturbed_samples = list(qual_assess_df[qual_assess_df.GENOTYPE != wt].FASTQFILENAME)
     # get the median of resistance cassettes
     for drug_marker in drug_marker_list:
         # exclude wildtypes and markers expressed < 150 normalized counts
@@ -347,7 +358,7 @@ def assessResistanceCassettes(qual_assess_df, norm_count_df, drug_marker_list, w
     # calculate FOM (fold change over mutant) of the resistance cassette
     for index, row in qual_assess_df.iterrows():
         genotype = row['GENOTYPE']
-        sample = str(row['COUNTFILENAME'])
+        sample = str(row['FASTQFILENAME'])
         print('...assessing_drug_marker in %s' % genotype)
         # update FOM
         for valid_drug_marker in drug_marker_median_expression_dict.keys():
@@ -390,7 +401,7 @@ def assessReplicateConcordance(qual_assess_df, expr, sample_dict, conditions):
             # calculate COV median
             cov_median = calculate_cov_median(expr[sample_combo])
             rep_combo_col = 'COV_MED_REP' + ''.join(np.array(rep_combo, dtype=str))
-            qual_assess_df.loc[qual_assess_df['COUNTFILENAME'].isin(sample_combo), rep_combo_col] = cov_median
+            qual_assess_df.loc[qual_assess_df['FASTQFILENAME'].isin(sample_combo), rep_combo_col] = cov_median
             # store COV median at the respective rep number
             if rep_num not in cov_meds_dict.keys():
                 cov_meds_dict[rep_num] = {'rep_combos': [], 'cov_meds': []}

@@ -12,11 +12,8 @@
 """
 import pandas as pd
 import os
-import re
-import sys
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
-
 
 # TODO: more error handling in functions
 class DatabaseObject(StandardData):
@@ -35,13 +32,17 @@ class DatabaseObject(StandardData):
         self.self_type = 'DatabaseObject'
         # set DatabaseObject logger
         self.logger = utils.createStandardObjectChildLogger(self, __name__)
+        try:
+            self.database_directory = kwargs['database_files']
+        except KeyError:
+            self.database_directory = self.database_files
 
         # set default database subdirectories. PLEASE NOTE: order is important here -- list in the order you wish them to merge in
         try:
             self.database_subdirectories = kwargs['database_subdirectories']
         except KeyError:
-            self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample',
-                                            'bioSample']
+            # self.database_subdirectories = ['fastqFiles', 'library', 's2cDNASample', 's1cDNASample', 'rnaSample', 'bioSample'] # concat in reverse order
+            self.database_subdirectories = ['bioSample', 'rnaSample', 's1cDNASample', 's2cDNASample', 'library', 'fastqFiles']
 
         # see setter setFilterJson()
         self.filter_json = None
@@ -56,14 +57,18 @@ class DatabaseObject(StandardData):
         except KeyError:
             self.database_df = None
 
+        # see filterDatabaseDataframe()
+        try:
+            self.filtered_database_df = kwargs['filtered_database_df']
+        except KeyError:
+            self.filtered_database_df = None
+
         # data_dir_dict will store {database_subdirectory: [list, of, filepaths, in, each, subdir], ... }. See self.setDatabaseDict()
         self.database_dict = {}
         # see setter setDatabaseDict()
         self.concat_database_dict = {}
         # see setter setKeyColumns()
         self.database_key_columns = []
-        # see filterDatabaseDataframe()
-        self.filtered_database_df = None
 
     def setDatabaseDict(self):
         """
@@ -73,7 +78,7 @@ class DatabaseObject(StandardData):
         # associate each key (relevant subdirectories of database) with a list of of files (absolute path) in each key directory
         for subdirectory in self.database_subdirectories:
             # create a path database_files/subdirectory
-            subdirectory_path = os.path.join(self.database_files, subdirectory)
+            subdirectory_path = os.path.join(self.database_directory, subdirectory)
             # extract list of files in subdirectory_path (not recursive -- will return subdirs, but not their contents)
             subdirectory_files = utils.extractTopmostFiles(subdirectory_path)
 
@@ -100,9 +105,10 @@ class DatabaseObject(StandardData):
                 # associate subdirectory (key) with subdirectory_files (value) in data_dir_dict
                 self.database_dict.setdefault(subdirectory, []).extend(no_tmp_subdirectory_files)
 
-    def setDatabaseDataframe(self):
+    def setDatabaseDataframe(self, accuracy_check=False):
         """
             create joined data frame from the concatenated files in the subdirectories of the database_directory
+            :param accuracy_check: boolean flag to indicate whether the purpose of concatenating the database is checking the string format accuracy. If true, name keys are not cast to uppper
         """
         # check that database_dict, concat_database_dict and database_key_columns exist
         if len(self.database_dict) == 0:
@@ -111,15 +117,24 @@ class DatabaseObject(StandardData):
             self.setConcatDatabaseDict()
         if len(self.database_key_columns) == 0:
             self.setKeyColumns()
+        # TODO: CAST ALL KEY COLUMNS TO UPPERCASE PRIOR TO MERGE
         # merge the first two (fastqFiles and Library) sets of data
         left_sheet = self.concat_database_dict[self.database_subdirectories[0]]
         right_sheet = self.concat_database_dict[self.database_subdirectories[1]]
+        # if not an accuracy check (default) cast the name column (the second item in the key list) to upper case
+        if not accuracy_check:
+            left_sheet[self.database_key_columns[0][1]] = left_sheet[self.database_key_columns[0][1]].str.upper()
+            right_sheet[self.database_key_columns[0][1]] = right_sheet[self.database_key_columns[0][1]].str.upper()
+        # merge
         self.database_df = pd.merge(left_sheet, right_sheet, how='left', on=list(self.database_key_columns[0]))
         # merge the subsequent sheets on the columns identified in key_cols
         for i in range(1, len(self.database_subdirectories) - 1):
             # store the following for readability
             subdirectory = self.database_subdirectories[i + 1]
             database_key_column = self.database_key_columns[i]
+            next_df = self.concat_database_dict[subdirectory]
+            if not accuracy_check:
+                next_df[database_key_column[1]] = next_df[database_key_column[1]].str.upper() # cast name column to upper
             # keep merging the next sheet to self.database_df
             self.database_df = pd.merge(self.database_df, self.concat_database_dict[subdirectory], how='left',
                                         on=list(database_key_column))
@@ -132,6 +147,9 @@ class DatabaseObject(StandardData):
         # create dataframe from first file in file_list in given key(subdirectory) of database_dict
         for subdirectory, file_list in self.database_dict.items():
             self.concat_database_dict[subdirectory] = utils.readInDataframe(file_list[0])
+            column_list = self.concat_database_dict[subdirectory].columns
+            column_list = [column_header.strip() for column_header in column_list]
+            self.concat_database_dict[subdirectory].columns = column_list
             # keep appending (cbind) dataframes to the bottom
             for file in file_list[1:]:
                 # read in next file in list as next_sheet
@@ -167,7 +185,11 @@ class DatabaseObject(StandardData):
         else:
             try:
                 self.filter_json = pd.read_json(self.filter_json_path, typ='series', dtype=False)
-            except FileNotFoundError or ValueError:
+            except FileNotFoundError:
+                print('problem with json')
+                self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
+            except ValueError:
+                print('problem with json')
                 self.logger.error('No json present in filterDatabaseDataframe, or the formatting isn\'t recognized. Check the json -- try double quotes if using single -- and try again.')
 
     def dropRowsIfEmptyFastqFilename(self):
@@ -207,17 +229,12 @@ class DatabaseObject(StandardData):
             # use the filter_str formula to filter the dataframe
             self.filtered_database_df = self.database_df.query(filter_str)
 
-    @staticmethod
-    def standardizeDatabaseDataframe(rnaseq_metadata_df, prefix='', suffix='_read_count.tsv',
-                                     fastq_filename_rename='COUNTFILENAME', **kwargs):
+    @staticmethod  #TODO: THIS NEEDS TO BE CHANGED SO THAT THE STANDARD FASTQFILENAME --> SAMPLE WITH JUST THE BASENAME OF THE SAMPLE, NO PATH OR EXTENSION
+    def standardizeDatabaseDataframe(rnaseq_metadata_df, **kwargs):
         """
             convert a dataframe containing sample info to a 'standard form' -- capitalized column headings and FASTQFILENAME
-            renamed to COUNTFILENAME with appropriate prefix and suffix (pointing to count file in lts_align_expr)
-            replacing sequence/run_####_samples/ and .fastq.gz
+            is just the sample name -- no path, no extension
             :param rnaseq_metadata_df: pandas dataframe of the rnaseq_metadata
-            :param prefix: a prefix to attach to fastqFileName column (eg '/lts/mblab/Crypto/rnaseq_data/align_expr') default none
-            :param suffix: What to append to fastqFileName after stripping .fastq.gz. default _read_count.tsv
-            :param fastq_filename_rename: name to give the column fastqFileName. default COUNTFILENAME
             :param kwargs: arbitrary keyword arguments. provided to pass logger
             :returns: the dataframe with column variables cast to uppercase and fastqFileName converted to SAMPLE
         """
@@ -227,33 +244,12 @@ class DatabaseObject(StandardData):
         except AttributeError:
             print('standardizeDatabaseDataframe takes a dataframe, not a filepath, as an argument')
 
-        # regex to extract run_number, if needed
-        regex = r"(?<=sequence\/run_)\d*"
-
         # loop through rows
         for index, row in rnaseq_metadata_df.iterrows():
             # replace fastqfilename one by one so as to extract the run number appropriately
             fastq_file_path = rnaseq_metadata_df.loc[index, 'FASTQFILENAME']
             fastq_basename = utils.pathBaseName(fastq_file_path)
-            if prefix == 'align_expr/run_{}/':
-                try:
-                    run_number = re.search(regex, fastq_file_path)[0]
-                except TypeError:
-                    if kwargs['logger']:
-                        kwargs['logger'].error(
-                            'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
-                            'standardizeDatabaseDataframe')
-                    sys.exit(
-                        'No run number found in the path provided in the \'FASTQFILENAME\' column. See DatabaseObject function'
-                        'standardizeDatabaseDataframe')
-                rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = prefix.format(run_number) + fastq_basename + suffix
-            else:
-                if prefix:  # if a prefix other than align_expr/run_{} is passed, test if forward slash is present
-                    prefix = utils.addForwardSlash(prefix)
-                rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = prefix + fastq_basename + suffix
-
-        # rename fastqfilename column to 'sample'
-        rnaseq_metadata_df.rename(columns={'FASTQFILENAME': fastq_filename_rename}, inplace=True)
+            rnaseq_metadata_df.loc[index, 'FASTQFILENAME'] = utils.pathBaseName(fastq_basename)
 
         return rnaseq_metadata_df
 
