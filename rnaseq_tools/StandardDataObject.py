@@ -6,22 +6,20 @@ import configparser
 
 class StandardData:
     """
-    parent class of rnaseq_pipeline. Creates rnaseq_pipeline directory in $USER if it (or any part) do not exist
-    and stores all paths to resource directories and files.
-       Does not check contents of all required directories for completeness (especially critical for genome_files), #TODO fix this so it does
-       only that they exist.
-       loads rnaseq_pipeline package level configuration (both main config as well as logger config in $USER/rnaseq_pipeline/config
-           Recall that OrganismData, a child of StandardData, loads the .ini config files in each organism in $USER/rnaseq_pipeline/genome_files/
+        parent class of rnaseq_pipeline. Creates rnaseq_pipeline directory in $USER if it (or any part) do not exist
+        and stores all paths to resource directories and files.
+           loads rnaseq_pipeline package level configuration (both main config as well as logger config in $USER/rnaseq_pipeline/config
+               Recall that OrganismData, a child of StandardData, loads the .ini config files in each organism in $USER/rnaseq_pipeline/genome_files/
 
-    In the config file, if using locally, you can include genome_files = https://... path to genome files in /lts. See this:
-        https://htcfdocs.readthedocs.io/en/latest/storage/#publishing-files
+        In the config file, if using locally, you can include genome_files = https://... path to genome files in /lts. See this:
+            https://htcfdocs.readthedocs.io/en/latest/storage/#publishing-files
     """
 
     def __init__(self, expected_attributes=None, *args, **kwargs):
         """
-        initialize StandardDataFormat with arbitrary number of keyword arguments.
-        :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
-        :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
+            initialize StandardDataFormat with arbitrary number of keyword arguments.
+            :param expected_attributes: a list of other attributes (intended use is for sub classes to add expected attributes)
+            :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
         """
         self.self_type = 'StandardData'
         self.log_dir = None
@@ -55,7 +53,7 @@ class StandardData:
         # get user name and set as _user
         self._user = getpass.getuser()
 
-        # set debug level
+        # set debug level -- all SD objects may adjust by passing logger_level argument in constructor
         try:
             self.logger_level = kwargs['logger_level']
         except KeyError:
@@ -84,13 +82,14 @@ class StandardData:
 
         # set interactive (flag for interactive session on htcf) to false if not already set. If True, StandardDataObject and child will not try to softlink to lts (long term storage)
         if not hasattr(self, 'interactive'):
-            self.interactive = False  # TODO: NEED TO CHECK THIS -- CHILDREN MAY NOT OVERWITE!
-        # set/check standardDirectoryStructure # TODO: CHECK SUBDIRECTORIES AND FILES EG GENOME_FILES
+            self.interactive = False
+
+        # set/check standardDirectoryStructure
         self.standardDirectoryStructure()
 
-    def standardDirectoryStructure(self): # TODO: MAKE ALL DIRECTORIES DIRECTLY CONFIGURABLE IN CONFIG FILE -- CHECK THIS FIRST
+    def standardDirectoryStructure(self):
         """
-        checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
+            checks for and creates if necessary the expected directory structure in /scratch/mblab/$USER/rnaseq_pipeline
         """
         # offer method to set user_scratch in config file
         try:
@@ -109,7 +108,7 @@ class StandardData:
 
         # create necessary subdirectories in rnaseq_pipeline
         process_directories = ['reports', 'align_count_results', 'query', 'sbatch_log', 'log/%s' % self.year_month_day, 'job_scripts',
-                               'rnaseq_tmp', 'experiments']  # TODO: MAKE SBATCH_LOG LIKE LOG WITH YEAR_MONTH_DAY SUBDIR
+                               'rnaseq_tmp', 'experiments', 'scratch_sequence']  # TODO: MAKE SBATCH_LOG LIKE LOG WITH YEAR_MONTH_DAY SUBDIR
         for directory in process_directories:
             # store path
             path = os.path.join(self.user_rnaseq_pipeline_directory, directory)
@@ -128,12 +127,13 @@ class StandardData:
 
         # TODO: priority (see other comment)
         # set attr scratch_sequence and database_files if not exist already. check config file for explicit path first, then search in htcf structure
-        try:
-            mblab_shared_dirs = ['scratch_sequence']
-            utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)
-        except FileNotFoundError:
-            print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
-                  "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
+        # try:
+        #     mblab_shared_dirs = ['scratch_sequence']
+        #     utils.softLinkAndSetAttr(self, mblab_shared_dirs, self.mblab_shared, self.user_rnaseq_pipeline_directory)
+        # except FileNotFoundError:
+        #     print("Could not softlink scratch_sequence or database_files. check both source and target.\n"
+        #           "To check target, look in StandardDataObject.standardDirectoryStructure() and config_file.")
+
         try:
             database_files_path = os.path.join(self.user_rnaseq_pipeline_directory, 'database_files')
             if not os.path.isdir(database_files_path):
@@ -143,9 +143,9 @@ class StandardData:
             utils.executeSubProcess(cmd)
         finally:
             setattr(self, 'database_files', database_files_path)
+
         if self.interactive:
             print('Remember you will not be able to access lts_align_expr or lts_sequence in an interactive session on htcf')
-            self.setGenomeFiles()
         else:
             # check for directories to be soft linked from /lts/mblab/Crypto/rnaseq_pipeline (self.lts_rnaseq_data)
             lts_dirs_to_softlink = ['lts_align_expr', 'lts_sequence']
@@ -158,17 +158,18 @@ class StandardData:
                 setattr(self, 'lts_align_expr', os.path.join(self.user_rnaseq_pipeline_directory, 'lts_align_expr'))
                 setattr(self, 'lts_sequence', os.path.join(self.user_rnaseq_pipeline_directory, 'lts_sequence'))
             # TODO: priority figure out how to do this without pulling from /lts. put link to genome_files.zip in config maybe
-            # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
-            self.setGenomeFiles()
-            # check that all files present in the OrganismDataConfig.ini file in the subdirectories of genome_files exist
-            try:
-                self.checkGenomeFiles()
-            except NotADirectoryError:
-                print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
-                      'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
-            except FileNotFoundError:
-                print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
-                      'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
+
+        # unzip genome files from /lts/mblab/Crypto/rnaseq_data/1.0/genome_files to self.user_rnaseq_pipeline_directory
+        self.setGenomeFiles()
+        # check that all files present in the OrganismDataConfig.ini file in the subdirectories of genome_files exist
+        try:
+            self.checkGenomeFiles()
+        except NotADirectoryError:
+            print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
+                  'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
+        except FileNotFoundError:
+            print('Genome Files are incomplete. Delete genome_files completely and re-run StandardDataObject or child '
+                  'to re-download genome_files.\nNote: this cannot be done from an interactive session on HTCF.')
 
     def setGenomeFiles(self):
         """
@@ -176,9 +177,9 @@ class StandardData:
             Then the zip file will be downloaded from that path
             TODO: error checking if the config_file https path doesn't work
         """
-        # if genome_files is set in config file as a downloadable hosted link to the genome_files.zip in /lts
+        # if genome_files is set in config file
         if hasattr(self, 'genome_files'):
-            # if the config_file has an entry genome_files = 'https://...'
+            # if the config_file has an entry genome_files = 'https://...' (link to the hosted genome files in /lts -- it is important that there be a single source for genome_files)
             if self.genome_files.startswith('https'):
                 # and the file genome_files DNE in user_rnaseq_pipeline_directory, download from path
                 if not os.path.isdir(os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files')):
@@ -188,9 +189,11 @@ class StandardData:
                     unzip_genome_files_cmd = 'unzip %s -d %s && rm %s' %(zipped_genome_files_path, self.user_rnaseq_pipeline_directory,
                                                                          zipped_genome_files_path)
                     utils.executeSubProcess(unzip_genome_files_cmd)
-        # set path to genome_files in user_rnaseq_pipeline directory as attribute
+
+        # set path of self.genome_files to subdir of user_rnaseq_pipeline directory
         setattr(self, 'genome_files', os.path.join(self.user_rnaseq_pipeline_directory, 'genome_files'))
-        # if the file DNE and not interactive flag (interactive session on  htcf) is False, then download from /lts
+
+        # if the file DNE and interactive flag is set to False (not in interactive session on  htcf), then download from /lts
         if not (self.interactive or os.path.exists(self.genome_files)):
             genome_files_full_path = os.path.join(self.lts_rnaseq_data, self.pipeline_version, 'genome_files.zip')
             cmd = 'unzip {} -d {}'.format(genome_files_full_path, self.user_rnaseq_pipeline_directory)
@@ -199,11 +202,12 @@ class StandardData:
     def checkGenomeFiles(self):  # NOTE: need to update OrganismDataObject to expect this function TODO: IMPROVE ERROR CHECKING AND LOGGING. CLUNKY CURRENTLY.
         """
             read in OrganismDataConfig.ini from each expected subdir of genome_files and check if the path is valid.
-            If it is not, delete ask user to check genome_files and/or delete genome_files and allow StandardDataObject
+            If it is not, ask user to check genome_files and/or delete genome_files and allow StandardDataObject
             to re-download to update paths
         """
         # list of attributes not to be checked for file existence as they are not files
         no_check_organism_attribute_list = self._no_file_organism_attributes.values()
+        # flatten list
         no_check_organism_attribute_list = [x for sublist in no_check_organism_attribute_list for x in sublist]
         for organism in self._configured_organisms_list:
             # check if directory exists
@@ -223,7 +227,7 @@ class StandardData:
                 organism_config_dict.read(organism_config_file_path)
                 for organism_attribute, filename in organism_config_dict['OrganismData'].items():
                     # skip attributes that do not have a corresponding filename
-                    if organism_attribute in no_check_organism_attribute_list: #TODO: just make it so no int values are checked?
+                    if organism_attribute in no_check_organism_attribute_list:  # TODO: just make it so no int values are checked?
                         continue
                     organism_attribute_filepath = os.path.join(organism_genome_files_subdir_path, filename)
                     if not os.path.isfile(organism_attribute_filepath):
