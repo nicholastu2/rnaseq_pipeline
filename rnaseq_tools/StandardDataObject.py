@@ -22,8 +22,10 @@ class StandardData:
             :param kwargs: arbitrary number/length keyword arguments. key = value will be set as class attributes
         """
         self.self_type = 'StandardData'
+        # these will be filled in the standardDataStructure() call at the end of the constructor
         self.log_dir = None
         self.log_file_path = None
+
         # list of StandardData object expected attributes. This is the file structure necessary for the rnaseq pipeline
         self._attributes = ['lts_rnaseq_data', 'pipeline_version', 'mblab_scratch', 'scratch_database_files',
                             'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
@@ -238,7 +240,7 @@ class StandardData:
     @staticmethod
     def returnRunNumber(run_number):
         """
-            input run number. if it si in the _run_numbers_with_leading_zero dict, then return a string with the leading
+            input run number. if it is in the _run_numbers_with_leading_zero dict, then return a string with the leading
             zero
         """
         raise NotImplementedError
