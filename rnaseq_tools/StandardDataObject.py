@@ -132,7 +132,7 @@ class StandardData:
             if not os.path.isdir(database_files_path):
                 raise NotADirectoryError('DatabaseFilesNotFound: %s' %database_files_path)
         except NotADirectoryError:
-            cmd = 'git clone https://github.com/BrentLab/database_files.git'
+            cmd = 'git clone https://github.com/BrentLab/database_files.git %s' %database_files_path
             utils.executeSubProcess(cmd)
         finally:
             setattr(self, 'database_files', database_files_path)

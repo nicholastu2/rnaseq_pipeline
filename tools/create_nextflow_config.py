@@ -49,7 +49,7 @@ def main(argv):
     for index, row in db.query_df.iterrows():
         # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
         # this step adds the zero and casts the row to str
-        if int(row['runNumber']) in (db._run_numbers_with_zeros):
+        if int(row['runNumber']) in db._run_numbers_with_zeros:
             run_number = str(db._run_numbers_with_zeros[int(row['runNumber'])])
         else:
             run_number = str(row['runNumber'])
@@ -114,16 +114,6 @@ def main(argv):
                     "* this job, you will need to run create_nextflow_config.py\n" \
                     "* with the same query_sheet input\n" \
                     "*/\n\n" % db.year_month_day
-
-    # # manifest section is metadata about the pipeline
-    # manifest
-    # {
-    #     homePage = 'http://foo.com'
-    # description = 'Pipeline does this and that'
-    # mainScript = 'foo.nf'
-    # version = '1.0.0'
-    # }
-
 
     # params section has all relevant path parameters to run the pipeline
     params_section = "// params necessary for the pipeline\n" \
