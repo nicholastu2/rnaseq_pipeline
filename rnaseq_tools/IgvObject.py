@@ -169,20 +169,18 @@ class IgvObject(OrganismData):
 
         # create gene body region bed file
         igv_bed_filepath = os.path.join(rnaseq_tmp_bedfile_dirpath, utils.pathBaseName(fastq_filename) + '.bed')
-        # create bedfile lines. see http://genome.ucsc.edu/FAQ/FAQformat#format1 for explanation
-        #header = "track name=\"%s\" description=\"%s\" colorByStrand=\"255,0,0 0,0,255\"\n" %(sample, description)
 
         bed_lines_list = []
         for gene in gene_list:
             gene_parsed_annotation_dict = self.annotation_dict[gene]
+            sample_description = '[%s]%s' %(sample, gene)
             bed_lines_list.append('%s\t%s\t%s\t%s\t%s\t%s\n' %(gene_parsed_annotation_dict['chrm'],
                                                                 max(gene_parsed_annotation_dict['coords'][0] - flanking_region, 0),
                                                                 gene_parsed_annotation_dict['coords'][1] + flanking_region,
-                                                                sample, ".", gene_parsed_annotation_dict['strand']))
+                                                                sample_description, ".", gene_parsed_annotation_dict['strand']))
 
         with open(igv_bed_filepath, 'w') as file:
             file.write(''.join(bed_lines_list))
-            #file.write(header + ''.join(bed_lines_list))
 
         return igv_bed_filepath
 
