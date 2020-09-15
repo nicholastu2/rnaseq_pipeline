@@ -134,9 +134,11 @@ class IgvObject(OrganismData):
         for treatment_timepoint in wildtype_genotype_dict:
             wildtype_fastq_filename = self.wildtype_dict[treatment_timepoint]
             wildtype_bamfile = utils.convertFastqFilename(wildtype_fastq_filename, 'bam')  # TODO: CHECK EXISTENCE
+            wildtype_bam_fullpath = os.path.join(self.scratch_alignment_source, 'run_%s_samples' % run_number, 'align',
+                                            wildtype_bamfile)
             treatment_timepoint_genotype_list = wildtype_genotype_dict[treatment_timepoint]
             self.igv_snapshot_dict.setdefault(wildtype_fastq_filename, {}).setdefault('gene', []).extend(treatment_timepoint_genotype_list)
-            self.igv_snapshot_dict[wildtype_fastq_filename]['bam'] = wildtype_bamfile
+            self.igv_snapshot_dict[wildtype_fastq_filename]['bam'] = wildtype_bam_fullpath
             self.igv_snapshot_dict[wildtype_fastq_filename]['bed'] = self.createBedFile(genotype, wildtype_fastq_filename, 'wildtype')
 
     def createBedFile(self, gene_list, fastq_filename, description, flanking_region=500):
@@ -209,7 +211,7 @@ class IgvObject(OrganismData):
         job += '\nml java\n' \
                'ml rnaseq_pipeline\n\n' \
                'read bam_file bed_file igv_genome < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
-               'make_IGV_snapshots.py $bam_file -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r $bed_file -g $igv_genome -%s png -o %s\n'\
+               'make_IGV_snapshots.py $bam_file -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r $bed_file -g $igv_genome -fig_format %s -o %s\n'\
                                                                          %(lookup_file_path, fig_format, self.igv_output_dir)
 
         igv_job_script = os.path.join(self.today_job_dir, '%s_%s.sbatch' %(self.year_month_day, utils.hourMinuteSecond()))
