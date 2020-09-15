@@ -279,6 +279,10 @@ def main(input_files, region_file='regions.bed', genome='hg19', image_height='50
 
     # default IGV batch script output location
     batchscript_file = os.path.join(outdir, "IGV_snapshots.bat")
+    count=1
+    # add count to ensure file is not overwritten
+    while os.path.exists(batchscript_file):
+        batchscript_file = os.path.join(outdir, 'IGV_snapshots_%s.bat' %str(count))
 
     # make sure the regions file exists
     file_exists(region_file, kill=True)
