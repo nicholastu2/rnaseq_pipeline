@@ -184,6 +184,24 @@ class IgvObject(OrganismData):
 
         return igv_bed_filepath
 
+    def writeIgvBatchScript(self):
+        """
+        http://software.broadinstitute.org/software/igv/book/export/html/189
+            example IGV batch script:
+                new                                         # batchscript keyword new (new snapshot)
+                snapshotDirectory IGV_Snapshots             # output directory
+                load test_alignments.bam                    # load alignment files
+                genome hg19                                 # igv .genome file
+                maxPanelHeight 500                          # maximum height of igv browser viewer
+                goto chr1:713167-714758                     # load region of interest
+                collapse                                    # this is a shortened form of collapse trackName...not sure what this does, but it is there
+                snapshot chr1_713167_714758_h500.[png/svg]  # Saves a snapshot of the IGV window to an image file
+                goto chr1:713500-714900                     # repeat at another locus
+                collapse
+                snapshot chr1_713500_714900_h500.[png/svg]
+                exit
+        """
+
     def writeIgvJobScript(self, email = None, fig_format='png'):
         """
         Write sbatch job script to make IGV snapshot
