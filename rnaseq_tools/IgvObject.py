@@ -175,7 +175,7 @@ class IgvObject(OrganismData):
             gene_parsed_annotation_dict = self.annotation_dict[gene]
             sample_description = '[%s]%s.png' %(sample, gene)
             bed_lines_list.append('%s\t%s\t%s\t%s\t%s\t%s\n' %(gene_parsed_annotation_dict['chrm'],
-                                                                max(gene_parsed_annotation_dict['coords'][0] - flanking_region, 0),
+                                                                max(gene_parsed_annotation_dict['coords'][0] - flanking_region, 1),
                                                                 gene_parsed_annotation_dict['coords'][1] + flanking_region,
                                                                 sample_description, ".", gene_parsed_annotation_dict['strand']))
 
