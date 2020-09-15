@@ -38,10 +38,8 @@ def main(argv):
     if os.path.isdir(pipeline_info):
         if os.path.isdir(os.path.join(dest_path_complete, 'pipeline_info')):
             os.system('rsync -aHv {} {}'.format(pipeline_info, os.path.join(dest_path_complete, "pipeline_info" + '_' + time.strftime("%Y%m%d-%H%M%S"))))
-            #shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info" + '_' + time.strftime("%Y%m%d-%H%M%S")))
         else:
             os.system('rsync -aHv {} {}'.format(pipeline_info, os.path.join(dest_path_complete, "pipeline_info")))
-            #shutil.copytree(pipeline_info, os.path.join(dest_path_complete, "pipeline_info"))
 
 def parseArgs(argv):
     parser = argparse.ArgumentParser()

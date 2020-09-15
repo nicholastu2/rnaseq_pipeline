@@ -84,7 +84,7 @@ class QualityAssessmentObject(OrganismData):
             'LIBRARY_SIZE'].astype('float')
 
     def extractInfoFromQuerySheet(self, sample_name, extract_column):
-        """
+        """ TODO: REMOVE THIS AND REPLACE WITH FUNCTION IN UTILS IN OTHER CODE
             extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
             :param sample_name: name of sample -- basename of fastq.gz, no containing directory, no extension
             :param extract_column: column from which to extract a value from the query_df based on sample_name

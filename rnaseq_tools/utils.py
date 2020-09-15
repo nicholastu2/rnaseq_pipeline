@@ -596,3 +596,61 @@ def testNumeric(var):
         return True
     else:
         return False
+
+# def writeSamtoolsIndexSbatchScript(self): #TODO: update for nextflow pipeline (different bam file suffix, should already have .bai)
+#     """
+#        write sbatch script to index bam files
+#        This needs to be done b/c indexing can only take place via srun/sbatch (on compute node. samtools not available on login node as of 3/2020)
+#        script will be place in rnaseq_pipeline/job_scripts
+#    """
+#     if not hasattr(self, 'samtools_index_sbatch_script'):
+#         self.samtools_index_sbatch_script = os.path.join(self.job_scripts, utils.dirName(
+#             self.scratch_alignment_source) + '_igv_index.sbatch')
+#
+#     job = '#!/bin/bash\n' \
+#           '#SBATCH -N 1\n' \
+#           '#SBATCH --mem=10G\n' \
+#           '#SBATCH -o {0}/index_bams_%A.out\n' \
+#           '#SBATCH -e {0}/index_bams_%A.err\n' \
+#           '#SBATCH -J index_bams\n'.format(self.sbatch_log)
+#     if hasattr(self, 'email'):
+#         job += '#SBATCH --mail-type=END,FAIL\n' \
+#                '#SBATCH --mail-user=%s\n' % self.email
+#     job += '\nml samtools\n'
+#
+#     for alignment_file in self.bam_file_to_index_list:
+#         job += '\nsamtools index -b %s\n' % alignment_file
+#
+#     with open(self.samtools_index_sbatch_script, 'w') as file:
+#     file.write('%s' % job)
+
+def convertFastqFilename(fastq_filename, filetype):
+    """
+        given a fastq filename, return a bam filename with a given suffix
+        :param fastq_filename: a fastqFilename or path with a fastqfilename
+        :param filetype: one of ['bam', 'count', 'novoalign_log']
+        :returns: the file with .fastq.gz removed and the filetype suffix added name
+                  (eg sample1_sorted_alignment_with_annote.bam for filetype 'bam')
+    """
+    suffix_dict = {'bam': '_sorted_aligned_reads_with_annote.bam',
+                   'count': '_read_count.tsv',
+                   'novoalign_log': '_novoalign.log'}
+    fastq_basename = pathBaseName(fastq_filename)
+    return fastq_basename + suffix_dict[filetype]
+
+def extractInfoFromQuerySheet(query_df, fastq_filename, extract_column):
+    """
+        extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
+        :param query_df: a query dataframe from which info will be extracted
+        :param fastq_filename: fastq filename used to identify a sample
+        :param extract_column: column from which to extract a value from the query_df based on sample_name
+        :returns: value extracted from query_df based on sample name and extract column
+    """
+    # remove rows containing NaN in fastqFileName
+    tmp_query_df = query_df[~query_df.fastqFileName.isnull()]
+    try:
+        extract_value = list(tmp_query_df[tmp_query_df['fastqFileName'].str.contains(fastq_filename)][extract_column])[0]
+    except AttributeError:
+        print('You must pass a query df')
+
+    return str(extract_value)

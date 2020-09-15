@@ -13,7 +13,6 @@ def parseGtf_new(gtf_file, genome_fasta):
 
     print("...parsing genome")
 
-
     # gtfgenerator function
     with open(gtf_file, 'r') as gtf_file:
         parsed_gtf_dict = {}
@@ -112,9 +111,9 @@ def noiseqDataframe(parsed_gtf_dict, output_dir):
     mychroms_output_path = os.path.join(output_dir, 'mychroms' + '.csv')
     mychroms_df.to_csv(mychroms_output_path)
 
-x = parseGtf_new('/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/crNeoKN99.gtf', '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/crNeoKN99.fasta')
-
-noiseqDataframe(x, '/home/chase/code/cmatkhan/brentlab/scripts/old_crypto_eda_draft/data')
+# x = parseGtf_new('/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/crNeoKN99.gtf', '/home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/crNeoKN99.fasta')
+#
+# noiseqDataframe(x, '/home/chase/code/cmatkhan/brentlab/scripts/old_crypto_eda_draft/data')
 
 def parseGtf(gtf_file): # TODO: comment and docstring
     """
@@ -163,7 +162,10 @@ def parseGff3(gff_file): # TODO: comment and docstring
             chrm, ltype, strand, annot = line_split[0], line_split[2], line_split[6], line_split[8]
             coords = [int(x) for x in line_split[3:5]]
             if ltype in 'gene':
-                gene_id = re.findall(r'Name=(.+?);', annot)[0]
+                if annot.startswith('gene='): # TODO: this is a very ugly way of handling the fact that some lines are ID= and some are gene= in KN99 annote (marker is gene=)
+                    gene_id = re.findall(r'gene=(.+?);', annot)[0]
+                else:
+                    gene_id = re.findall(r'ID=(.+?);', annot)[0]
                 ## fill dictionary
                 bed_dict[gene_id] = {'chrm': chrm, 'strand': strand, 'coords': [min(coords), max(coords)]}
     reader.close()
