@@ -1,6 +1,6 @@
 #!/usr/bin/env bash 
  
 if [[ ! -e $HOME/.conda/envs/rnaseq_pipeline ]]; then
-   conda create --prefix $HOME/.conda/envs -f $CODEBASE/conda_env.yml
+   conda env create --prefix $HOME/.conda/envs -f $CODEBASE/conda_env.yml
 fi
 

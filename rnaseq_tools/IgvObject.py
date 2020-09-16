@@ -43,103 +43,127 @@ class IgvObject(OrganismData):
         # create logger for IgvObject
         self.logger = utils.createLogger(self.log_file_path, __name__, 'DEBUG')
         try:
-            self.query_sheet_path = kwargs['sample_sheet_path'] # a query_df FILTERED!! NO wildtypes and only the samples that will have IGV shots taken
-            self.wildtype_sheet_path = kwargs['wildtype_sheet_path'] # a query_df filtered for only the wildtype samples to be used (one for each treatment/timepoint)
-            self.scratch_alignment_source = kwargs['scratch_alignment_source']
-            self.igv_output_dir = kwargs['igv_output_dir']
+            self.query_sheet_path = kwargs['query_sheet_path']
+            self.control_sheet_path = kwargs['control_sheet_path']
         except KeyError:
-            self.logger.debug('query sheet, scratch_alignment source, igv_output_dir, sample_list or drug_marker list not passed in constructor')
+            self.logger.debug('query sheet path and/or control sheet path not passed in constructor')
         else:
-            self.sample_df = utils.readInDataframe(self.sample_sheet_path)
-            self.wildtype_df = utils.readInDataframe(self.wildtype_sheet_path)
-            self.wildtype_dict = self.createWildtypeDict()
-        self.drug_marker_list = ['CNAG_G418', 'CNAG_NAT']
+            self.sample_df = utils.readInDataframe(self.query_sheet_path)
+            self.control_sample_df = self.createControlSampleDict()
 
-    def createWildtypeDict(self):
+        # get gene dictionary with chromsome, gene coordinates, strand
+        if self.annotation_file.endswith('gtf'):
+            self.annotation_dict = annotation_tools.parseGtf(self.annotation_file)
+        elif self.annotation_file.endswith('gff') or self.annotation_file.endswith('gff3'):
+            self.annotation_dict = annotation_tools.parseGff3(self.annotation_file)
+        else:
+            sys.exit("ERROR: The gene annotation format cannot be recognized.")  # TODO: clean up preceeding blocks -- move parseGFF to OrganismData
+
+
+    def createControlSampleDict(self): # TODO: put this in KN99 genome files
         """
             from a query sheet filtered for a single wildtype sample per treatment_timepoint ( or some other set of columns )
             create a dictionary with structure:
-                {treatment_timepoint: fasteFileName} eg {30C.CO2_90: sample1.fastq.gz, 37C.CO2: sample2.fastq.gz, ... }
+                {treatment_timepoint: bam_fullpath} eg {30C.CO2_90: sample1_....bam, 37C.CO2: sample2_....bam, ... }
+            note: the expected source of the wildtype files is in self.align_count_results/run_####_samples/align/bamfilename.bam
         """
         wildtype_dict = {}
 
         for index, row in self.wildtype_df.iterrows():
             fastq_filename = row.fastqFileName
+            bam_filename = utils.convertFastqFilename(fastq_filename, 'bam')
+            run_number = row.runNumber # TODO: this is copied code - either put in function or use utils.extractFromQuerySheet
+            try:
+                run_num_with_zero = self._run_numbers_with_zeros[run_number]
+            except KeyError:
+                pass
+            else:
+                run_number = run_num_with_zero
             treatment = utils.extractInfoFromQuerySheet(self.wildtype_df, fastq_filename, 'treatment')
             timepoint = utils.extractInfoFromQuerySheet(self.wildtype_df, fastq_filename, 'timePoint')
-            wildtype_dict.setdefault(treatment + '_' + timepoint, fastq_filename)
+            bam_file_fullpath = os.path.join(self.align_count_results, 'run_%s_samples/align'%run_number, bam_filename)
+            try:
+                if not os.path.exists(bam_file_fullpath):
+                    raise FileNotFoundError('control sample %s not found' %bam_file_fullpath)
+            except FileNotFoundError:
+                error_msg = 'control sample not in %s. %s DNE' %(self.align_count_results, bam_file_fullpath)
+                self.logger.critical(error_msg)
+                print(error_msg)
+            wildtype_dict.setdefault("%s_%s" %(treatment, timepoint), bam_file_fullpath)
 
         return wildtype_dict
 
-    def makeIgvSnapshotDict(self):
+    def makeIgvSnapshotDict(self, control_sample_flag=True, marker_list=['CNAG_G418', 'CNAG_NAT']):
         """ TODO: TEST THAT .BAI FILE IS PRESENT
+        TODO: RIGHT NOW SPECIFICALLY SET UP FOR 90MINUTEINDUCTION CRYPTO (because of control and marker)
             from list of samples, create dictionary with structure
                 {fastq_filename1: {'gene': [gene_1, gene_2,...], 'bed': /path/to/bed, 'bam': /path/to/bam, fastq_filename2: ...}
         """
         setattr(self, 'igv_snapshot_dict', {})
-        wildtype_genotype_dict = {}
+        igv_sample_dict = {}
 
         for index, row in self.sample_df.iterrows():
-            # extract treatment, timepoint from sample_df
+            # extract relevant info from query row
+            sample_name = utils.pathBaseName(row.fastqFileName)
+            bam_file = utils.convertFastqFilename(row.fastqFileName, 'bam')
+            treatment = str(row.treatment)
+            timepoint = str(row.timePoint)
+            treatment_timepoint = "%s_%s" %(treatment,timepoint) #NOTE: this is setup specifically for KN99 -- needs to be generalized
             run_number = row.runNumber
             try:
-                run_nun_with_zero = self._run_numbers_with_zeros[run_number]
+                run_num_with_zero = self._run_numbers_with_zeros[run_number]
             except KeyError:
                 pass
             else:
-                run_number = run_nun_with_zero
-            treatment = str(row.treatment)
-            timepoint = str(row.timePoint)
-            treatment_timepoint = treatment + '_' + timepoint
-            # check that treatment_timepoint has an associated wildtype sample in wildtype_dict
-            if treatment_timepoint not in self.wildtype_dict.keys():
-                raise KeyError('treatment or timepoint in sample sheet not the same as those in treatment timepoint. check for typos in addition to making sure that there is a wildtype for all treatment/timepoint in sample_df')
-
-            # extract fastq_filename from sample_df
-            fastq_filename = row.fastqFileName
-            # convert to the bamfile name
-            bamfile = utils.convertFastqFilename(fastq_filename, 'bam')
-            bamfile_fullpath = os.path.join(self.scratch_alignment_source, 'run_%s_samples' %run_number, 'align', bamfile)
-            # check that the bamfile exists in scratch
+                run_number = run_num_with_zero
+            bamfile_fullpath = os.path.join(self.align_count_results, 'run_%s_samples/align' %run_number, bam_file)
             try:
                 if not os.path.exists(bamfile_fullpath):
-                    raise FileNotFoundError
+                    raise FileNotFoundError('%s DNE' %bamfile_fullpath)
             except FileNotFoundError:
-                error_msg = 'bamfile does not exist in scratch_alignment_source %s. Run moveAlignmentFiles first.' % self.scratch_alignment_source
+                error_msg = 'bamfile does not exist at %s' %bamfile_fullpath
                 self.logger.critical(error_msg)
                 print(error_msg)
-
-            # extract genotype from query_df based on current line in
             genotype = row.genotype
             # split on period if this is a double perturbation. Regardless of whether a '.' is present,
             # genotype will be cast to a list eg ['CNAG_00000'] or ['CNAG_05420', 'CNAG_01438']
-            genotype = genotype.split('.')
+            genotype_list = genotype.split('.')
             # if genotype (possibly two if double KO, hence loop) ends with _over, remove _over
-            genotype = [x.replace('_over', '') for x in genotype]
+            genotype_list = [x.replace('_over', '') for x in genotype_list]
             # replace any CNAG with CKF44 -- for crypto, CNAG was h99 designation and continues to be used in metadata. CKF44 is kn99 prefix in ncbi and is the prefix used in the genome, annotation, etc
-            genotype = [x.replace('CNAG', 'CKF44') for x in genotype]
+            genotype_list = [x.replace('CNAG', 'CKF44') for x in genotype_list]
 
-            # add genotype to wildtype_genotype_dict by treatment/timepoint
-            wildtype_genotype_dict.setdefault(treatment_timepoint, []).extend(genotype)
+            # add sample to igv_sample_dict
+            igv_sample_dict.setdefault(sample_name, {})
+            if control_sample_flag:
+                igv_sample_dict[sample_name]['control_sample'] = self.getControlSample(treatment_timepoint)
+            # add locus_dict
+            igv_sample_dict[sample_name]['locus_dict'] = self.createLocusDict[genotype_list]
+            # add marker_dict --> this will be pretty standard, maybe put in attributes somewhere eventually
+            if marker_list:
+                igv_sample_dict[sample_name]['marker_locus_dict'] = self.createLocusDict[marker_list]
 
-            # if drug markers are present, add them to the genotype list. a snapshot will be taken of the gene in question and drug markers for this sample as a result
-            genotype.extend(self.drug_marker_list)
+    def getControlSample(self, key):
+        """ TODO: makeIGvDict needs to be generalized so that it doesn't always extract treatment_timepoint and put that into getControlSample (eg, if there is a different set of columns taht describe a control samlpe)
+            in preparation for a more general code, this returns the corresponding control sample given a key
+            :params treatment: treatment condition
+            :params timepoint: timepoint condition
+            :returns: bamfilepath, expected source is self.align_count_results
+        """
+        return self.wildtype_dict[key]
 
-            # add perturbed sample to the igv_snapshot_dict
-            self.igv_snapshot_dict.setdefault(fastq_filename, {}).setdefault('gene', []).extend(genotype)
-            self.igv_snapshot_dict[fastq_filename]['bam'] = bamfile_fullpath
-            self.igv_snapshot_dict[fastq_filename]['bed'] = self.createBedFile(genotype, fastq_filename, 'perturbed')
+    def createLocusDict(self, genotype_list):
+        """
+            given a genotype list, return a dictionary like so:
+               {genotype_list[0]: [chrm, start, stop], genotype_list[1]: [chrm, start, stop]
+        """
+        locus_dict = {}
 
-        # add wildtype samples to igv_snapshot_dict
-        for treatment_timepoint in wildtype_genotype_dict:
-            wildtype_fastq_filename = self.wildtype_dict[treatment_timepoint]
-            wildtype_bamfile = utils.convertFastqFilename(wildtype_fastq_filename, 'bam')  # TODO: CHECK EXISTENCE
-            wildtype_bam_fullpath = os.path.join(self.scratch_alignment_source, 'run_%s_samples' % run_number, 'align',
-                                            wildtype_bamfile)
-            treatment_timepoint_genotype_list = wildtype_genotype_dict[treatment_timepoint]
-            self.igv_snapshot_dict.setdefault(wildtype_fastq_filename, {}).setdefault('gene', []).extend(treatment_timepoint_genotype_list)
-            self.igv_snapshot_dict[wildtype_fastq_filename]['bam'] = wildtype_bam_fullpath
-            self.igv_snapshot_dict[wildtype_fastq_filename]['bed'] = self.createBedFile(genotype, wildtype_fastq_filename, 'wildtype')
+        for locus in genotype_list:
+            locus_info = self.annotation_dict[locus]
+            locus_dict.setdefault(locus, []).extend([locus_info['chrm'], locus_info['coords'][0], locus_info['coords'][1]])
+
+        return locus_dict
 
     def createBedFile(self, gene_list, fastq_filename, description, flanking_region=500):
         """ TODO currently file is _read_count.bed -- git rid of the _read_count
@@ -150,15 +174,6 @@ class IgvObject(OrganismData):
             :param flanking_region: how far up/down stream from the gene to capture in the snapshot
             :returns: bedfile path (will be in rnaseq_tmp/todays_date
         """
-        # TODO if bed files exist in exp dir, just get those
-
-        # get gene dictionary with chromsome, gene coordinates, strand
-        if self.annotation_file.endswith('gtf'):
-            self.annotation_dict = annotation_tools.parseGtf(self.annotation_file)
-        elif self.annotation_file.endswith('gff') or self.annotation_file.endswith('gff3'):
-            self.annotation_dict = annotation_tools.parseGff3(self.annotation_file)
-        else:
-            sys.exit("ERROR: The gene annotation format cannot be recognized.")  # TODO: clean up preceeding blocks -- move parseGFF to OrganismData
 
         # create day specific directory in rnaseq_tmp
         rnaseq_tmp_bedfile_dirpath = os.path.join(self.rnaseq_tmp, self.year_month_day)
@@ -184,22 +199,38 @@ class IgvObject(OrganismData):
 
         return igv_bed_filepath
 
-    def writeIgvBatchScript(self):
+    @staticmethod
+    def writeIgvBatchScript(output_dir, batchfilename, genome, bam_file_list, locus_dict):
         """
+        create an IGV batch script (see example and site below)
+        :param output_dir: output directory for bathfile
+        :param batchfilename: name of batchfile
+        :param genome: .genome file created by the igv browser
+        :param bam_file_list: list of alignment files to load (eg, to compare a control to a perturbed sample, there would be two items in the list)
+                              A singular bam file should still be passed as a list
+        :param locus_dict: structure of dict:
+            {locus1: {chrm: chr1, loc: [start, stop],
+             locus2: ...}
+        :returns: batchfile path
+
+            The arguments (unique_batchfilename, genome, [control.bam, perturbed.bam, {locus1: {chrm: chr1, loc: [1,100], locus2: {chrm: chr10, loc: [3,300]}}}])
+             will create the following batchscript:
         http://software.broadinstitute.org/software/igv/book/export/html/189
             example IGV batch script:
                 new                                         # batchscript keyword new (new snapshot)
                 snapshotDirectory IGV_Snapshots             # output directory
-                load test_alignments.bam                    # load alignment files
-                genome hg19                                 # igv .genome file
                 maxPanelHeight 500                          # maximum height of igv browser viewer
-                goto chr1:713167-714758                     # load region of interest
-                collapse                                    # this is a shortened form of collapse trackName...not sure what this does, but it is there
-                snapshot chr1_713167_714758_h500.[png/svg]  # Saves a snapshot of the IGV window to an image file
-                goto chr1:713500-714900                     # repeat at another locus
-                collapse
-                snapshot chr1_713500_714900_h500.[png/svg]
-                exit
+                genome <input_genome>                       # igv .genome file
+                load control.bam                            # load alignment files in bam_file_list
+                load perturbed.bam
+                goto chr1:1-100                             # load region of interest
+                snapshot <batchfilename>_locus1 .png        # saves a snapshot of the IGV window to an image file
+                goto chr10:3-300                            # repeat at another locus
+                snapshot <batchfilename>_locus2.png
+                exit                                        # close igv session
+
+                # Note: in this case, there will be two tracks, the first being the control, the next being the perturbed sample, one on top of the other
+                        If only one locus is passed, there will be only one track (plus the annotation track) in view
         """
 
     def writeIgvJobScript(self, email = None, fig_format='png'):
