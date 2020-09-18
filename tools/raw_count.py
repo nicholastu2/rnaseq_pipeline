@@ -10,6 +10,8 @@ from rnaseq_tools import utils
 #  in createCountMatrix. Try to abstract this for use when making any matrix (counts qual_assess_1 and 2, etc)
 # TODO: for runs/directories with more than one organism, create two sheets (input query_sheet for this)
 
+# NOTE: this is set up very specifically assuming that the counts are output from the nextflow pipeline
+
 def main(argv):
 
     args = parseArgs(argv)
@@ -42,7 +44,7 @@ def main(argv):
         if len(count_file_list) > 0:
             od = OrganismData(organism = organism, config_file=args.config_file, interactive=args.interactive)
             count_df = od.createCountSheet(count_file_list)
-            output_path = os.path.join(utils.dirPath(count_file_list[0]), '%s_raw_count.csv' %organism)
+            output_path = os.path.join(utils.dirPath(utils.dirPath(count_file_list[0])), '%s_raw_count.csv' %organism)
             print('writing count file to %s' %output_path)
             count_df.to_csv(output_path, index=False)
 
