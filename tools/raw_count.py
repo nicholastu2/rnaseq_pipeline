@@ -4,7 +4,6 @@ import argparse
 import os
 import glob
 from rnaseq_tools.OrganismDataObject import OrganismData
-from rnaseq_tools.StandardDataObject import StandardData
 from rnaseq_tools import utils
 
 # TODO: Update with OrganismData object (no more need to input gene list). Better commeting and explanation of each step
@@ -15,20 +14,20 @@ def main(argv):
 
     args = parseArgs(argv)
 
-    sd = StandardData(config_file=args.config_file, interactive=args.interactive)
-
     try:
+        if not os.path.isdir(args.count_directory):
+            raise NotADirectoryError('ERROR: %s does not exist.' % args.count_directory)
         if not os.path.isfile(args.query_sheet):
             raise NotADirectoryError('ERROR: %s does not exist.' % args.count_directory)
     except FileNotFoundError:
         print('path to %s does not exist')
     else:
-        counts_dirpath = os.path.join(sd.align_count_results,'*/count')
+        count_dirpath = args.count_directory
         query_sheet_path = args.query_sheet
         query_df = utils.readInDataframe(query_sheet_path)
 
     # extract count files from count_dir
-    count_dir_file_list = glob.glob(os.path.join(counts_dirpath, '*read_count.tsv'))
+    count_dir_file_list = glob.glob(os.path.join(count_dirpath, '*read_count.tsv'))
 
     # all crypto records will have genotype beginning with CNAG_, used this to extract list of crypto and yeast samples from query
     crypto_sample_list = list(query_df[query_df.genotype.str.startswith('CNAG')].fastqFileName) #TODO: after metadata organism column added, update this section
@@ -48,9 +47,14 @@ def main(argv):
             count_df.to_csv(output_path, index=False)
 
 def parseArgs(argv):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Create raw counts for each organism in a count directory.\n"
+                                                 "To perform this on more than one directory, a batchscript should be\n"
+                                                 "used.")
+    parser.add_argument('-c', '--count_directory', required=True,
+                        help='[REQUIRED] The directory with has subdirectories align, count and logs, created by align/count nextflow pipeline.\n'
+                             ' The raw_count csv will be output in this directory with the name run_number/<organism>_raw_count.csv')
     parser.add_argument('-qs', '--query_sheet', required=True,
-                        help='[REQUIRED] path to query sheet containing at least the samples in the count directory. Note that the counts diretories must be in align_count_results')
+                        help='[REQUIRED] path to query sheet containing at least the samples in the count directory')
     parser.add_argument('--config_file', default='/see/standard/data/invalid/filepath/set/to/default',
                         help="[OPTIONAL] default is already configured to handle the invalid default path above in StandardDataObject.\n"
                              "Use this flag to replace that config file. Note: this is for StandardData, not nextflow")
@@ -65,3 +69,4 @@ def parseArgs(argv):
 
 if __name__ == '__main__':
     main(sys.argv)
+
