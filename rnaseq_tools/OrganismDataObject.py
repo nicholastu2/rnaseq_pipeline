@@ -73,7 +73,7 @@ class OrganismData(StandardData):
             raise NotADirectoryError('LogDirectoryDoesNotExist')
 
     def createCountSheet(self, count_file_list):
-        """
+        """ # TODO: replace raw_count.py with this, add method for log2_cpm
             create count matrix with list of genes as rows and samples as columns
             :param exp_dir: experiment directory created by create_experiment.py
             :param gene_list: see the OrganismData_config.ini in genome_files/<organism>

@@ -212,13 +212,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # add PROTEIN_CODING_COUNTED
             library_metadata_dict['PROTEIN_CODING_COUNTED'] = crypto_protein_coding_count
-            # add log2cpm data
-            log2cpm_path = os.path.join(utils.dirPath(htseq_counts_path), '%s_log2_cpm.csv' %self.organism)
+            # add log2cpm data -- note, this will look in the run_####_samples directory of subdir count
+            log2cpm_path = os.path.join(utils.dirpath(utils.dirPath(htseq_counts_path)), '%s_log2_cpm.csv' %self.organism)
             try:
                 if not os.path.isfile(log2cpm_path):
                     raise FileNotFoundError('log2cpm_pathDNE: %s' %log2cpm_path)
             except FileNotFoundError:
-                print('output of log2cpm.R, which requires output of %s_raw_counts.py, must be in count directory containing the htseq count file' %self.organism)
+                msg = 'output of log2cpm.R, which requires output of %s_raw_counts.py, ' \
+                      'must be in run_####_samples directory containing subdir count' %self.organism
+                print(msg)
+                self.logger.critical(msg)
 
             library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
             library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
