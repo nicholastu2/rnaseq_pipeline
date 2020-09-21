@@ -9,6 +9,7 @@ from rnaseq_tools.QualityAssessmentObject import QualityAssessmentObject
 pd.options.mode.chained_assignment = None
 
 # TODO: CALCULATE COVERAGE ONCE, STORE AS BED FILE, USE BED RATHER THAN QUANTIFYING BAM EVERYTIME
+# TODO: EXTRACT FILEPATHS FOR EG LOG2CPM MUCH MORE CLEARLY, ERROR CHECK (put this in QualityAssessObject, eg)
 class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -213,7 +214,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             # add PROTEIN_CODING_COUNTED
             library_metadata_dict['PROTEIN_CODING_COUNTED'] = crypto_protein_coding_count
             # add log2cpm data -- note, this will look in the run_####_samples directory of subdir count
-            log2cpm_path = os.path.join(utils.dirpath(utils.dirPath(htseq_counts_path)), '%s_log2_cpm.csv' %self.organism)
+            log2cpm_path = os.path.join(utils.dirPath(utils.dirPath(htseq_counts_path)), '%s_log2_cpm.csv' %self.organism)
             try:
                 if not os.path.isfile(log2cpm_path):
                     raise FileNotFoundError('log2cpm_pathDNE: %s' %log2cpm_path)
