@@ -49,10 +49,11 @@ def main(argv):
     for index, row in db.query_df.iterrows():
         # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
         # this step adds the zero and casts the row to str
-        if int(row['runNumber']) in db._run_numbers_with_zeros:
-            run_number = str(db._run_numbers_with_zeros[int(row['runNumber'])])
+        run_num_tmp = str(int(row['runNumber']))
+        if run_num_tmp in db._run_numbers_with_zeros:
+            run_number = str(db._run_numbers_with_zeros[run_num_tmp])
         else:
-            run_number = str(row['runNumber'])
+            run_number = run_num_tmp
         # create run directory name, eg run_1234_samples
         run_directory = 'run_' + run_number + '_samples'
         # add to list
