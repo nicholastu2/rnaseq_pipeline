@@ -55,18 +55,25 @@ class QualityAssessmentObject(OrganismData):
             self.logger.critical('%s  --> query_path not valid' % self.query_path)
         except AttributeError:
             pass
-
-
-        print('...extracting alignment information from novoalign logs')
-        align_log_df = self.parseAlignmentLogs()
-        print('...extracting count information from htseq count files')
-        if self.organism == 'KN99':
-            count_summary_df = self.parseCountFiles(count_ambiguous_unique=True)
-        else:
-            count_summary_df = self.parseCountFiles()
-        print('...compiling alignment and count information')
-        self.qual_assess_df = self.compileAlignCountMetadata(align_log_df, count_summary_df)
-        self.formatLibrarySizeColumns()
+        try:
+            print('...extracting alignment information from novoalign logs')
+            align_log_df = self.parseAlignmentLogs()
+        except AttributeError:
+            print("no novoalign files found")
+        try:
+            print('...extracting count information from htseq count files')
+            if self.organism == 'KN99':
+                count_summary_df = self.parseCountFiles(count_ambiguous_unique=True)
+            else:
+                count_summary_df = self.parseCountFiles()
+        except AttributeError:
+            print('no count files found')
+        try:
+            print('...compiling alignment and count information')
+            self.qual_assess_df = self.compileAlignCountMetadata(align_log_df, count_summary_df)
+            self.formatLibrarySizeColumns()
+        except AttributeError:
+            print('no log summary or count summary')
 
     def formatLibrarySizeColumns(self):
         """
