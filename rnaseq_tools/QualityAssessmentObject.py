@@ -72,7 +72,7 @@ class QualityAssessmentObject(OrganismData):
             print('...compiling alignment and count information')
             self.qual_assess_df = self.compileAlignCountMetadata(align_log_df, count_summary_df)
             self.formatLibrarySizeColumns()
-        except AttributeError:
+        except UnboundLocalError:
             print('no log summary or count summary')
 
     def formatLibrarySizeColumns(self):
