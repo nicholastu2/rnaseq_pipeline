@@ -42,14 +42,14 @@ def main(argv):
     db.query_df['libraryDate'] = pd.to_datetime(db.query_df['libraryDate'])
     # create strandedness column based on libraryDate. May change to prep protocol at some point, but for now this is best
     db.query_df['strandedness'] = np.where(db.query_df['libraryDate'] > '2015-10-25', 'reverse', 'no')
-    # add leading zero to runNumber, if necessary
+    # add leading zero to runNumber, if necessary -- take care of in loop
     db.query_df['runNumber'] = db.query_df['runNumber'].astype(str)
     # new dictionary to store run_directory in dataframe
     run_directory_list = []
     for index, row in db.query_df.iterrows():
         # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
         # this step adds the zero and casts the row to str
-        run_num_tmp = str(int(float(row['runNumber']))) # TODO: super ugly, needs to be fixed. Not sure why this is now getting read in as 4422.0, eg as of 20200923
+        run_num_tmp = row['runNumber'] # TODO: super ugly, needs to be fixed. Not sure why this is now getting read in as 4422.0, eg as of 20200923
         if run_num_tmp in db._run_numbers_with_zeros:
             run_number = str(db._run_numbers_with_zeros[run_num_tmp])
         else:
