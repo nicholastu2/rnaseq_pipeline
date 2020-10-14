@@ -1,0 +1,192 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(DESeq2)
+scripts = Sys.glob('scripts/*') # assuming that your cwd is the project directory
+lapply(scripts, source)
+```
+
+```{r, include=FALSE}
+# read in data
+gene_id_path = 'data/KN99_protein_coding_gene_list_with_markers.csv'
+gene_id_with_markers = read_csv(gene_id_path, col_names = FALSE)$X1
+gene_id_no_markers = gene_id_with_markers[!startsWith(gene_id_with_markers, 'CNAG')]
+
+protein_coding_counts_path = 'data/cnag_03894_passing_raw_counts_PROTEIN_CODING_ONLY.csv'
+protein_coding_counts_df = read_csv(protein_coding_counts_path)
+rownames(protein_coding_counts_df) = gene_id_no_markers
+
+meta_qual_path = 'data/cnag_03894_passing_meta_qual.csv'
+meta_qual_df = read_csv(meta_qual_path)
+# cast columns to upper case
+colnames(meta_qual_df) = toupper(colnames(meta_qual_df))
+# factor some of the columns. Note: the first level will be the "control" in the model matrix/ deseq design
+meta_qual_df$TIMEPOINT = as.factor(meta_qual_df$TIMEPOINT)
+meta_qual_df$LIBRARYDATE = as.factor(meta_qual_df$LIBRARYDATE)
+meta_qual_df$GENOTYPE = as.factor(meta_qual_df$GENOTYPE)
+
+```
+
+```{r, include=FALSE}
+# view metadata
+
+cols_of_interest = c('FASTQFILENAME', 'RUNNUMBER', 'LIBRARYDATE', 'STRAIN', 'GENOTYPE', 'TIMEPOINT', 'AUTO_AUDIT', 'STATUS_DECOMP', 'MANUAL_AUDIT_20200520', 'MANUAL_AUDIT_20207230')
+
+View(meta_qual_df %>% select(cols_of_interest) %>%group_by(GENOTYPE, TIMEPOINT, LIBRARYDATE) %>% arrange(.by_group = TRUE))
+```
+
+```{r}
+# calculate IQR for further filtering
+norm_counts_passing_protein_coding_only = getDeseqNormCounts(protein_coding_counts_df, meta_qual_df)
+# extract RLE results
+cnag_03894_rle_full = createFullRLETable(norm_counts_passing_protein_coding_only, gene_id_no_markers)
+rle_summary = rleSummary(cnag_03894_rle_full)
+
+# further filter metadata and counts based on IQR threshold established during 90mininduction QC
+meta_qual_iqr_filtered = meta_qual_df %>% filter(!FASTQFILENAME %in% rle_summary[rle_summary$INTERQUARTILE_RANGE > 1.43,]$FASTQFILENAME)
+# filter counts
+protein_coding_iqr_filtered_counts = filterCountsByMetadata(protein_coding_counts_df, meta_qual_iqr_filtered)
+
+# re-calculate norm counts
+protein_coding_norm_counts_iqr_filtered = getDeseqNormCounts(protein_coding_iqr_filtered_counts, meta_qual_iqr_filtered)
+# re-do IQR
+cnag_03894_rle_iqr_filtered = createFullRLETable(protein_coding_norm_counts_iqr_filtered, gene_id_no_markers)
+# plot
+rle = rleBoxplots(cnag_03894_rle_iqr_filtered, meta_qual_iqr_filtered, 'passing', 'protein_coding_only')
+plot(rle)+facet_wrap(~GENOTYPE)
+
+```
+```{r}
+cnag_03894_log_norm_protein_coding_passing = log2(protein_coding_norm_counts_iqr_filtered)
+
+cnag_03894_pc_log_normalized = calculatePrincipalComponents(cnag_03894_log_norm_protein_coding_passing, meta_qual_iqr_filtered, 'norm_counts')
+
+residualPcaPlot(cnag_03894_pc_log_normalized, "CNAG_03894 (passing) log normalized_counts")
+
+# NOTE: points with black INNER DOTS are wildtypes
+```
+
+```{r}
+
+# model matrix with interaction term
+model_matrix_interaction = model.matrix(~LIBRARYDATE+TIMEPOINT+GENOTYPE+GENOTYPE:TIMEPOINT, meta_qual_iqr_filtered)
+model_matrix_interaction = model_matrix_interaction[, colSums(model_matrix_interaction != 0) > 0]
+
+# create the deseq data object
+cnag_03894_deseq = DESeqDataSetFromMatrix(countData=protein_coding_iqr_filtered_counts, 
+                                          colData=meta_qual_iqr_filtered, 
+                                          design=model_matrix_interaction)
+  
+cnag_03894_deseq = DESeq(cnag_03894_deseq)
+
+cnag_03894_dev_resid = calculateDevianceResiduals(cnag_03894_deseq)
+cnag_03894_resid_pc_df = calculatePrincipalComponents(cnag_03894_dev_resid, meta_qual_iqr_filtered)
+residualPcaPlot(cnag_03894_resid_pc_df, 'full_model_residuals_PCs')
+```
+
+```{r}
+
+# extract only wildtype and filter counts
+wt_only_meta = meta_qual_iqr_filtered %>% filter(GENOTYPE == 'CNAG_00000')
+wt_only_count = filterCountsByMetadata(protein_coding_iqr_filtered_counts, wt_only_meta)
+
+# create model matrix
+wt_only_model_matrix = model.matrix(~LIBRARYDATE+TIMEPOINT, wt_only_meta)
+# get results
+wildtype_only_results = extractResultsWald(wt_only_count, 
+                                           wt_only_meta, 
+                                           gene_id_no_markers, 
+                                           wt_only_model_matrix, 
+                                           results_name = 'TIMEPOINT1440')
+write.csv(as.data.frame(wildtype_only_results), 'results/effect_of_timepoint_on_cnag00000.csv', row.names = TRUE)
+# plot
+plotMA(wildtype_only_results, ylim=c(-10,10), main='CNAG_00000: 0 vs 1440')
+```
+
+```{r}
+# extract only perturbed
+
+# extract only mutant and filter counts
+mutant_only_meta = meta_qual_iqr_filtered %>% filter(GENOTYPE == 'CNAG_03894')
+mutant_only_meta$LIBRARYDATE = relevel(mutant_only_meta$LIBRARYDATE, '08.27.20')
+mutant_only_count = filterCountsByMetadata(protein_coding_iqr_filtered_counts, mutant_only_meta)
+
+# create model matrix
+mutant_only_model_matrix = model.matrix(~LIBRARYDATE+TIMEPOINT, mutant_only_meta)
+
+mutant_only_results = extractResultsWald(mutant_only_count, 
+                                         mutant_only_meta, 
+                                         gene_id_no_markers, 
+                                         mutant_only_model_matrix, 
+                                         results_name = 'TIMEPOINT1440')
+write.csv(as.data.frame(mutant_only_results), 'results/effect_of_timepoint_on_cnag03894.csv', row.names=TRUE)
+# plot
+plotMA(mutant_only_results, ylim=c(-10,10), main='CNAG_03894: 0 vs 1440')
+```
+
+```{r}
+
+# extract only timepoint 0 and 90
+
+# extract only mutant and filter counts
+timepoint_0_90_only_meta = meta_qual_iqr_filtered %>% filter(TIMEPOINT %in% c(0,90))
+timepoint_0_90_only_count = filterCountsByMetadata(protein_coding_iqr_filtered_counts, timepoint_0_90_only_meta)
+
+# create model matrix
+timepoint_0_90_only_model_matrix = model.matrix(~LIBRARYDATE + TIMEPOINT+ GENOTYPE, timepoint_0_90_only_meta)
+
+timepoint_0_90_only_results = extractResultsWald(timepoint_0_90_only_count, 
+                                                 timepoint_0_90_only_meta, 
+                                                 gene_id_no_markers, 
+                                                 timepoint_0_90_only_model_matrix, 
+                                                 results_name = 'GENOTYPECNAG_03894')
+write.csv(as.data.frame(timepoint_0_90_only_results), 'results/effect_of_genotype_timepoint_0.csv', row.names = TRUE)
+# plot
+plotMA(timepoint_0_90_only_results, ylim=c(-10,10), main='Effect of CNAG_03894 KO at time 0')
+
+```
+
+```{r}
+# extract only 1440 and 90
+
+# extract only mutant and filter counts
+timepoint_1440_90_only_meta = meta_qual_iqr_filtered %>% filter(TIMEPOINT %in% c(1440,90))
+# reset the intercept levels to ensure model matrix is full rank
+timepoint_1440_90_only_meta$LIBRARYDATE = relevel(timepoint_1440_90_only_meta$LIBRARYDATE, '08.27.20')
+timepoint_1440_90_only_meta$TIMEPOINT = relevel(timepoint_1440_90_only_meta$TIMEPOINT, "90")
+# filter counts
+timepoint_1440_90_only_count = filterCountsByMetadata(protein_coding_iqr_filtered_counts, timepoint_1440_90_only_meta)
+
+# create model matrix
+timepoint_1440_90_only_model_matrix = model.matrix(~LIBRARYDATE + TIMEPOINT+ GENOTYPE, timepoint_1440_90_only_meta)
+
+# extract results
+timepoint_1440_90_only_results = extractResultsWald(timepoint_1440_90_only_count, 
+                                                 timepoint_1440_90_only_meta, 
+                                                 gene_id_no_markers, 
+                                                 timepoint_1440_90_only_model_matrix, 
+                                                 results_name = 'GENOTYPECNAG_03894')
+write.csv(as.data.frame(timepoint_1440_90_only_results), 'results/effect_of_genotype_at_timepoint_1440.csv', row.names=TRUE)
+# plot
+plotMA(timepoint_1440_90_only_results, ylim=c(-10,10), main='Effect of CNAG_03894 KO at time 1440')
+
+```
+
+```{r}
+
+# extract results
+interaction_results = extractResultsWald(protein_coding_iqr_filtered_counts, 
+                                         meta_qual_iqr_filtered, 
+                                         gene_id_no_markers, 
+                                         model_matrix_interaction,  # NOTE: Defined above for the residual PCA plots
+                                         results_name = 'TIMEPOINT1440.GENOTYPECNAG_03894')
+write.csv(as.data.frame(interaction_results), 'results/interaction_genotype_timepoint.csv', row.names = TRUE)
+# plot
+plotMA(interaction_results, ylim=c(-10,10), main='Effect GENOTYPE:TIMEPOINT')
+
+```
