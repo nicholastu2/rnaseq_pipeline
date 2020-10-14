@@ -10,3 +10,5 @@ sequence
 .DS_Store
 tools/.DS_Store
 __pycache__
+.Rhistory
+.idea/
