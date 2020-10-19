@@ -8,10 +8,6 @@ library(ggcorrplot)
 #devtools::install_github("kassambara/ggcorrplot")
 #http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2
 
-
-statistics_functions_script = '~/projects/brentlab/deseq_model/deseq_statistics_functions.R'
-source(statistics_functions_script)
-
 plotResidualDeviance = function(deseq_model){
   #' plot residual deviance by gene (gene on x, residual deviance of the gene on y)
   #' and a histogram of residual deviance
