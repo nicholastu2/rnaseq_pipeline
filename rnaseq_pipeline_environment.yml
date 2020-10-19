@@ -231,6 +231,8 @@ dependencies:
   - tk=8.6.10=hed695b0_1
   - tktable=2.10=h14c3975_0
   - wheel=0.35.1=pyh9f0ad1d_0
+
+prefix:/home/$USER/.conda/envs/rnaseq_pipeline
   - xz=5.2.5=h516909a_1
   - yaml=0.2.5=h516909a_0
   - zlib=1.2.11=h516909a_1010
