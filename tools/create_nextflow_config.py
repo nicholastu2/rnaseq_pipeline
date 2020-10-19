@@ -55,7 +55,7 @@ def main(argv):
         else:
             run_number = run_num_tmp
         # create run directory name, eg run_1234_samples
-        run_directory = 'run_' + run_number + '_samples'
+        run_directory = 'run_' + str(run_number) + '_samples'  # SEE TODO above
         # add to list
         run_directory_list.append(run_directory)
         # create fastqfilename path
