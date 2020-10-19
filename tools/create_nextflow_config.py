@@ -59,7 +59,7 @@ def main(argv):
         # add to list
         run_directory_list.append(run_directory)
         # create fastqfilename path
-        fastq_filename = os.path.basename(row['fastqFileName'])
+        fastq_filename = os.path.basename(row['fastqFileName']).rstrip()
         fastq_scratch_path = os.path.join(db.scratch_sequence, run_directory, fastq_filename)
         # move fastq file to scratch if it is not already tehre
         if not os.path.exists(fastq_scratch_path):
