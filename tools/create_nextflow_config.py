@@ -49,11 +49,15 @@ def main(argv):
     for index, row in db.query_df.iterrows():
         # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
         # this step adds the zero and casts the row to str
-        run_num_tmp = int(row['runNumber']) # TODO: super ugly, needs to be fixed. Not sure why this is now getting read in as 4422.0, eg as of 20200923
-        if run_num_tmp in db._run_numbers_with_zeros:
-            run_number = str(db._run_numbers_with_zeros[run_num_tmp])
-        else:
-            run_number = run_num_tmp
+        run_num_tmp = row['runNumber'] # TODO: this whole block is a terrible way of addressing the runnumbers that can't be interpretted as ints.
+                                       # This needs to be fixed -- one way is to turn the ints in sd.run_with_zero to strings, but need to check all other code that uses it then.
+
+        if not (run_num_tmp == '0711_5_0718' or run_num_tmp == '0629_0618'):
+            run_num_tmp = int(row['runNumber'])
+            if run_num_tmp in db._run_numbers_with_zeros:
+                run_num_tmp = str(db._run_numbers_with_zeros[run_num_tmp])
+
+        run_number = run_num_tmp
         # create run directory name, eg run_1234_samples
         run_directory = 'run_' + str(run_number) + '_samples'  # SEE TODO above
         # add to list
