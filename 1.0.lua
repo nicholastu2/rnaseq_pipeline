@@ -18,8 +18,6 @@ whatis("URL: https://gitlab.com/brentlab/rnaseq_pipe")
 
 -- load main tools (see system requirements on the gitlab wiki)
 depends_on("miniconda")
--- depends_on("igv/2.4.7") This is no longer available on the login server
--- depends_on("samtools") No longer available on login server?
 
 -- message to print on module load
 if(mode() == 'load') then
@@ -27,7 +25,6 @@ if(mode() == 'load') then
 end
 
 -- set environmental variables
-setenv("METADATA", metadata_database)
 setenv("CODEBASE", base)
 setenv("PYTHONPATH", base)
 
