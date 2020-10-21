@@ -237,5 +237,6 @@ dependencies:
   - yaml=0.2.5=h7b6447c_0
   - zlib=1.2.11=h516909a_1010
   - zstd=1.4.5=h9ceee32_0
+
 prefix: /home/$USER/.conda/envs/rnaseq_pipeline
 
