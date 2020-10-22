@@ -219,8 +219,9 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                 if not os.path.isfile(log2cpm_path):
                     raise FileNotFoundError('log2cpm_pathDNE: %s' %log2cpm_path)
             except FileNotFoundError:
-                msg = 'output of log2cpm.R, which requires output of %s_raw_counts.py, ' \
-                      'must be in run_####_samples directory containing subdir count' %self.organism
+                msg = ' Output of log2cpm.R, which requires output of %s_raw_counts.py, ' \
+                      'must be in run_####_samples directory containing subdir count. ' \
+                      'This doesn\'t exist in %s' %(self.organism, sample_name)
                 print(msg)
                 self.logger.critical(msg)
 
