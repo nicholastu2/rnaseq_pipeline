@@ -7,6 +7,7 @@ dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=1_gnu
   - _r-mutex=1.0.0=anacondar_1
+  - bedops=2.4.39=hc9558a2_0
   - bedtools=2.29.2=hc088bd4_0
   - binutils_impl_linux-64=2.35=h18a2f87_9
   - binutils_linux-64=2.35=hc3fd857_29
