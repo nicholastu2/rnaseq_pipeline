@@ -148,19 +148,19 @@ parseArguments <- function() {
   return(args)
 } # end parseAarguments
 
-# main(parseArguments()) # call main method
+main(parseArguments()) # call main method
 
 # for testing
-input_list = list()
-input_list['raw_counts'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_counts.csv'
-input_list['metadata'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_metadata.csv'
-input_list['size_factors'] = '/mnt/htcf_scratch/chasem/rnaseq_pipeline/experiments/size_factors/data/size_factors.csv'
-input_list['factor_column_list'] = 'LIBRARYDATE,GENOTYPE'
-input_list['design_matrix'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/librarydate_genotype_model_matrix.csv'
-input_list['genotype_results_flag'] = TRUE
-input_list['output_directory'] = '/home/chase/Desktop/tmp/test_results'
-input_list['name'] = 'deseq_output_test'
+# input_list = list()
+# input_list['raw_counts'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_counts.csv'
+# input_list['metadata'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_metadata.csv'
+# input_list['size_factors'] = '/mnt/htcf_scratch/chasem/rnaseq_pipeline/experiments/size_factors/data/size_factors.csv'
+# input_list['factor_column_list'] = 'LIBRARYDATE,GENOTYPE'
+# input_list['design_matrix'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/librarydate_genotype_model_matrix.csv'
+# input_list['genotype_results_flag'] = TRUE
+# input_list['output_directory'] = '/home/chase/Desktop/tmp/test_results'
+# input_list['name'] = 'deseq_output_test'
 
 #deviance_df = tibble(gene_id = protein_coding_gene_id_column, deviance_of_fitted_model = mcols(deseq_model)$deviance, saturated_model_deviance = -2*rowSums(dnbinom(counts(deseq_model), mu=counts(deseq_model), size=1/dispersions(deseq_model), log=TRUE)))
 
-main(input_list)
+# main(input_list)
