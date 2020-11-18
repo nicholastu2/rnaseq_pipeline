@@ -42,7 +42,8 @@ main = function(parsed_cmd_line_args){
   print('...construct deseq model')
   dds = createDeseqDataObject(raw_counts_df, metadata_df, model_matrix)
   if(!is.null(size_factors)){
-    sizeFactors(dds) = size_factors
+    size_factors_list = read_csv(size_factors)[,1]
+    sizeFactors(dds) = size_factors_list
   }
   deseq_model = generateDeseqModel(dds)
   deseq_model_path = paste(output_path, 'deseq_model.rds', sep='/')
