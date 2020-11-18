@@ -41,10 +41,12 @@ main = function(parsed_cmd_line_args){
   
   print('...construct deseq model')
   dds = createDeseqDataObject(raw_counts_df, metadata_df, model_matrix)
+  
   if(!is.null(size_factors)){
-    size_factors_list = read_csv(size_factors)[,1]
+    size_factors_list = read.csv(size_factors)[,1]
     sizeFactors(dds) = size_factors_list
   }
+  
   deseq_model = generateDeseqModel(dds)
   deseq_model_path = paste(output_path, 'deseq_model.rds', sep='/')
   saveRDS(deseq_model, deseq_model_path)
@@ -146,18 +148,18 @@ parseArguments <- function() {
   return(args)
 } # end parseAarguments
 
-main(parseArguments()) # call main method
+# main(parseArguments()) # call main method
 
 # for testing
-# input_list = list()
-# input_list['raw_counts'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_counts.csv'
-# input_list['metadata'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_metadata.csv'
-# input_list['size_factors'] = rep(1,6969)
-# input_list['factor_column_list'] = 'LIBRARYDATE,GENOTYPE'
-# input_list['design_matrix'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/librarydate_genotype_model_matrix.csv'
-# input_list['genotype_results_flag'] = TRUE
-# input_list['output_directory'] = '/home/chase/Desktop/tmp/test_results'
-# input_list['name'] = 'deseq_output_test'
+input_list = list()
+input_list['raw_counts'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_counts.csv'
+input_list['metadata'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_metadata.csv'
+input_list['size_factors'] = '/mnt/htcf_scratch/chasem/rnaseq_pipeline/experiments/size_factors/data/size_factors.csv'
+input_list['factor_column_list'] = 'LIBRARYDATE,GENOTYPE'
+input_list['design_matrix'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/librarydate_genotype_model_matrix.csv'
+input_list['genotype_results_flag'] = TRUE
+input_list['output_directory'] = '/home/chase/Desktop/tmp/test_results'
+input_list['name'] = 'deseq_output_test'
 
 #deviance_df = tibble(gene_id = protein_coding_gene_id_column, deviance_of_fitted_model = mcols(deseq_model)$deviance, saturated_model_deviance = -2*rowSums(dnbinom(counts(deseq_model), mu=counts(deseq_model), size=1/dispersions(deseq_model), log=TRUE)))
 
