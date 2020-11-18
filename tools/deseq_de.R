@@ -12,6 +12,7 @@ main = function(parsed_cmd_line_args){
   print('...Parsing cmd line arguments')
   raw_counts_df_path = parsed_cmd_line_args$raw_counts
   metadata_df_path = parsed_cmd_line_args$metadata
+  size_factors = parsed_cmd_line_args$size_factors
   factor_column_list = strsplit(parsed_cmd_line_args$factor_column_list, ",")
   design_matrix_path = parsed_cmd_line_args$design_matrix
   intercept_only_flag = parsed_cmd_line_args$intercept_only_flag
@@ -40,6 +41,9 @@ main = function(parsed_cmd_line_args){
   
   print('...construct deseq model')
   dds = createDeseqDataObject(raw_counts_df, metadata_df, model_matrix)
+  if(!is.null(size_factors)){
+    sizeFactors(dds) = size_factors
+  }
   deseq_model = generateDeseqModel(dds)
   deseq_model_path = paste(output_path, 'deseq_model.rds', sep='/')
   saveRDS(deseq_model, deseq_model_path)
@@ -119,6 +123,9 @@ parseArguments <- function() {
     make_option(c('-m', '--metadata'), 
                 help='metadata with all samples corresponding to the columns of the count data x metadata. 
                       must include the columns in the design formula'),
+    make_option(c('-s', '--size_factors'), 
+                help='Use this argument if size factors are not calculated across all samples. 
+                      If unused, size factors calculated automatically by DESeq'),
     make_option(c('-f', '--factor_column_list'), 
                 help='comma separated list NO SPACES of columns to factor, eg LIBRARYDATE, GENOTYPE'),
     make_option(c('-g', '--genotype_results_flag'), action='store_true',
@@ -144,6 +151,7 @@ main(parseArguments()) # call main method
 # input_list = list()
 # input_list['raw_counts'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_counts.csv'
 # input_list['metadata'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/test_2_metadata.csv'
+# input_list['size_factors'] = rep(1,6969)
 # input_list['factor_column_list'] = 'LIBRARYDATE,GENOTYPE'
 # input_list['design_matrix'] = '/home/chase/code/cmatkhan/misc_scripts/deseq_model/data/librarydate_genotype_model_matrix.csv'
 # input_list['genotype_results_flag'] = TRUE
@@ -152,4 +160,4 @@ main(parseArguments()) # call main method
 
 #deviance_df = tibble(gene_id = protein_coding_gene_id_column, deviance_of_fitted_model = mcols(deseq_model)$deviance, saturated_model_deviance = -2*rowSums(dnbinom(counts(deseq_model), mu=counts(deseq_model), size=1/dispersions(deseq_model), log=TRUE)))
 
-# main(input_list)
+main(input_list)
