@@ -74,6 +74,24 @@ main = function(parsed_cmd_line_args){
   
 } # end main()
 
+## NOTE: THE COMMENTED OUT FUNCTION IS THE "NEW" METHOD OF DOING THE DESIGN MATRIX. THE FUNCTION WITH THE NEW
+##       PREP IN THE INTERCEPT IS THE "OLD" 2020121.
+##       TWO VERSIONS ARE CURRENTLY INCLUDED FOR TESTING
+# factorFormulaColumnsInMetadata = function(column_list, df){
+#   
+#   df[unlist(column_list)] = lapply(df[unlist(column_list)], factor)
+#   
+#   if ('LIBRARYPROTOCOL' %in% unlist(column_list)){
+#     df$LIBRARYPROTOCOL = relevel(df$LIBRARYPROTOCOL, ref='SolexaPrep')
+#   }
+#   if ('LIBRARYDATE' %in% unlist(column_list)){
+#     df$LIBRARYDATE = relevel(df$LIBRARYDATE, ref=min(levels(df$LIBRARYDATE)))
+#   }
+#   
+#   return(df)
+# 
+# } # end factorFormulaColumnsInMetadata
+
 factorFormulaColumnsInMetadata = function(column_list, df){
   
   df[unlist(column_list)] = lapply(df[unlist(column_list)], factor)
@@ -86,7 +104,7 @@ factorFormulaColumnsInMetadata = function(column_list, df){
   }
   
   return(df)
-
+  
 } # end factorFormulaColumnsInMetadata
 
 libraryProtocolDateTest = function(column_list){
@@ -117,14 +135,14 @@ calculateProtocolSizeFactors = function(metadata_df, raw_counts){
   old_library_counts = as_tibble(raw_counts) %>% select(old_library_metadata_df$FASTQFILENAME)
   new_library_counts = as_tibble(raw_counts) %>% select(new_library_metadata_df$FASTQFILENAME)
   
-  old_library_counts_na_to_0 = replace(old_library_counts, is.na(old_library_counts), 0)
-  new_library_counts_na_to_0 = replace(new_library_counts, is.na(new_library_counts), 0)
+  # old_library_counts_na_to_0 = replace(old_library_counts, is.na(old_library_counts), 0)
+  # new_library_counts_na_to_0 = replace(new_library_counts, is.na(new_library_counts), 0)
   
-  dds_old = DESeqDataSetFromMatrix(colData=old_library_metadata_df, countData=old_library_counts_na_to_0, design=~1)
+  dds_old = DESeqDataSetFromMatrix(colData=old_library_metadata_df, countData=old_library_counts, design=~1)
   dds_old = estimateSizeFactors(dds_old)
   old_size_factors = sizeFactors(dds_old)
   
-  dds_new = DESeqDataSetFromMatrix(colData=new_library_metadata_df, countData=new_library_counts_na_to_0, design=~1)
+  dds_new = DESeqDataSetFromMatrix(colData=new_library_metadata_df, countData=new_library_counts, design=~1)
   dds_new = estimateSizeFactors(dds_new)
   new_size_factors = sizeFactors(dds_new)
   
