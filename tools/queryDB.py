@@ -79,7 +79,7 @@ def parseArgs(argv):
                         help='[OPTIONAL] Default is database_files in /scratch/mblab/user/rnaseq_pipeline. '
                              'If entered, use topmost directory of metadata database. On cluster, /scratch/mblab/database-files.')
     parser.add_argument('-j', '--json', default=None,
-                        help='[OPTIONAL] Path to json file used to parse metadata. See ')
+                        help='[OPTIONAL] Path to json file used to parse metadata. See https://github.com/BrentLab/rnaseq_pipeline/blob/master/templates/example_json.json')
     parser.add_argument('-pf', '--print_full', action='store_true',
                         help='[OPTIONAL] Use this in the absence of -j to print out the full metadata database. The name will be combined_df_[date].csv. \
                          Use it in addition to -j to print out both the query and the full database. Note: simply add -pf. No value is necessary')
