@@ -49,8 +49,8 @@ def main(argv):
     for index, row in db.query_df.iterrows():
         # some early runs have run numbers that start with zero in /lts. 0s are dropped in df b/c they are read in as ints
         # this step adds the zero and casts the row to str
-        run_num_tmp = int(float(row['runNumber'] ))# TODO: super ugly, needs to be fixed. Not sure why this is now getting read in as 4422.0, eg as of 20200923
-        if run_num_tmp in db._run_numbers_with_zeros: #TODO: Probably the best way to is to always read runnumbers as strings -- requires changing _run_num_with_zeros keys to strings, and checking the rest of the codebase that uses this
+        run_num_tmp = int(float(row['runNumber']))# TODO: super ugly, needs to be fixed. Not sure why this is now getting read in as 4422.0, eg as of 20200923
+        if run_num_tmp in db._run_numbers_with_zeros: # TODO: Probably the best way to is to always read runnumbers as strings -- requires changing _run_num_with_zeros keys to strings, and checking the rest of the codebase that uses this
             run_number = str(db._run_numbers_with_zeros[run_num_tmp])
         else:
             run_number = run_num_tmp
