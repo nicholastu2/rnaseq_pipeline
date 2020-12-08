@@ -35,9 +35,9 @@ def main(argv):
     db = DatabaseObject(query_sheet_path=query_sheet_path, config_file=args.config_file, interactive=interactive_flag)
     # read in dataframe
     db.query_df = utils.readInDataframe(db.query_sheet_path)
-    # add column organism which identifies either KN99 or S288C_R64 depending on whether genotype starts with CNAG
+    # add column organism which identifies either KN99 or S288C_R64 depending on whether genotype1 starts with CNAG
     # TODO: this is point of weakness -- need to keep an eye here
-    db.query_df['organism'] = np.where(db.query_df['genotype'].str.startswith('CNAG'), 'KN99', 'S288C_R64')
+    db.query_df['organism'] = np.where(db.query_df['genotype1'].str.startswith('CNAG'), 'KN99', 'S288C_R64')
     # cast libraryDate to datetime format
     db.query_df['libraryDate'] = pd.to_datetime(db.query_df['libraryDate'])
     # create strandedness column based on libraryDate. May change to prep protocol at some point, but for now this is best
