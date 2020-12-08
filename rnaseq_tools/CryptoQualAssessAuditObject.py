@@ -62,9 +62,15 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
         for index, row in self.qual_assess_df.iterrows():
             # extract sample information
             fastq_simple_name = str(row['FASTQFILENAME'])
-            genotype = self.extractInfoFromQuerySheet(fastq_simple_name, 'genotype')
-            # split on period to separate double KO. note that this is now a list, even if one item
-            genotype = genotype.split('.')
+            # extract genotype -- if double KO, there will be two genotypes listed. this is a point of weakness in generalizing genetic perturbations
+            try:
+                genotype1 = self.extractInfoFromQuerySheet(fastq_simple_name, 'genotype1')
+                genotype2 = self.extractInfoFromQuerySheet(fastq_simple_name, 'genotype2')
+                if genotype2 in ["na", "NA", "nan", "NaN", "Nan", None]:
+                    raise KeyError("genotype2 not present")
+            except KeyError:
+                genotype2 = None
+            genotype = [genotype1, genotype2]
             # marker_1 and marker_2 will be either NAT or G418, depending on what is expected, or NA
             marker_1 = self.extractInfoFromQuerySheet(fastq_simple_name, 'marker_1')
             marker_2 = self.extractInfoFromQuerySheet(fastq_simple_name, 'marker_2')
@@ -72,14 +78,14 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
             # extract quality_assessment_metrics
             library_protein_coding_total = int(row['PROTEIN_CODING_TOTAL'])
             not_aligned_total_percent = float(row['NOT_ALIGNED_TOTAL_PERCENT'])
-            if row['GENOTYPE_1_COVERAGE'] is not None:
-                library_genotype_1_coverage = float(row['GENOTYPE_1_COVERAGE'])
+            if row['GENOTYPE1_COVERAGE'] is not None:
+                library_genotype1_coverage = float(row['GENOTYPE1_COVERAGE'])
             else:
-                library_genotype_1_coverage = -1
+                library_genotype1_coverage = -1
             if row['GENOTYPE_2_COVERAGE'] is not None:
-                library_genotype_2_coverage = float(row['GENOTYPE_2_COVERAGE'])
+                library_genotype2_coverage = float(row['GENOTYPE2_COVERAGE'])
             else:
-                library_genotype_2_coverage = -1
+                library_genotype2_coverage = -1
             if row['OVEREXPRESSION_FOW'] is not None:
                 overexpression_fow = float(row['OVEREXPRESSION_FOW'])
             else:
@@ -101,7 +107,7 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
                 status_total += self.overexpression_fow_status
             # else, evaluate KO based on coverage
             else:
-                if library_genotype_1_coverage > self.perturbed_coverage_threshold or library_genotype_2_coverage > self.perturbed_coverage_threshold:
+                if library_genotype1_coverage > self.perturbed_coverage_threshold or library_genotype2_coverage > self.perturbed_coverage_threshold:
                     status_total += self.perturbed_coverage_bit_status
 
             # test wildtypes for marker coverage and expression
@@ -113,37 +119,36 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
             # if a perturbed sample, first check that marker information is present and flag it if it is not
             else:
                 if marker_1 == 'nan' or marker_1 is None or (
-                        len(genotype) > 1 and marker_2 == 'nan' or marker_2 == 'none'):
+                        genotype[1] != None and (marker_2 == 'nan' or marker_2 == 'none')):
                     status_total += self.no_metadata_marker_status
                 # if perturbed, and marker information is present, test the markers
                 else:
                     if marker_1 == 'NAT':
                         if nat_coverage < self.nat_expected_coverage_threshold or nat_log2cpm < self.nat_expected_log2cpm_threshold:
                             status_total += self.nat_expected_marker_status
-                        if g418_log2cpm > self.g418_log2cpm_threshold and len(genotype) == 1:
+                        if g418_log2cpm > self.g418_log2cpm_threshold and len(genotype[1]) != 1:
                             status_total += self.g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < self.g418_log2cpm_threshold:
                             status_total += self.g418_expected_marker_status
-                        if \
-                                (nat_coverage > self.nat_unexpected_coverage_threshold or nat_log2cpm > self.nat_unexpected_log2cpm_threshold) and len(
-                                genotype) == 1:
+                        # test coverage if single KO
+                        if (nat_coverage > self.nat_unexpected_coverage_threshold or nat_log2cpm > self.nat_unexpected_log2cpm_threshold) and genotype[1] == None:
                             status_total += self.nat_unexpected_marker_status
                     # TODO: THIS NEEDS TO BE FIXED FOR THE INSTANCE IN WHICH A SINGLE MARKER IS NOTED WITH BOTH MARKERS B/C OF MANUAL ENTRY (SEE STRAINS 2274 AND 1351)
                     # TEST THIS WITH THE STRAINS ABOVE
-                    if len(
-                            genotype) > 1 or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
+                    # this is a double KO,  or there is supposed to be a double ko according to the filled marker_2
+                    if genotype[1] != None or marker_2 != 'nan':  # note: unentered 2nd markers for double KO should be caught in the if statement above
                         if marker_2 == 'NAT':
                             if marker_1 == 'NAT':
                                 self.logger.critical('%s has two NAT markers in the metadata' % fastq_simple_name)
                             if nat_coverage < self.nat_expected_coverage_threshold or nat_log2cpm < self.nat_expected_log2cpm_threshold:
                                 status_total += self.nat_expected_marker_status
-                            if g418_log2cpm > self.g418_log2cpm_threshold and len(genotype) == 1:
+                            if g418_log2cpm > self.g418_log2cpm_threshold and genotype[1] == None:
                                 status_total += self.g418_unexpected_marker_status
                         elif marker_2 == 'G418':
                             if marker_1 == 'G418':
                                 self.logger.critical('%s has two G418 markers in the metadata' % fastq_simple_name)
-                            if g418_log2cpm < self.g418_log2cpm_threshold and len(genotype) == 1:
+                            if g418_log2cpm < self.g418_log2cpm_threshold and genotype[1] == None:
                                 status_total += self.g418_expected_marker_status
                             # if nat_coverage > unexpected_nat_coverage_threshold or nat_log2cpm > unexpected_nat_log2cpm_threshold:
                             #     status_total += nat_unexpected_marker_status

@@ -92,6 +92,8 @@ class QualityAssessmentObject(OrganismData):
 
     def extractInfoFromQuerySheet(self, sample_name, extract_column):
         """ TODO: REMOVE THIS AND REPLACE WITH FUNCTION IN UTILS IN OTHER CODE
+            //TODO: YES. THAT IS A GOOD IDEA. THIS IS HARD TO FIND WHEN COME ACROSS IN CHILDREN
+            //TODO: PASS DF IN THE FUNCTION?
             extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
             :param sample_name: name of sample -- basename of fastq.gz, no containing directory, no extension
             :param extract_column: column from which to extract a value from the query_df based on sample_name
@@ -101,6 +103,7 @@ class QualityAssessmentObject(OrganismData):
             extract_value = list(self.query_df[self.query_df['fastqFileName'].str.contains(sample_name + '.fastq.gz')][extract_column])[
                 0]
         except AttributeError:
+            self.logger.error("failure in extractInfoFromQuerySheet. sample_name: %s extract_column: %s" %(sample_name, extract_column))
             print('You must pass a query df')
 
         return str(extract_value)
@@ -470,18 +473,21 @@ class QualityAssessmentObject(OrganismData):
             else:
                 # extract log2cpm and return
                 return log2cpm_df.loc[gene, column_name]
-
+    #TODO: DO NEW LOG2CPM REMAKE BY NEW TREATMENT COLUMNS. INCLUDE STRAINS FOR WILDTYPES
     def foldOverWildtype(self, perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint):
         """
+            :param perturbed_gene:
+            :param sample_name:
+            :param log2cpm_path:
+            :param sample_treatment: a list containing [medium, temperature, atmosphere] TODO: THIS NEEDS TO BE CHANGED FOR CLARITY SINCE THERE IS ALSO A TREATMENT COLUMN
+            :param sample_timepoint:
 
         """
         # read in median_wt_expression_by_timepoint_treatment_df
         try:
-            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(
-                self.median_wt_expression_by_timepoint_treatment)
+            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(self.median_wt_expression_by_timepoint_treatment)
             # SET INDEX ON (gene_id, TREATMENT, TIMEPOINT) note: timepoint is read in as an int
-            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(
-                ['gene_id', 'TREATMENT', 'TIMEPOINT'])
+            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(['gene_id', 'TREATMENT', 'TIMEPOINT'])
         except AttributeError:
             self.logger.critical('genome files config in constructor did not work')
             print('genome files config in constructor did not work') # set this as attr in crypto organismData

@@ -48,9 +48,8 @@ class S288C_R54QualAssessAuditObject(S288C_R64QualityAssessmentObject):
         for index, row in self.qual_assess_df.iterrows():
             # extract sample information
             fastq_simple_name = str(row['FASTQFILENAME'])
-            genotype = self.extractInfoFromQuerySheet(fastq_simple_name, 'genotype')
-            # split on period to separate double KO. note that this is now a list, even if one item
-            genotype = genotype.split('.')
+            # note: only first genotype extracted
+            genotype = [self.extractInfoFromQuerySheet(fastq_simple_name, 'genotype1')]
 
             # extract quality_assessment_metrics
             library_size = int(row['LIBRARY_SIZE'])
