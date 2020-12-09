@@ -120,17 +120,15 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
             for index, row in qual_assess_df.iterrows():
                 try:
                     # extract genotype1
-                    genotype = self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype1')
+                    genotype = [self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype1'), None]
                     #genotype = [list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype1'])[0]]
                 except ValueError:
                     self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
                 try:
                     # extract genotype2 or set it to None
-                    genotype[1] = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype2'])[0]
-                    if genotype2 in ["na", "NA", "nan", "NaN", "Nan", None]:
-                        raise KeyError("genotype2 not present")
+                    genotype[1] = self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype2')
                 except KeyError:
-                    genotype2 = None
+                    self.logger.debug("sample: %s does not have genotype2" %row['FASTQFILENAME'])
                 # test if organism is KN99. Proceed if so
                 if genotype[0].startswith('CNAG'):
                     # extract fastq_filename without any preceeding path or file extension
@@ -176,14 +174,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         sample_name = utils.pathBaseName(htseq_counts_path).replace('_read_count','')
         try:
             genotype = [self.extractInfoFromQuerySheet(sample_name, 'genotype1'), None]
-        except IndexError:
+            perturbation = [self.extractInfoFromQuerySheet(sample_name, 'perturbation1'), None]
+        except KeyError:
             self.logger.info('Not in query sheet: %s' %htseq_counts_path)
             sys.exit('Count file passed to one of the quality assessment objects was not in the query sheet. These * should be * filtered out in the qual_assess_1 script')
         try:
             # extract genotype2 or set it to None
             genotype[1] = self.extractInfoFromQuerySheet(sample_name, 'genotype2')
+            perturbation[1] = self.extractInfoFromQuerySheet(sample_name, 'perturbation2')
         except KeyError:
-            self.logger.debug("%s has no genotype2 -- may need to check script" %sample_name)
+            self.logger.debug("%s has no genotype2 and/or perturbation2 -- may need to check script if this is expected" %sample_name)
         else:
             library_metadata_dict = {}
             # TODO: error checking on keys
@@ -241,7 +241,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
             library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
-            if '_over' in genotype:
+            if perturbation[0] == "over":
                 sample_medium = self.extractInfoFromQuerySheet(sample_name, 'treatment')
                 sample_temperature = self.extractInfoFromQuerySheet(sample_name, 'temperature')
                 sample_atmosphere = self.extractInfoFromQuerySheet(sample_name, 'atmosphere')
