@@ -175,21 +175,16 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         sample_name = utils.pathBaseName(htseq_counts_path).replace('_read_count','')
         try:
-            genotype = [self.extractInfoFromQuerySheet(sample_name, 'genotype1')]
+            genotype = [self.extractInfoFromQuerySheet(sample_name, 'genotype1'), None]
         except IndexError:
             self.logger.info('Not in query sheet: %s' %htseq_counts_path)
             sys.exit('Count file passed to one of the quality assessment objects was not in the query sheet. These * should be * filtered out in the qual_assess_1 script')
         try:
             # extract genotype2 or set it to None
-            genotype[1] = list(
-                self.query_df[self.extractInfoFromQuerySheet(sample_name, 'genotype2')][
-                    'genotype2'])[0]
-            if genotype[1] in ["na", "NA", "nan", "NaN", "Nan", None]:
-                raise KeyError("genotype2 not present")
+            genotype[1] = self.extractInfoFromQuerySheet(sample_name, 'genotype2')
         except KeyError:
-            genotype[1] = None
+            self.logger.debug("%s has no genotype2 -- may need to check script" %sample_name)
         else:
-
             library_metadata_dict = {}
             # TODO: error checking on keys
             htseq_file = open(htseq_counts_path, 'r')
