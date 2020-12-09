@@ -67,8 +67,8 @@ def main(argv):
         sys.exit('The number of bam_files, count_files and/or log_files does not match. Check file contents')
 
     # all crypto records will have genotype beginning with CNAG_
-    crypto_query_df = query_df[~query_df.genotype.isna() & query_df.genotype.str.startswith('CNAG') & query_df.fastqFileName.isin(extracted_sample_fastq_list)]
-    yeast_query_df = query_df[(~(query_df.genotype.isna() | query_df.fastqFileName.isin(crypto_query_df.fastqFileName)) & query_df.fastqFileName.isin(extracted_sample_fastq_list))]
+    crypto_query_df = query_df[~query_df.genotype1.isna() & query_df.genotype1.str.startswith('CNAG') & query_df.fastqFileName.isin(extracted_sample_fastq_list)]
+    yeast_query_df = query_df[(~(query_df.genotype1.isna() | query_df.fastqFileName.isin(crypto_query_df.fastqFileName)) & query_df.fastqFileName.isin(extracted_sample_fastq_list))]
 
     # create list to store qual_assess dataframes
     qual_assess_df_list = []
