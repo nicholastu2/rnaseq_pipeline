@@ -82,7 +82,7 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
                 library_genotype1_coverage = float(row['GENOTYPE1_COVERAGE'])
             else:
                 library_genotype1_coverage = -1
-            if row['GENOTYPE_2_COVERAGE'] is not None:
+            if row['GENOTYPE2_COVERAGE'] is not None:
                 library_genotype2_coverage = float(row['GENOTYPE2_COVERAGE'])
             else:
                 library_genotype2_coverage = -1
