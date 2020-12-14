@@ -454,22 +454,31 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             # if deletion, calculate coverage. Currently only set to check genotype1. assumes both are deletions if perturbation1 == 'deletion'
             if row['perturbation1'] == "deletion":
-                genotype1 = row['genotype1']
-                genotype2 = row['genotype2']
+                try:
+                    # extract genotype1 TODO: JUST CASE EVERYTHING TO UPPER EARLIER
+                    genotype = [self.extractInfoFromQuerySheet(row['fastqFileName'], 'genotype1'), None]
+                    #genotype = [list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype1'])[0]]
+                except ValueError:
+                    self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
+                try:
+                    # extract genotype2 or set it to None
+                    genotype[1] = self.extractInfoFromQuerySheet(row['fastqFileName'], 'genotype2')
+                except KeyError:
+                    self.logger.debug("sample: %s does not have genotype2" %row['fastqFileName'])
                 # determine which genome to use -- if CNAG, use KN99
-                if not genotype1.startswith('CNAG'):
-                    raise ValueError('%sNotRecognizedCryptoGenotype' % genotype1)
+                if not genotype[0].startswith('CNAG'):
+                    raise ValueError('%sNotRecognizedCryptoGenotype' % genotype[0])
                 # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
-                genotype1 = genotype1.replace('CNAG', 'CKF44')
-                if genotype2 is not None and genotype2.startswith('CNAG'):
-                    genotype2 = genotype2.replace('CNAG', 'CKF44')
-                print('...checking coverage of %s %s in %s' % (genotype1, genotype2, fastq_simple_name))
-                genotype_df.loc[index, 'genotype1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype1,
+                genotype[0] = genotype[0].replace('CNAG', 'CKF44')
+                if genotype[1] not in [None, 'nan'] and genotype[1].startswith('CNAG'):
+                    genotype[1] = genotype[1].replace('CNAG', 'CKF44')
+                print('...checking coverage of %s in %s' % (genotype, fastq_simple_name))
+                genotype_df.loc[index, 'genotype1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype[0],
                                                                                                     self.annotation_file,
                                                                                                     bam_file)
                 # do the same for genotype2 if it exists
-                if genotype2 is not None:
-                    genotype_df.loc[index, 'genotype2_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype2,
+                if genotype[1] not in [None, 'nan']:
+                    genotype_df.loc[index, 'genotype2_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype[1],
                                                                                                         self.annotation_file,
                                                                                                         bam_file)
         # return genotype check
