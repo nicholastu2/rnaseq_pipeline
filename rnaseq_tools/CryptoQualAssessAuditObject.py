@@ -90,7 +90,10 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
                 overexpression_fow = float(row['OVEREXPRESSION_FOW'])
             else:
                 overexpression_fow = 1000
-            nat_coverage = float(row['NAT_COVERAGE'])
+            if row['NAT_COVERAGE'] is not None:
+                nat_coverage = float(row['NAT_COVERAGE'])
+            else:
+                nat_coverage = -1
             nat_log2cpm = float(row['NAT_LOG2CPM'])
             g418_log2cpm = float(row['G418_LOG2CPM']) # g418 evaluated on log2cpm alone
 
