@@ -33,8 +33,8 @@ main = function(parsed_cmd_line_args){
   print('...reading in metdata')
   metadata_df = read_csv(metadata_df_path)
   
-  print('...factoring design formula columns')
-  metadata_df = factorFormulaColumnsInMetadata(factor_column_list, metadata_df)
+ # print('...factoring design formula columns')
+ # metadata_df = factorFormulaColumnsInMetadata(factor_column_list, metadata_df)
   
   print('...reading in design matrix')
   model_matrix = as.matrix(read_csv(design_matrix_path))
