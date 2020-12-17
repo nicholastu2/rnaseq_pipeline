@@ -129,7 +129,7 @@ class CryptoQualAssessAuditObject(CryptoQualityAssessmentObject):
                     if marker_1 == 'NAT':
                         if nat_coverage < self.nat_expected_coverage_threshold or nat_log2cpm < self.nat_expected_log2cpm_threshold:
                             status_total += self.nat_expected_marker_status
-                        if g418_log2cpm > self.g418_log2cpm_threshold and len(genotype[1]) != None:
+                        if g418_log2cpm > self.g418_log2cpm_threshold and genotype[1] != None:
                             status_total += self.g418_unexpected_marker_status
                     elif marker_1 == 'G418':
                         if g418_log2cpm < self.g418_log2cpm_threshold:
