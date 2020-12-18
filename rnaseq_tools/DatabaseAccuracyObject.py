@@ -329,7 +329,7 @@ class metadataSpecificationObject:
                                      'readsObtained': int_format or None or r"Retrofit_\d+",
                                      'fastqFileName': atleast_one_non_space_format,
                                      'manualAudit': r"^(0|1)" or None,
-                                     'manualStatus: r"[0-9]*" or None,
+                                     'manualStatus': r"[0-9]*" or None,
                                      'NOTES': r'[a-zA-Z]*' or None}
 
         # collect above specs into dictionary
