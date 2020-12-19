@@ -248,7 +248,7 @@ class metadataSpecificationObject:
                                  'experimentObservations': atleast_one_non_space_format or r"Retrofit_\d+",
                                  'strain': atleast_one_non_space_format or r"Retrofit_\d+",
                                  'genotype1': capital_underscore_digit_format,
-                                 'genotype1': capital_underscore_digit_format or None,
+                                 'genotype2': capital_underscore_digit_format or None,
                                  'perturbation1': capital_underscore_digit_format or r"Retrofit_\d+",
                                  'perturbation2': capital_underscore_digit_format or r"Retrofit_\d+",
                                  'floodmedia': flood_media_options or r"Retrofit_\d+",
