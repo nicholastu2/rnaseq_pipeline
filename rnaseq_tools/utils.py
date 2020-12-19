@@ -654,3 +654,15 @@ def extractInfoFromQuerySheet(query_df, fastq_filename, extract_column):
         print('You must pass a query df')
 
     return str(extract_value)
+
+def extractGenotypeList(query_df_row):
+    """
+        for use in a loop over rows of a metadata_df
+    """
+    raise NotImplementedError
+
+def extractRunNumber(query_df_row):
+    """
+        for use in a loop over rows of a metadata_df
+    """
+    raise NotImplementedError

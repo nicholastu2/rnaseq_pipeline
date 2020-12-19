@@ -12,7 +12,6 @@ import abc
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
-# TODO: THIS SHOULD INHERIT FROM ORGANISMDATA
 class QualityAssessmentObject(OrganismData):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -468,14 +467,14 @@ class QualityAssessmentObject(OrganismData):
 
     def createIgvLookup(self, metadata_df, organism = "KN99", gene_offset=500, kn99_marker_check=True):
         """
-         # todo: if QualityAssessmentObject inherits from OrganismData, this will need to be changed
-        :params organism: right now, only KN99. This is in preparation of generalizing
-        :params bam_list: list of bam_files associated with each sample
-        :params gene_list: list of genes associated with each bam file
-        :params gene_wt_dict: a dictionary of gene: wt bam path (This needs to be created for each sample, wt should be good representative from same conditions)
-        :params gene_offset: the amount left/right of the gene to include in the browser shot window
-        :params kn99_marker_check: whether or not to take browser shots of the marker, also
-        :returns: path to the lookup file for createIgvBatchscript
+             # todo: if QualityAssessmentObject inherits from OrganismData, this will need to be changed
+            :params organism: right now, only KN99. This is in preparation of generalizing
+            :params bam_list: list of bam_files associated with each sample
+            :params gene_list: list of genes associated with each bam file
+            :params gene_wt_dict: a dictionary of gene: wt bam path (This needs to be created for each sample, wt should be good representative from same conditions)
+            :params gene_offset: the amount left/right of the gene to include in the browser shot window
+            :params kn99_marker_check: whether or not to take browser shots of the marker, also
+            :returns: path to the lookup file for createIgvBatchscript
         """
         # get all paths from StandardData, etc
         organism_genome_files = os.path.join(self.genome_files, organism)
@@ -511,32 +510,61 @@ class QualityAssessmentObject(OrganismData):
         # make lookup_file_path
         igv_lookup_file_path = os.path.join(bed_file_dir_path, 'igv_lookup_file.txt')
 
+        marker_list = ["CNAG_NAT", "CNAG_G418"]
+        kn99_marker_dict = dict(zip(marker_list, self.createIgvBedLine(marker_list, annotation_file, gene_offset)))
+
         bed_entry_dict = {}
         for index, row in metadata_df:
-            genotype_list= utils.extractGenotypeList(metadata_df, index, True) # last argument to convert CNAG to CKF44
-            if genotype_list[0] != 'CNAG_00000' and genotype_list[0] is not None:
-                bed_line_list = self.createIgvBedLine(genotype_list)
-                for bed_line_index in len(bed_line_list):
-                    # what if the genotype already exists in the dictionary?
-                    bed_entry_dict.setdefault(genotype_list[bed_line_index], bed_line_list[bed_line_index])
+                genotype_list = utils.extractGenotypeList(row, True) # last argument to convert CNAG to CKF44
+                if genotype_list[0] != 'CNAG_00000' and genotype_list[0] is not None:
+                    run_num = str(self.extractRunNumber(int(float(row["runNumber"])))) #TODO: this will hopefully be improved when database is integrated w/sql. no idea why runNumber column now comes out with inconsistent type. should just be string
+                    self.logger.debut("runnumber extracted by igv func: %s"%run_num)
+                    fastq_simple_name = utils.pathBaseName(row["fastqFileName"])
+                    alignment_run_directory_path = os.path.join(self.align_count_results, "run_%s_samples/align"%run_num)
+                    wt_reference = self.getWildtypeReference(row)
+                    try:
+                        if not os.path.isdir(alignment_run_directory_path):
+                            raise NotADirectoryError("alignment_dir_DNE")
+                    except NotADirectoryError:
+                        self.logger.critical("%s DNE"%alignment_run_directory_path)
+                    bam_file_path = os.path.join(alignment_run_directory_path, fastq_simple_name+"_sorted_aligned_reads_with_annote.bam")
+                    try:
+                        if not os.path.isfile(bam_file_path):
+                            raise FileNotFoundError("bamDNE")
+                    except FileNotFoundError:
+                        self.logger.critical("%s DNE" %bam_file_path)
+                    try:
+                        if not (os.path.isfile(os.path.join(alignment_run_directory_path, fastq_simple_name+"_sorted_aligned_reads_with_annote.bam.bai"))):
+                            raise FileNotFoundError("baiDNE")
+                    except FileNotFoundError:
+                        self.logger.critical("%s index DNE" %bam_file_path)
 
-
-        for bam_file in bam_list:
-            bam_simple_name = utils.pathBaseName(bam_file)
-            for gene in bed_entry_dict:
-                bed_file_path = os.path.join(bed_file_dir_path, bam_simple_name + '_%s.bed' % gene)
-                with open(bed_file_path, 'w') as bed_file: # TODO: include here wt and marker
-                    bed_file.write(bed_entry_dict[gene] + '%s' % bam_simple_name)
-                    bed_file.write(bed_entry_dict[gene] + '%s' % gene_wt_dict[gene])
-                    if kn99_marker_check:
-                        bed_file.write(nat_marker_bed_entry + '%s' % bam_simple_name)
-                        bed_file.write(g418_marker_bed_entry + '%s' % bam_simple_name)
-                with open(igv_lookup_file_path, 'a') as igv_lookup_file:
-                    new_lookup_line = '%s\t%s\t%s\n' % (bam_file, bed_file_path, igv_genome)
-                    # TODO: also write wt and marker line
-                    igv_lookup_file.write(new_lookup_line)
+                    # TODO: only create bed line if the genotype doesn't already exist in the bed_entry_dict
+                    bed_line_list = self.createIgvBedLine(genotype_list, annotation_file, gene_offset)
+                    for bed_line_index in range(len(bed_line_list)):
+                        # semi colon suppresses the side effect of returning the value, if the key exists. existing entry not changed if the key already exists
+                        bed_entry_dict.setdefault(genotype_list[bed_line_index], bed_line_list[bed_line_index]);
+                    # write bed
+                    bed_file_path = os.path.join(bed_file_dir_path, fastq_simple_name + '.bed')
+                    with open(bed_file_path, 'w') as bed_file:
+                        for genotype in genotype_list:
+                            # TODO: GET WILDTYPE REFERENCE FILE FOR THIS GENOTYPE
+                            if genotype is not None:  # already tested for != CNAG_00000 above
+                                bed_file.write(bed_entry_dict[genotype] + '%s' %genotype)
+                                bed_file.write(wt_reference + 'wildtype_reference_%s' %genotype)
+                                for marker, marker_bed_entry in kn99_marker_dict:
+                                    bed_file.write(marker_bed_entry + '%s' %marker)
+                    with open(igv_lookup_file_path, 'a') as igv_lookup_file:
+                        new_lookup_line = '%s\t%s\t%s\n' % (bam_file_path, bed_file_path, igv_genome)
+                        # TODO: also write wt and marker line
+                        igv_lookup_file.write(new_lookup_line)
 
         return igv_lookup_file_path
+
+    def getIgvWildtypeSample(self, metadata_df_row):
+        """
+           from the information in a row of the metadata, extract the most appropriate
+        """
 
     def createIgvBedLine(self, genotype_list, annotation_file, gene_offset):
         """

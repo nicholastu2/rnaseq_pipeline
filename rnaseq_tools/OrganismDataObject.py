@@ -97,3 +97,10 @@ class OrganismData(StandardData):
             count_df = pd.merge(count_df, count_file_df, on='gene_id')
 
         return count_df
+
+    def getWildtypeReference(self, metadata_df_row):
+        """
+            extract most appropriate wildtype reference for sample
+            :params metadata_df_row: this function is intended to be used in a loop over a metadata_df, so pass the row directly.
+        """
+        raise NotImplementedError
