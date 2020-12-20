@@ -590,6 +590,7 @@ class QualityAssessmentObject(OrganismData):
 
         batchfile_list = []
         for sample_name, batch_file_dict in bed_entry_dict.items():
+            print(sample_name)
             # make subdir of igv_output_dir
             igv_output_subdir_path = os.path.join(igv_output_dir, sample_name)
             utils.mkdirp(igv_output_subdir_path)
@@ -683,7 +684,8 @@ class QualityAssessmentObject(OrganismData):
         """
         bed_line_list=[]
         for gene in genotype_list:
-            if gene is not None:
+            print("bedline gene: %s" %gene)
+            if gene is not None and gene != "CNAG_00000":
                 # get first column corresponding to given gene, take uniq value as chromosome
                 extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' % (gene, annotation_file)
                 chromosome_identifier = subprocess.getoutput(extract_chr_cmd)
