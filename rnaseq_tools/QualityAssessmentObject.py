@@ -91,6 +91,7 @@ class QualityAssessmentObject(OrganismData):
 
     def extractInfoFromQuerySheet(self, sample_name, extract_column):
         """ TODO: REMOVE THIS AND REPLACE WITH FUNCTION IN UTILS IN OTHER CODE
+                  PUT INTO UTILS 20201220, BUT HAVE NOT REPLACED THE CODE EVERYWHERE
             //TODO: YES. THAT IS A GOOD IDEA. THIS IS HARD TO FIND WHEN COME ACROSS IN CHILDREN
             //TODO: PASS DF IN THE FUNCTION?
             extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
@@ -460,7 +461,7 @@ class QualityAssessmentObject(OrganismData):
             igv_output_dir = os.path.join(self.reports, 'igv_%s_%s' % (self.year_month_day, utils.hourMinuteSecond()))
             utils.mkdirp(igv_output_dir)
 
-        lookup_file_path = self.createIgvLookup(metadata_df, manual_audit_flag)
+        lookup_file_path = self.createIgvLookup(metadata_df)
 
         # create sbatch script for igv shots
         self.createIgvBatchscript(lookup_file_path, igv_output_dir)
@@ -514,14 +515,17 @@ class QualityAssessmentObject(OrganismData):
         kn99_marker_dict = dict(zip(marker_list, self.createIgvBedLine(marker_list, annotation_file, gene_offset)))
 
         bed_entry_dict = {}
-        for index, row in metadata_df:
-                genotype_list = utils.extractGenotypeList(row, True) # last argument to convert CNAG to CKF44
+        for index, row in metadata_df.iterrows():
+                genotype_list = utils.extractGenotypeList(row, convert_CNAG_to_CKF44=True) # last argument to convert CNAG to CKF44
                 if genotype_list[0] != 'CNAG_00000' and genotype_list[0] is not None:
                     run_num = str(self.extractRunNumber(int(float(row["runNumber"])))) #TODO: this will hopefully be improved when database is integrated w/sql. no idea why runNumber column now comes out with inconsistent type. should just be string
-                    self.logger.debut("runnumber extracted by igv func: %s"%run_num)
+                    self.logger.debug("runnumber extracted by igv func: %s"%run_num)
                     fastq_simple_name = utils.pathBaseName(row["fastqFileName"])
                     alignment_run_directory_path = os.path.join(self.align_count_results, "run_%s_samples/align"%run_num)
-                    wt_reference = self.getWildtypeReference(row)
+                    try:
+                        wt_reference = self.getWildtypeReference(row)
+                    except FileNotFoundError:
+                        self.logger.critical("No wildtype reference found for %s" %row)
                     try:
                         if not os.path.isdir(alignment_run_directory_path):
                             raise NotADirectoryError("alignment_dir_DNE")
@@ -551,8 +555,9 @@ class QualityAssessmentObject(OrganismData):
                             # TODO: GET WILDTYPE REFERENCE FILE FOR THIS GENOTYPE
                             if genotype is not None:  # already tested for != CNAG_00000 above
                                 bed_file.write(bed_entry_dict[genotype] + '%s' %genotype)
-                                bed_file.write(wt_reference + 'wildtype_reference_%s' %genotype)
-                                for marker, marker_bed_entry in kn99_marker_dict:
+                                wt_conditions = list(filter(lambda x: x != -1, wt_reference)) # TODO: MAKE SURE THAT -1 IS NOT ACTUALLY A CONDITION
+                                bed_file.write(wt_reference[0] + 'wildtype_reference_%s' %"wildtype_" + "_".join(map(str, wt_conditions)))
+                                for marker, marker_bed_entry in kn99_marker_dict.items():
                                     bed_file.write(marker_bed_entry + '%s' %marker)
                     with open(igv_lookup_file_path, 'a') as igv_lookup_file:
                         new_lookup_line = '%s\t%s\t%s\n' % (bam_file_path, bed_file_path, igv_genome)
@@ -594,7 +599,7 @@ class QualityAssessmentObject(OrganismData):
 
                 # enter {gene: bed_line} to dict -- not the final \t allows to add the bam_file_simplename later
                 bed_line = '%s\t%s\t%s\t' % (chromosome_identifier, start_coord_with_offest, stop_coord_with_offset)
-                bed_line_list.apppend(bed_line)
+                bed_line_list.append(bed_line)
 
         return bed_line_list
 

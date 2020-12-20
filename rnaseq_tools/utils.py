@@ -655,14 +655,41 @@ def extractInfoFromQuerySheet(query_df, fastq_filename, extract_column):
 
     return str(extract_value)
 
-def extractGenotypeList(query_df_row):
+def extractInfoFromQuerySheet(query_df, sample_name, extract_column):
+        """ TODO: THIS WAS REMOVED FROM ORGANISMDATA OR QUALITY ASSESSMENT...DON'T REMEMBER...BUT IT NEEDS TO BE UPDATED IN THE REST OF THE CODEBASE TO USE THIS IN UTILS NOW (AND HANDLE ERRORS IN CALLING SCRIPT)
+            extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
+            :param sample_name: name of sample -- basename of fastq.gz, no containing directory, no extension
+            :param extract_column: column from which to extract a value from the query_df based on sample_name
+            :returns: value extracted from query_df based on sample name and extract column
+        """
+        try:
+            extract_value = list(query_df[query_df['fastqFileName'].str.contains(sample_name + '.fastq.gz')][extract_column])[
+                0]
+        except AttributeError:
+            raise AttributeError # TODO: CLEAN THIS -- I JUST REMOVED THE LOGGER STATEMENT WHILE DEBUGGING IGVSHOTS
+        else:
+            return str(extract_value)
+
+def extractGenotypeList(query_df_row, genotype_columns=["genotype1", "genotype2"], convert_CNAG_to_CKF44=False):
     """
         for use in a loop over rows of a metadata_df
     """
-    raise NotImplementedError
+    genotype_list = query_df_row[genotype_columns].values
+    if np.isnan(genotype_list[1]):
+        genotype_list[1] = None
+
+    if convert_CNAG_to_CKF44:
+        for i in range(len(genotype_list)):
+            try:
+                genotype_list[i] = genotype_list[i].replace("CNAG", "CKF44")
+            except AttributeError: # this is to catch the case in which genotype[1] is none. TODO: should have more error checking in this function
+                pass
+
+    return genotype_list
 
 def extractRunNumber(query_df_row):
     """
         for use in a loop over rows of a metadata_df
     """
+    # TODO SEE STANDARD DATA -- ALREADY IMPLEMENTED
     raise NotImplementedError

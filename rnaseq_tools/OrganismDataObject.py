@@ -1,5 +1,6 @@
 from rnaseq_tools import utils
 from rnaseq_tools.StandardDataObject import StandardData
+from itertools import repeat
 import pandas as pd
 import sys
 import os
@@ -98,9 +99,38 @@ class OrganismData(StandardData):
 
         return count_df
 
-    def getWildtypeReference(self, metadata_df_row):
+    def getWildtypeReference(self, metadata_df_row, sample_condition_columns = ['libraryDate', 'other_conditions', 'treatment', 'timePoint', 'atmosphere', 'temperature', 'medium']):
         """
             extract most appropriate wildtype reference for sample
-            :params metadata_df_row: this function is intended to be used in a loop over a metadata_df, so pass the row directly.
+            :params sample_condition_columns: conditions on which to filter IN INCREASING LEVEL OF IMPORTANCE.
+                                              in searching for an an appropriate wt, conditions will be iteratively dropped from the beginning to the end.
+                                              The most important condition is last
+            :returns: A list with structure [ fastqFileName, [list_of_conditions for the wt] ]
+            :throws: FileNotFoundError if no wt found, even only matching condition
         """
-        raise NotImplementedError
+        # fill database nas w/ -1
+        wt_by_condition = pd.read_csv(self.wt_by_condition_path)
+        wt_by_condition = wt_by_condition.fillna(-1)
+        # extract condition information (fill nas w/ -1)
+        this_sample_conditions = list(metadata_df_row.fillna(-1)[sample_condition_columns])
+        # dictionary with keys that are 0:number_of_conditions-1 and entries None.
+        # These will be filled with a wildtype sample that meets iteratively decreasing number of conditions from sample_condition_columns
+        wt_options_dict = dict(zip(range(len(sample_condition_columns)), repeat(None)))
+
+        for index, row in wt_by_condition.iterrows():
+            for i in range(len(sample_condition_columns)):
+                if list(row[sample_condition_columns[i:]].values) == this_sample_conditions[i:]:
+                    wt_options_dict[i] = [row['fastqFileName'], this_sample_conditions[i:]]
+                    # stop looking for samples if a perfect match to the full sample conditions is found
+                    if wt_options_dict[0] is not None:
+                        break
+
+        for key, value in wt_options_dict.items():
+            if value is not None:
+                return value
+
+        raise FileNotFoundError('noWildtypeFound')
+
+
+
+
