@@ -545,7 +545,7 @@ class QualityAssessmentObject(OrganismData):
         bed_entry_dict = {}
         for index, row in metadata_df.iterrows():
                 genotype_list = utils.extractGenotypeList(row, convert_CNAG_to_CKF44=True) # last argument to convert CNAG to CKF44
-                if genotype_list[0] != 'CNAG_00000' and genotype_list[0] is not None:
+                if genotype_list[0] != 'CKF44_00000' and genotype_list[0] is not None:
                     run_num = str(self.extractRunNumber(int(float(row["runNumber"])))) #TODO: this will hopefully be improved when database is integrated w/sql. no idea why runNumber column now comes out with inconsistent type. should just be string
                     self.logger.debug("runnumber extracted by igv func: %s"%run_num)
                     fastq_simple_name = utils.pathBaseName(row["fastqFileName"])
@@ -590,7 +590,6 @@ class QualityAssessmentObject(OrganismData):
 
         batchfile_list = []
         for sample_name, batch_file_dict in bed_entry_dict.items():
-            print(sample_name)
             # make subdir of igv_output_dir
             igv_output_subdir_path = os.path.join(igv_output_dir, sample_name)
             utils.mkdirp(igv_output_subdir_path)
@@ -684,7 +683,6 @@ class QualityAssessmentObject(OrganismData):
         """
         bed_line_list=[]
         for gene in genotype_list:
-            print("bedline gene: %s" %gene)
             if gene is not None and gene != "CNAG_00000":
                 # get first column corresponding to given gene, take uniq value as chromosome
                 extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' % (gene, annotation_file)
