@@ -685,7 +685,7 @@ def extractGenotypeList(query_df_row, genotype_columns=["genotype1", "genotype2"
             except AttributeError: # this is to catch the case in which genotype[1] is none. TODO: should have more error checking in this function
                 pass
 
-    return genotype_list
+    return list(genotype_list)
 
 def extractRunNumber(query_df_row):
     """
