@@ -705,7 +705,7 @@ class QualityAssessmentObject(OrganismData):
 
         return bed_line_list
 
-    def createAndSubmitIgvSbatchScript(self, lookup_file_path, output_dir, igv_mem="10000", igv_path="/opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar"):
+    def createAndSubmitIgvSbatchScript(self, lookup_file_path, output_dir, igv_mem="10000", igv_path="/opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar"): #TODO: CHAGNE BACK TO OLD PATH
         """
             create sbatch script -- there is an of batchscripts in templates (though there may not be one of this exactly if i forget to put it there. feel free to write an issues report)
             :params lookup_file_path: a list of batchscript files
@@ -733,7 +733,7 @@ class QualityAssessmentObject(OrganismData):
               '#SBATCH %s\n' \
               '#SBATCH -o %s/igv_snapshot_%s_%s.out\n' \
               '#SBATCH -J igv_snapshot\n\n' \
-              '#ml rnaseq_pipeline java\n\n' \
+              'conda activate igv_env java\n\n' \
               'read igv_batchfile < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
               'xvfb-run --auto-servernum --server-num=1 java -Xmx%sm -jar %s -b ${igv_batchfile}\n'\
               % (sbatch_array_line, self.sbatch_log, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path, igv_mem, igv_path)
