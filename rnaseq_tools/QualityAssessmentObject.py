@@ -614,7 +614,8 @@ class QualityAssessmentObject(OrganismData):
         batchscript_cmd_list = ["new", "snapshotDirectory", "load", "goto", "sort", "collapse", "snapshot"]
 
         # this will be the first line of the batchscript
-        batchfile_text = ["snapshotDirectory %s\n\n" %output_dir]
+        batchfile_text = ["snapshotDirectory %s\n" %output_dir,
+                          "setSleepInterval 1000\n\n"]
 
         # note -- the value associated with "perturbed_genotype" needs to be passed as a list, even if only one item
         #TODO: ERROR CHECK THAT THERE IS A BED LINE FOR EACH GENOTYPE
