@@ -630,7 +630,7 @@ class QualityAssessmentObject(OrganismData):
                                        "genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 10000",
                                        "load %s\n"%batch_file_dict["perturbed_bam"],
-                                       "load %s\n" % batch_file_dict["wt_bam"],
+                                       #"load %s\n" % batch_file_dict["wt_bam"],
                                        "goto %s\n"%perturbed_locus_bed_line,
                                        "sort position\n",
                                        "collapse\n",
@@ -646,6 +646,7 @@ class QualityAssessmentObject(OrganismData):
                 marker_bed_line = marker_bed_line[0] + ":" +str(marker_bed_line[1])+"-"+str(marker_bed_line[2])
                 batchfile_text.extend(["new\n",
                                        "genome %s\n"%batch_file_dict["igv_genome"],
+                                       "maxPanelHeight 5000"
                                        "load %s\n"%batch_file_dict["perturbed_bam"],
                                        "goto %s\n"%marker_bed_line,
                                        "sort position\n",
