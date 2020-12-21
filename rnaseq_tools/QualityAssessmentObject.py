@@ -755,7 +755,7 @@ class QualityAssessmentObject(OrganismData):
         else:
             print('Submitting igv batchscript %s' % igv_job_script_path)
             batchscript_submit_cmd = 'sbatch %s' % igv_job_script_path
-            #utils.executeSubProcess(batchscript_submit_cmd)
+            utils.executeSubProcess(batchscript_submit_cmd)
 
     def qortsPlots(self):
         """
