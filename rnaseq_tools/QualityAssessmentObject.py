@@ -657,16 +657,16 @@ class QualityAssessmentObject(OrganismData):
                 batchfile_text_dict["perturbed"].extend(["exit\n\n"])
                 if control_image:
                     batchfile_text_dict["control"].extend(["new\n",
-                                           "snapshotDirectory %s\n" % output_dir,
-                                           #"genome %s\n"%batch_file_dict["igv_genome"],
-                                           "maxPanelHeight 500\n",
-                                           "preference SAM.COLOR_BY READ_STRAND\n",
-                                           "load %s\n" % batch_file_dict["wt_bam"],
-                                           "goto %s\n"%perturbed_locus_bed_line,
-                                           "sort position\n",
-                                           "collapse\n",
-                                           "snapshot %s\n" %("control.png") # TODO: RENAME WITH CONDITIONS OF WT
-                                           ])
+                                                           "snapshotDirectory %s\n" % output_dir,
+                                                           "genome %s\n"%batch_file_dict["igv_genome"],
+                                                           "maxPanelHeight 500\n",
+                                                           "preference SAM.COLOR_BY READ_STRAND\n",
+                                                           "load %s\n" % batch_file_dict["wt_bam"],
+                                                           "goto %s\n"%perturbed_locus_bed_line,
+                                                           "sort position\n",
+                                                           "collapse\n",
+                                                           "snapshot %s\n" %("control.png") # TODO: RENAME WITH CONDITIONS OF WT
+                                                           ])
                     batchfile_text_dict["control"].extend(["exit\n\n"])
         # write out
         # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
