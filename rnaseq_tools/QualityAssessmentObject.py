@@ -705,7 +705,7 @@ class QualityAssessmentObject(OrganismData):
 
         return bed_line_list
 
-    def createAndSubmitIgvSbatchScript(self, lookup_file_path, output_dir, igv_mem="10000", igv_path="/opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar"): #TODO: CHAGNE BACK TO OLD PATH
+    def createAndSubmitIgvSbatchScript(self, lookup_file_path, output_dir, igv_mem="10000", igv_path="/opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar"): # TODO: USE THE IGV IN THE LAB /OPT
         """
             create sbatch script -- there is an of batchscripts in templates (though there may not be one of this exactly if i forget to put it there. feel free to write an issues report)
             :params lookup_file_path: a list of batchscript files
