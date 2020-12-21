@@ -655,7 +655,7 @@ class QualityAssessmentObject(OrganismData):
 
                 batchfile_text.extend(["new\n",
                                        "snapshotDirectory %s\n" % output_dir,
-                                       "genome %s\n"%batch_file_dict["igv_genome"],
+                                       #"genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
                                        "load %s\n" % batch_file_dict["wt_bam"],
                                        "goto %s\n"%perturbed_locus_bed_line,
