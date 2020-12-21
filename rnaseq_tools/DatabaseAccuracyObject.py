@@ -231,14 +231,7 @@ class metadataSpecificationObject:
         capital_underscore_digit_format = r"[A-Z_\d]+"
 
         flood_media_options = r"None|PBS|SCGal|SCGlu"
-        biosample_treatment = r"EtOH|Estradiol|PBS|mockEstradiol|conditionShift|glucoseTo2%|DMEM.30C|DMEM.37C|RPMI.30C|" \
-                              r"RPMI.37C|YPD.30C|YPD.37C|DMEM.30C.CO2|DMEM.37C.CO2|RPMI.30C.CO2|RPMI.37C.CO2|" \
-                              r"YPD.30C.CO2|YPD.37C.CO2|DMEM.30C.cAMP|DMEM.37C.cAMP|RPMI.30C.cAMP|RPMI.37C.cAMP|YPD.30C.cAMP|YPD.37C.cAMP|" \
-                              r"DMEM.30C.CO2.cAMP|DMEM.37C.CO2.cAMP|RPMI.30C.CO2.cAMP|RPMI.37C.CO2.cAMP|YPD.30C.CO2.cAMP|YPD.37C.CO2.cAMP|" \
-                              r"DMEM.30C.pH7|DMEM.37C.pH7|RPMI.30C.pH7|RPMI.37C.pH7|YPD.30C.pH7|YPD.37C.pH7|DMEM.30C.CO2.pH7|DMEM.37C.CO2.pH7|" \
-                              r"RPMI.30C.CO2.pH7|RPMI.37C.CO2.pH7|YPD.30C.CO2.pH7|YPD.37C.CO2.pH7|DMEM.30C.cAMP.pH7|DMEM.37C.cAMP.pH7|" \
-                              r"RPMI.30C.cAMP.pH7|RPMI.37C.cAMP.pH7|YPD.30C.cAMP.pH7|YPD.37C.cAMP.pH7|DMEM.30C.CO2.cAMP.pH7|" \
-                              r"DMEM.37C.CO2.cAMP.pH7|RPMI.30C.CO2.cAMP.pH7|RPMI.37C.CO2.cAMP.pH7|YPD.30C.CO2.cAMP.pH7|YPD.37C.CO2.cAMP.pH7"
+        biosample_medium = r"DMEM|YPD|RPMI|PBS|mouseSerum"
         marker_format = r"NAT|G418|NaN|nan"
         rna_prep_method = r"DirectZol|RiboPure0.5X|RiboPure0.25X|RiboPure0.125X|ComboA|ComboB|TRIzol"
         ribosomal_band_shape_options = r"straight|smile|NA"
@@ -254,10 +247,17 @@ class metadataSpecificationObject:
                                  'experimentDesign': atleast_one_non_space_format or r"Retrofit_\d+",
                                  'experimentObservations': atleast_one_non_space_format or r"Retrofit_\d+",
                                  'strain': atleast_one_non_space_format or r"Retrofit_\d+",
-                                 'genotype': capital_underscore_digit_format or r"Retrofit_\d+",
+                                 'genotype1': capital_underscore_digit_format,
+                                 'genotype2': capital_underscore_digit_format or None,
+                                 'perturbation1': capital_underscore_digit_format or r"Retrofit_\d+",
+                                 'perturbation2': capital_underscore_digit_format or r"Retrofit_\d+",
                                  'floodmedia': flood_media_options or r"Retrofit_\d+",
                                  'inductionDelay': int_format or r"Retrofit_\d+",
-                                 'treatment': biosample_treatment or r"Retrofit_\d+",
+                                 'medium': biosample_medium or None,
+                                 'temperature': float_format or None,
+                                 'atmosphere': "CO2" or None,
+                                 'treatment': 'cAMP' or None,
+                                 'other_conditions': 'pH7' or None,
                                  'timePoint': int_format or r"Retrofit_\d+",
                                  'replicate': int_format or r"Retrofit_\d+",
                                  'marker_1': marker_format or None,
@@ -328,11 +328,9 @@ class metadataSpecificationObject:
                                      'volumePooled': float_format or None or r"Retrofit_\d+",
                                      'readsObtained': int_format or None or r"Retrofit_\d+",
                                      'fastqFileName': atleast_one_non_space_format,
-                                     'MANUAL_AUDIT_20200520': r"^(0|1)",
-                                     'FAIL_REASON_20200520': r"[0-9]*",
-                                     'MANUAL_AUDIT_20207230': r"^(0|1)",
-                                     'FAIL_REASON_20200723': r"[0-9]*",
-                                     'NOTES': r'[a-zA-Z]*'}
+                                     'manualAudit': r"^(0|1)" or None,
+                                     'manualStatus': r"[0-9]*" or None,
+                                     'NOTES': r'[a-zA-Z]*' or None}
 
         # collect above specs into dictionary
         self.specification_dict = {

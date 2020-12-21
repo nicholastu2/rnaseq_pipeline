@@ -1,0 +1,37 @@
+new
+snapshotDirectory /path/to/where/you/want/the/images
+genome /home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/KN99_stranded.genome
+load /mnt/htcf_scratch/chasem/rnaseq_pipeline/align_count_results/run_4632_samples/align/Brent_Exp28-3_GTAC_3_SIC_Index2_06_ATGACAG_GACCTTGT_S3_R1_001_sorted_aligned_reads_with_annote.bam
+goto NAT:1-1800
+sort position
+collapse
+snapshot MARKER_NAT.png
+
+new
+genome /home/chase/Desktop/rnaseq_pipeline/rnaseq_pipeline/genome_files/KN99/KN99_stranded.genome
+load /mnt/htcf_scratch/chasem/rnaseq_pipeline/align_count_results/run_4632_samples/align/Brent_Exp28-3_GTAC_3_SIC_Index2_06_ATGACAG_GACCTTGT_S3_R1_001_sorted_aligned_reads_with_annote.bam
+load /mnt/htcf_scratch/chasem/rnaseq_pipeline/align_count_results/run_4632_samples/align/Brent_Exp28-1_GTAC_1_SIC_Index2_06_TGAGGTT_GACCTTGT_S2_R1_001_sorted_aligned_reads_with_annote.bam
+goto CP022321.1:92930-96641
+sort position
+collapse
+snapshot PERTURBED.png
+
+
+
+_______________________________________
+
+NOTES: this will place two images in the same snapshotDirectory. The second block (PERTURBED.png) will have two tracks, in this case a perturbed sample and a wt sample, in the view
+
+other options can be added, eg maxPaneHeight, though using this option in the https://github.com/stevekm/IGV-snapshot-automator/blob/master/make_IGV_snapshots.py may have lead to cut offs of the genome in some of the images taken using that script. I have chosen to omit that line.
+
+coloring can be added, but frustratingly those options are not clearly delineated in the IGV documentation. A discussion in the issues of the above repo here:
+
+https://github.com/stevekm/IGV-snapshot-automator/issues/14
+
+lead me to the IGV repo, which has a full list of the preferences:
+
+https://github.com/igvteam/igv/blob/master/src/main/resources/org/broad/igv/prefs/preferences.tab
+
+try:
+
+SAM.COLOR_BY=TAG:XF to color reads by their assignment to a feature by htseq (this is the meaning of _with_annote in the bam file name currently). However, not sure if this works. SAM.COLOR_BY=READ_STRAND does according to the people on the issues link in the repo

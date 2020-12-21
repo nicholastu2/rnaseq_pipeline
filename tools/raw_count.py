@@ -33,8 +33,8 @@ def main(argv):
 
     # TODO: SOME ERROR CHECKING ON THE FASTQFILENAME?
     # all crypto records will have genotype beginning with CNAG_, used this to extract list of crypto and yeast samples from query
-    crypto_sample_list = list(query_df[query_df.genotype.str.startswith('CNAG')].fastqFileName) #TODO: after metadata organism column added, update this section
-    s288c_r64_sample_list = list(query_df[~query_df.genotype.str.startswith('CNAG')].fastqFileName)
+    crypto_sample_list = list(query_df[query_df.genotype1.str.startswith('CNAG')].fastqFileName) #TODO: after metadata organism column added, update this section
+    s288c_r64_sample_list = list(query_df[~query_df.genotype1.str.startswith('CNAG')].fastqFileName)
 
     # split list of count files based on membership in dataframes above
     count_files_by_organism_dict = {'KN99': [x for x in count_dir_file_list if os.path.basename(x.replace('_read_count.tsv', '.fastq.gz')) in crypto_sample_list],

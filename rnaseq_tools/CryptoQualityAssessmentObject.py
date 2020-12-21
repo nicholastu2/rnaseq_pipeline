@@ -25,14 +25,14 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         self.self_type = 'CryptoQualityAssessmentObject'
         # create logger
         self.logger = utils.createStandardObjectChildLogger(self, __name__)
-        # for ordering columns below. genotype_1_coverage and genotype_2_coverage added if coverage_check is passed
+        # for ordering columns below. genotype1_coverage and genotype2_coverage added if coverage_check is passed
         self.column_order = ['FASTQFILENAME', 'LIBRARY_SIZE', 'EFFECTIVE_LIBRARY_SIZE', 'EFFECTIVE_UNIQUE_ALIGNMENT',
                              'EFFECTIVE_UNIQUE_ALIGNMENT_PERCENT',
                              'MULTI_MAP_PERCENT', 'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT',
                              'PROTEIN_CODING_COUNTED',
                              'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
-                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE_1_COVERAGE',
-                             'GENOTYPE_2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'NAT_LOG2CPM', 'G418_COVERAGE',
+                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE1_COVERAGE',
+                             'GENOTYPE2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'NAT_LOG2CPM', 'G418_COVERAGE',
                              'G418_LOG2CPM', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
                              'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
 
@@ -119,16 +119,24 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         if hasattr(self, 'query_df'):
             for index, row in qual_assess_df.iterrows():
                 try:
-                    genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
-                    genotype = list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype'])[0]
+                    # extract genotype1
+                    genotype = [self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype1'), None]
+                    #genotype = [list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype1'])[0]]
                 except ValueError:
                     self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
-                if genotype.startswith('CNAG'):
+                try:
+                    # extract genotype2 or set it to None
+                    genotype[1] = self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype2')
+                except KeyError:
+                    self.logger.debug("sample: %s does not have genotype2" %row['FASTQFILENAME'])
+                # test if organism is KN99. Proceed if so
+                if genotype[0].startswith('CNAG'):
                     # extract fastq_filename without any preceeding path or file extension
                     fastq_simple_name = utils.pathBaseName(row['FASTQFILENAME'])
                     print('...evaluating ncRNA in %s' % fastq_simple_name)
                     # use this to extract bam_path
                     try:
+                        # bam_file_list is inherited
                         bam_path = [bam_file for bam_file in self.bam_file_list if fastq_simple_name in bam_file][0]
                     except IndexError:
                         self.logger.info('%s not in bam_file_list' % fastq_simple_name)
@@ -165,12 +173,18 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
         sample_name = utils.pathBaseName(htseq_counts_path).replace('_read_count','')
         try:
-            genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
-        except IndexError:
+            genotype = [self.extractInfoFromQuerySheet(sample_name, 'genotype1'), None]
+            perturbation = [self.extractInfoFromQuerySheet(sample_name, 'perturbation1'), None]
+        except KeyError:
             self.logger.info('Not in query sheet: %s' %htseq_counts_path)
             sys.exit('Count file passed to one of the quality assessment objects was not in the query sheet. These * should be * filtered out in the qual_assess_1 script')
+        try:
+            # extract genotype2 or set it to None
+            genotype[1] = self.extractInfoFromQuerySheet(sample_name, 'genotype2')
+            perturbation[1] = self.extractInfoFromQuerySheet(sample_name, 'perturbation2')
+        except KeyError:
+            self.logger.debug("%s has no genotype2 and/or perturbation2 -- may need to check script if this is expected" %sample_name)
         else:
-
             library_metadata_dict = {}
             # TODO: error checking on keys
             htseq_file = open(htseq_counts_path, 'r')
@@ -227,11 +241,14 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
             library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
-            if '_over' in genotype:
-                sample_treatment = self.extractInfoFromQuerySheet(sample_name, 'treatment')
+            if perturbation[0] == "over":
+                sample_medium = self.extractInfoFromQuerySheet(sample_name, 'treatment')
+                sample_temperature = self.extractInfoFromQuerySheet(sample_name, 'temperature')
+                sample_atmosphere = self.extractInfoFromQuerySheet(sample_name, 'atmosphere')
                 sample_timepoint = self.extractInfoFromQuerySheet(sample_name, 'timePoint')
                 perturbed_gene = genotype.replace('_over', '').replace('CNAG', 'CKF44')
-                library_metadata_dict['OVEREXPRESSION_FOW'] = self.foldOverWildtype(perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint)
+                # THIS NEEDS TO BE UPDATED WITH NEW MEDIAN_LOG2CPM BY WILDTYPE REPLICATE GROUPS WHEN TREATMENT COLUMNS ARE STABLE AGAIN
+                library_metadata_dict['OVEREXPRESSION_FOW'] = 0 #self.foldOverWildtype(perturbed_gene, sample_name, log2cpm_path, [sample_medium, sample_temperature, sample_atmosphere], sample_timepoint)
 
             htseq_file.close()
             return library_metadata_dict
@@ -245,7 +262,7 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         for index, row in self.qual_assess_df.iterrows():
             # extract sample info
             sample_name = str(row['FASTQFILENAME'])
-            genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype')
+            genotype = self.extractInfoFromQuerySheet(sample_name, 'genotype1')
             sample_treatment = self.extractInfoFromQuerySheet(sample_name, 'treatment')
             sample_timepoint = self.extractInfoFromQuerySheet(sample_name, 'timepoint')
             # add NAT and G418 log2cpm
@@ -284,13 +301,12 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         try:
             for index, row in qual_assess_df.iterrows():
                 print('...Assessing intergenic coverage for %s' % row['FASTQFILENAME'])
-                genotype = list(
-                    self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')][
-                        'genotype'])[0]
+                genotype = [self.extractInfoFromQuerySheet(row['FASTQFILENAME'], 'genotype1')]
                 # set total_intergenic_bases and intergenic_region_bed by organism
                 # common error message for setting total_intergenic_bases. Requires %(attribute_name, organism) both strings eg %('kn99_total_intergenic_bases', 'KN99')
                 error_msg = 'No attribute %s. Check OrganismData_config.ini in %s'
-                if genotype.startswith('CNAG'):
+                # this is a method of testing if KN99
+                if genotype[0].startswith('CNAG'):
                     try:
                         intergenic_region_bed_path = os.path.join(self.genome_files, 'KN99',
                                                                   self.intergenic_region_bed)
@@ -394,23 +410,12 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         self.logger.info('\nThe run numbers in the sheet are: %s' % self.query_df['runNumber'].unique())
 
         # create genotype_df from query_df[['fastqFileName' and 'genotype']]
-        genotype_df = self.query_df[['fastqFileName', 'genotype']]
+        # get intersection of set('fastqFileName', 'genotype1', 'perturbation1', 'genotype2', 'perturbation2') set(self.query_df.columns)
+        genotype_columns = list({'fastqFileName', 'genotype1', 'perturbation1', 'genotype2', 'perturbation2'}.intersection(set(self.query_df.columns)))
+        # create genotype_df from intersection
+        genotype_df = self.query_df[genotype_columns]
         # reduce fastqFileName to only simple basename (eg /path/to/some_fastq_R1_001.fastq.gz --> some_fastq_R1_001
         genotype_df['fastqFileName'] = genotype_df['fastqFileName'].apply(lambda x: utils.pathBaseName(x))
-        # new column perturbation, if _over in genotype, put 'over' otherwise 'ko'
-        genotype_df['perturbation'] = ['over' if '_over' in str(genotype) else 'ko' for genotype in genotype_df['genotype']]
-        # remove _over from genotype
-        genotype_df['genotype'] = genotype_df['genotype'].str.replace('_over', '')
-        # split genotype on period. rename column 2 genotype2 if exists. if not, add genotype_2 with values None
-        genotype_columns = genotype_df['genotype'].str.split('.', expand=True)
-        if len(list(genotype_columns.columns)) == 2:
-            genotype_columns.rename(columns={0: 'genotype_1', 1: 'genotype_2'}, inplace=True)
-        else:
-            genotype_columns.rename(columns={0: 'genotype_1'}, inplace=True)
-            genotype_columns['genotype_2'] = None
-        # bind genotype_df to genotype_columns
-        genotype_df.drop(columns=['genotype'], inplace=True)
-        genotype_df = pd.concat([genotype_df, genotype_columns], axis=1)
 
         # extract nat and g418 num bases from organism data
         nat_bases_in_cds = int(self.nat_cds_length)
@@ -419,9 +424,9 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
         # set feature over which to take percentage of reads (CDS in this case)
         feature = 'CDS'
 
-        # create columns genotype_1_coverage, genotype_2_coverage, overexpression_fow (fold over wildtype), NAT_coverage, G418_coverage
-        genotype_df['genotype_1_coverage'] = None
-        genotype_df['genotype_2_coverage'] = None
+        # create columns genotype1_coverage, genotype2_coverage, overexpression_fow (fold over wildtype), NAT_coverage, G418_coverage
+        genotype_df['genotype1_coverage'] = None
+        genotype_df['genotype2_coverage'] = None
         genotype_df['overexpression_fow'] = None
         genotype_df['NAT_coverage'] = None
         genotype_df['G418_coverage'] = None
@@ -447,28 +452,35 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                                                                                            self.annotation_file,
                                                                                            bam_file, g418_bases_in_cds)
 
-            # if perturbed, calculate perturbed gene coverage
-            if not row['genotype_1'] == 'CNAG_00000' and not row['perturbation'] == 'over':
-                genotype_1 = row['genotype_1']
-                genotype_2 = row['genotype_2']
-                # determine which genome to use -- if CNAG, use kn99
-                if not genotype_1.startswith('CNAG'):
-                    raise ValueError('%sNotRecognizedCryptoGenotype' % genotype_1)
+            # if deletion, calculate coverage. Currently only set to check genotype1. assumes both are deletions if perturbation1 == 'deletion'
+            if row['perturbation1'] == "deletion":
+                try:
+                    # extract genotype1 TODO: JUST CASE EVERYTHING TO UPPER EARLIER
+                    genotype = [self.extractInfoFromQuerySheet(row['fastqFileName'], 'genotype1'), None]
+                    #genotype = [list(self.query_df[self.query_df['fastqFileName'].str.contains(row['FASTQFILENAME'] + '.fastq.gz')]['genotype1'])[0]]
+                except ValueError:
+                    self.logger.info('genotype cannot be extracted with the fastq filename in this row. Note: if there are null entries in the column fastqFileNames, this is the cause. those need to be remedied or removed in order for this to work: %s' %row)
+                try:
+                    # extract genotype2 or set it to None
+                    genotype[1] = self.extractInfoFromQuerySheet(row['fastqFileName'], 'genotype2')
+                except KeyError:
+                    self.logger.debug("sample: %s does not have genotype2" %row['fastqFileName'])
+                # determine which genome to use -- if CNAG, use KN99
+                if not genotype[0].startswith('CNAG'):
+                    raise ValueError('%sNotRecognizedCryptoGenotype' % genotype[0])
                 # replace CNAG with CKF44 (in past version of pipeline, KN99 genes were labelled with H99 names. NCBI required change to CKF. Numbering/order is same -- just need to switch CNAG to CKF44)
-                genotype_1 = genotype_1.replace('CNAG', 'CKF44')
-                if genotype_2 is not None and genotype_2.startswith('CNAG'):
-                    genotype_2 = genotype_2.replace('CNAG', 'CKF44')
-                print('...checking coverage of %s %s in %s' % (genotype_1, genotype_2, fastq_simple_name))
-                genotype_df.loc[index, 'genotype_1_coverage'] = self.calculatePercentFeatureCoverage(feature,
-                                                                                                     genotype_1,
-                                                                                                     self.annotation_file,
-                                                                                                     bam_file)
-                # do the same for genotype_2 if it exists
-                if genotype_2 is not None:
-                    genotype_df.loc[index, 'genotype_2_coverage'] = self.calculatePercentFeatureCoverage(feature,
-                                                                                                         genotype_2,
-                                                                                                         self.annotation_file,
-                                                                                                         bam_file)
+                genotype[0] = genotype[0].replace('CNAG', 'CKF44')
+                if genotype[1] not in [None, 'nan'] and genotype[1].startswith('CNAG'):
+                    genotype[1] = genotype[1].replace('CNAG', 'CKF44')
+                print('...checking coverage of %s in %s' % (genotype, fastq_simple_name))
+                genotype_df.loc[index, 'genotype1_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype[0],
+                                                                                                    self.annotation_file,
+                                                                                                    bam_file)
+                # do the same for genotype2 if it exists
+                if genotype[1] not in [None, 'nan']:
+                    genotype_df.loc[index, 'genotype2_coverage'] = self.calculatePercentFeatureCoverage(feature, genotype[1],
+                                                                                                        self.annotation_file,
+                                                                                                        bam_file)
         # return genotype check
         genotype_df.columns = [column_name.upper() for column_name in genotype_df.columns]
-        return genotype_df[['FASTQFILENAME', 'GENOTYPE_1_COVERAGE', 'GENOTYPE_2_COVERAGE', 'NAT_COVERAGE', 'G418_COVERAGE']]
+        return genotype_df[['FASTQFILENAME', 'GENOTYPE1_COVERAGE', 'GENOTYPE2_COVERAGE', 'NAT_COVERAGE', 'G418_COVERAGE']]

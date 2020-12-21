@@ -12,7 +12,6 @@ import abc
 # turn off SettingWithCopyWarning in pandas
 pd.options.mode.chained_assignment = None
 
-# TODO: THIS SHOULD INHERIT FROM ORGANISMDATA
 class QualityAssessmentObject(OrganismData):
 
     def __init__(self, expected_attributes=None, **kwargs):
@@ -92,6 +91,9 @@ class QualityAssessmentObject(OrganismData):
 
     def extractInfoFromQuerySheet(self, sample_name, extract_column):
         """ TODO: REMOVE THIS AND REPLACE WITH FUNCTION IN UTILS IN OTHER CODE
+                  PUT INTO UTILS 20201220, BUT HAVE NOT REPLACED THE CODE EVERYWHERE
+            //TODO: YES. THAT IS A GOOD IDEA. THIS IS HARD TO FIND WHEN COME ACROSS IN CHILDREN
+            //TODO: PASS DF IN THE FUNCTION?
             extract information from query sheet given sample_name from qual_assess_df (which is the basename, no ext, of the fastq.gz)
             :param sample_name: name of sample -- basename of fastq.gz, no containing directory, no extension
             :param extract_column: column from which to extract a value from the query_df based on sample_name
@@ -101,6 +103,7 @@ class QualityAssessmentObject(OrganismData):
             extract_value = list(self.query_df[self.query_df['fastqFileName'].str.contains(sample_name + '.fastq.gz')][extract_column])[
                 0]
         except AttributeError:
+            self.logger.error("failure in extractInfoFromQuerySheet. sample_name: %s extract_column: %s" %(sample_name, extract_column))
             print('You must pass a query df')
 
         return str(extract_value)
@@ -357,77 +360,6 @@ class QualityAssessmentObject(OrganismData):
 
         return num_bases_in_cds_with_one_or_more_read / float(num_bases_in_region)
 
-    def igvShot(self, bam_file_list, organism=None, igv_output_dir=None, gene=None, audited_qual_assess_df=None,
-                manual_audit_flag=False):
-        """
-            first checks if alignment files are indexed; creates and submit sbatch script to index if not.
-            creates a lookup_file.tsv of alignment_file(bam)_path \t bed_path \t igv_genome_path \t igv_output_dir
-            sbatch file uses lookup file to input to this command:
-
-            make_IGV_snapshots.py ${bam_file} -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r ${bed_file} -g ${igv_genome} -fig_format png -o ${igv_outout_dir}
-
-            :param igv_output_dir: default None, and the output will be deposited in reports/igv_<datetime>. enter this to redirect output elsewhere
-            :param bam_file_list: list of bam files to take igv shots of
-            :param organism: default is none, but required if audited_qual_assess_df not passed
-            :param gene: a specific gene, or list of genes, to take a browser shot of in all samples
-            :param audited_qual_assess_df: a qual_assess_df with column AUTO_AUDIT and/or MANUAL_AUDIT filled with 0/1.
-                                           If 1, a shot will be taken of the perturbed gene and wildtype in same cond. If no
-                                           wt in same condition exists, the first wildtype in list will be used.
-                                           May contain more than files in bam_file_list, but only those that can be found
-                                           from the bam file will be used
-            :param manual_audit_flag: default false. If true, column MANUAL_AUDIT will be used instead of AUTO_AUDIT
-        """
-        # ensure either gene or qudited_qual_assess_df is passed
-        try:
-            if not gene or audited_qual_assess_df:
-                raise AttributeError
-        except AttributeError:
-            self.logger.critical(
-                'igvShot cannot make lookup file without either a gene, gene list, or an audited_qual_assess_df')
-            print('igvShot cannot make lookup file without either a gene, gene list, or an audited_qual_assess_df')
-        # user must pass either gene/gene_list or a audited_qual_assess_df
-        if gene is not None and audited_qual_assess_df is not None:
-            raise ValueError('GeneAndQualAssessCannotBePassedTogether')
-        # if gene is passed, the organism is required. In this case, the annotation file used will be the one in the annotation_file slot in OrganismData_config.ini in genome_files
-        if gene and organism is None:
-            raise AttributeError('IfGenePassedOrganismRequired')
-
-        # set output_dir to default if not passed by user
-        if not igv_output_dir:
-            igv_output_dir = os.path.join(self.reports, 'igv_%s_%s' % (self.year_month_day, utils.hourMinuteSecond()))
-            utils.mkdirp(igv_output_dir)
-
-        # make sure that gene is a list (this allows user to pass multiple genes as a list, or single gene)
-        if not isinstance(gene, list):
-            gene = [gene]
-
-        # check to see if index files are present. If not, create a list to pass to indexBamFile
-        bam_files_to_index = []
-        for bam_file in bam_file_list:
-            if not os.path.isfile(bam_file + '.bai'):
-                bam_files_to_index.append(bam_file)
-
-        # if there are unindexed bam files, notify user and create batchscript to index them
-        try:
-            if not len(bam_files_to_index) == 0:
-                raise AttributeError('NotAllBamFilesIndexed')
-        except AttributeError:
-            # create sbatch lookup and script
-            self.indexBamFileBatchScript(bam_files_to_index)
-            print('Some bam files not indexed. Creating batchscript to index these files.\n'
-                  'Submit the batchscript to index the bamfiles and then re-run igvShot')
-
-        # create lookup file for sbatch
-        if audited_qual_assess_df:
-            lookup_file_path = self.createIgvLookupFromDataframe(bam_file_list, audited_qual_assess_df,
-                                                                 manual_audit_flag)
-        else:
-            lookup_file_path = self.createIgvLookupFromGeneList(organism, bam_file_list,
-                                                                gene)  # note 'gene' may be a list, and even if it is not passed as one, will be turned into a list of length 1
-
-        # create sbatch script for igv shots
-        self.createIgvBatchscript(lookup_file_path, igv_output_dir)
-
     def extractLog2cpm(self, gene, fastq_simple_name, log2cpm_csv_path):
         """
            extract log2cpm
@@ -470,18 +402,21 @@ class QualityAssessmentObject(OrganismData):
             else:
                 # extract log2cpm and return
                 return log2cpm_df.loc[gene, column_name]
-
+    #TODO: DO NEW LOG2CPM REMAKE BY NEW TREATMENT COLUMNS. INCLUDE STRAINS FOR WILDTYPES
     def foldOverWildtype(self, perturbed_gene, sample_name, log2cpm_path, sample_treatment, sample_timepoint):
         """
+            :param perturbed_gene:
+            :param sample_name:
+            :param log2cpm_path:
+            :param sample_treatment: a list containing [medium, temperature, atmosphere] TODO: THIS NEEDS TO BE CHANGED FOR CLARITY SINCE THERE IS ALSO A TREATMENT COLUMN
+            :param sample_timepoint:
 
         """
         # read in median_wt_expression_by_timepoint_treatment_df
         try:
-            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(
-                self.median_wt_expression_by_timepoint_treatment)
+            median_wt_expression_by_timepoint_treatment_df = utils.readInDataframe(self.median_wt_expression_by_timepoint_treatment)
             # SET INDEX ON (gene_id, TREATMENT, TIMEPOINT) note: timepoint is read in as an int
-            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(
-                ['gene_id', 'TREATMENT', 'TIMEPOINT'])
+            median_wt_expression_by_timepoint_treatment_df = median_wt_expression_by_timepoint_treatment_df.set_index(['gene_id', 'TREATMENT', 'TIMEPOINT'])
         except AttributeError:
             self.logger.critical('genome files config in constructor did not work')
             print('genome files config in constructor did not work') # set this as attr in crypto organismData
@@ -506,26 +441,74 @@ class QualityAssessmentObject(OrganismData):
         """
         raise NotImplementedError('AbstractMethodMustBeOverwritten')
 
-    def createIgvLookupFromDataframe(self, bam_list, audited_qual_assess_df, manual_audit_flag):
+    def igvShot(self, metadata_df, igv_output_dir=None, manual_audit_flag=False):
         """
+            first checks if alignment files are indexed; creates and submit sbatch script to index if not.
+            creates a lookup_file.tsv of alignment_file(bam)_path \t bed_path \t igv_genome_path \t igv_output_dir
+            sbatch file uses lookup file to input to this command:
 
-        :returns: path to the lookup file for createIgvBatchscript
+            make_IGV_snapshots.py ${bam_file} -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r ${bed_file} -g ${igv_genome} -fig_format png -o ${igv_outout_dir}
+
+            This is written to be included as part of the rnaseq qc pipeline. alignment files are expected to be in align_count_results/align
+            # NOTE: THESE MUST BE INDEXED ALREADY
+
+            :param igv_output_dir: default None, and the output will be deposited in reports/igv_<datetime>. enter this to redirect output elsewhere
+            :param metadata_df: a metadata sheet -- note, note a qual assessment. this won't have auto_audit inforamtion
+            :param manual_audit_flag: default false. If true, column manualAudit will be used to select samples for igv
         """
-        # check inputs
-        # set default wildtype as first wildtype in list (use this for wildtype if no wildtype in same cond/timepoint present
+        # set output_dir to default if not passed by user
+        if not igv_output_dir:
+            igv_output_dir = os.path.join(self.reports, 'igv_%s_%s' % (self.year_month_day, utils.hourMinuteSecond()))
+            utils.mkdirp(igv_output_dir)
 
-        # decompose bit status if manual_audit_flag is false, only take screen shots of perturbation, overexpression fail + drug markers and wildtype,
-        # wildtypes with drug markers if drug marker wt fail, and perturbation + drug markers for perturbation drug marker fail
-        # if wildtype of same condition, timepoint, etc doesn't work, use default wildtype
-        # use createIgvLookupFromGeneList and conconcatenate?
+        lookup_file_path = self.createIgvBatchScripts(metadata_df, igv_output_dir)
 
-        raise NotImplementedError('AbstractMethodMustBeOverwritten')
+        # create sbatch script for igv shots
+        self.createAndSubmitIgvSbatchScript(lookup_file_path, igv_output_dir)
 
-    def createIgvLookupFromGeneList(self, organism, bam_list, gene_list, gene_offset=500):
+    def createIgvBatchScripts(self, metadata_df, igv_output_dir, batchscript_lookup_full_path = None, organism = "KN99", gene_offset=500, kn99_marker_check=True):
         """
-         # todo: if QualityAssessmentObject inherits from OrganismData, this will need to be changed
-        :returns: path to the lookup file for createIgvBatchscript
+            See templates/igv_batchscript_example.txt for an example batchscript and some notes
+            Previously, this repo was used:
+                  https://github.com/stevekm/IGV-snapshot-automator
+            For documentation on automatic control of the IGV, see:
+            # see https://software.broadinstitute.org/software/igv/batch
+                  http://software.broadinstitute.org/software/igv/automation
+              for coloring the reads, see the issues discussion here: https://github.com/stevekm/IGV-snapshot-automator/issues/14
+              which links to the IGV repo here:
+                  https://github.com/igvteam/igv/blob/master/src/main/resources/org/broad/igv/prefs/preferences.tab
+
+            The purpose of this script is to create a directory in job_scripts that holds a number of batchscripts (See the SEE note above)
+            Each batchscript will tell IGV to take a snapshot of a pane with both the perturbed sample and a WT (perturbed on top, WT on bottom) and separate images of the markers
+
+            These images will be output into a directory with the following structure (this the topmost directory is made in igvShot, the subdirectories for each sample are made here)
+            igv_<year_month_day>_<hour_minute_second>
+                fastq_simplename1
+                    CNAG_12345.batch
+                    CNAG_12345.png
+                    NAT.png
+                    G418.png
+                fastq_simplename2
+                    ...
+
+            the topmost directory name can be set by the user in igvShots. fastq_simplename1, etc will be taken from the metadata for the perturbed samples.
+            Each subdirectory will have the batchscript, and the images.
+            The batchscript is worth keeping b/c it can be used to load the locus on your local computer easily.
+            It can also obviously be used to create the browser shots again -- all that would need to be updated is the path to the igv_genome and the bam (make sure all the bams are indexed if you do this)
+            It would be a good idea to remove the stuff other than the load statement when doing this.
+
+            :params metadata_df: metadata_df for which igv snapshots will be made for perturbed samples
+            :params igv_output_dir: where to place the output
+            :params batchscript_lookup_full_path: default is None. If None, the filename will be self.job_scripts, igv_batchscript_lookup_<year_month_day>_<hour_minute_second>.txt
+            :params organism: right now, only KN99. This is in preparation of generalizing
+            :params gene_offset: the amount left/right of the gene to include in the browser shot window
+            :params kn99_marker_check: whether or not to take browser shots of the marker, also
+            :creates: subdirectories in igv_output_dir, each with a batchscript for that particular perturbed sample (names of subdirectories will be fastq file without .fastq.gz)
+            :returns: a lookup to all of the batchscripts in the subdirectories above. This will be in job_scripts
         """
+        if batchscript_lookup_full_path is None:
+            batchscript_lookup_full_path = os.path.join(self.job_scripts, 'igv_%s_%s.txt' % (self.year_month_day, utils.hourMinuteSecond()))
+        # get all paths from StandardData, etc
         organism_genome_files = os.path.join(self.genome_files, organism)
         if not os.path.isdir(organism_genome_files):
             self.logger.critical('%s not a in genome_files. Make sure genome_files exists in rnaseq_pipeline, '
@@ -553,48 +536,186 @@ class QualityAssessmentObject(OrganismData):
         if not os.path.isfile(igv_genome):
             self.logger.critical('igv_genome path %s not valid' % igv_genome)
             raise FileNotFoundError('IgvGenomeNotFound')
-        # make directory to store bedfiles
-        bed_file_dir_path = os.path.join(self.job_scripts, 'igv_%s' % self.year_month_day)
-        utils.mkdirp(bed_file_dir_path)
-        # make lookup_file_path
-        igv_lookup_file_path = os.path.join(bed_file_dir_path, 'igv_lookup_file.txt')
 
+        marker_list = ["CNAG_NAT", "CNAG_G418"]
+        kn99_marker_dict = dict(zip(marker_list, self.createIgvBedLine(marker_list, annotation_file, gene_offset)))
+
+        # the name is a remnant of the usage of the repo specific in the docstring above. To turn this dict into an actual bed entry, just join the list with \t
+        # Here, this is used to create the igvBatchScript rather than going through the extra step of writing a bed.
         bed_entry_dict = {}
-        for gene in gene_list:
-            # get first column corresponding to given gene, take uniq value as chromosome
-            extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' % (gene, annotation_file)
-            chromosome_identifier = subprocess.getoutput(extract_chr_cmd)
+        for index, row in metadata_df.iterrows():
+                genotype_list = utils.extractGenotypeList(row, convert_CNAG_to_CKF44=True) # last argument to convert CNAG to CKF44
+                if genotype_list[0] != 'CKF44_00000' and genotype_list[0] is not None:
+                    run_num = str(self.extractRunNumber(int(float(row["runNumber"])))) #TODO: this will hopefully be improved when database is integrated w/sql. no idea why runNumber column now comes out with inconsistent type. should just be string
+                    self.logger.debug("runnumber extracted by igv func: %s"%run_num)
+                    fastq_simple_name = utils.pathBaseName(row["fastqFileName"])
+                    alignment_run_directory_path = os.path.join(self.align_count_results, "run_%s_samples/align"%run_num)
+                    try:
+                        wt_reference_list = self.getWildtypeReference(row)
+                        wt_reference_bam_path = wt_reference_list[0] # item 1 is a list of the conditions -- use this to provide information in the subdir?
+                    except FileNotFoundError:
+                        self.logger.critical("No wildtype reference found for %s" %row)
+                    try:
+                        if not os.path.isfile(wt_reference_bam_path):
+                            raise FileNotFoundError
+                    except FileNotFoundError:
+                        self.logger.critical("path to wildtype reference DNE: %s" %wt_reference_bam_path)
+                    try:
+                        if not os.path.isdir(alignment_run_directory_path):
+                            raise NotADirectoryError("alignment_dir_DNE")
+                    except NotADirectoryError:
+                        self.logger.critical("%s DNE"%alignment_run_directory_path)
+                    bam_file_path = os.path.join(alignment_run_directory_path, fastq_simple_name+"_sorted_aligned_reads_with_annote.bam")
+                    try:
+                        if not os.path.isfile(bam_file_path):
+                            raise FileNotFoundError("bamDNE")
+                    except FileNotFoundError:
+                        self.logger.critical("%s DNE" %bam_file_path)
+                    try:
+                        if not (os.path.isfile(os.path.join(alignment_run_directory_path, fastq_simple_name+"_sorted_aligned_reads_with_annote.bam.bai"))):
+                            raise FileNotFoundError("baiDNE")
+                    except FileNotFoundError:
+                        self.logger.critical("%s index DNE" %bam_file_path)
 
-            # get the list of all start coordinates associated with a feature, sort, and take smallest
-            extract_start_coord_cmd = 'grep %s %s | cut -f4 | sort -n | head -1' % (gene, annotation_file)
-            start_coord = int(subprocess.getoutput(extract_start_coord_cmd))
-            start_coord_with_offest = start_coord - gene_offset  # add offset to widen window on igv_viewer
-            if start_coord_with_offest < 1:
-                start_coord_with_offest = 1
-            # sort stop coordinates of all features of given gene, take largest
-            extract_stop_coord_cmd = 'grep %s %s | cut -f5 | sort -n | tail -1' % (gene, annotation_file)
-            stop_coord = int(subprocess.getoutput(extract_stop_coord_cmd))
-            stop_coord_with_offset = stop_coord + gene_offset  # add offset to widen window on igv_viewer
+                    # create this dictionary to error check and exit if there is a problem. Do not go onto creating batchfiles until this step has passed.
+                    bed_line_list = self.createIgvBedLine(genotype_list, annotation_file, gene_offset)
+                    # fill bed_entry_dict
+                    # TODO: THE FASTQFILES NEED TO BE CHECKED WELL BEFORE THIS -- DO SO AND GET RID OF THE REDUNDANT LOOP HERE
+                    try:
+                        if fastq_simple_name in bed_entry_dict.keys():
+                            raise KeyError
+                        bed_entry_dict[fastq_simple_name] = {"perturbed_genotype": genotype_list, "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": bed_line_list}
+                    except KeyError:
+                        sys.exit("There is a repeated fastqFileName in the metadata. This is a problem -- fix it. Either deduplicate the metadata, or figure out why a fastq is identified in two different records")
 
-            # enter {gene: bed_line} to dict -- not the final \t allows to add the bam_file_simplename later
-            bed_line = '%s\t%s\t%s\t' % (chromosome_identifier, start_coord_with_offest, stop_coord_with_offset)
-            bed_entry_dict.setdefault(gene, bed_line)
+        batchfile_list = []
+        for sample_name, batch_file_dict in bed_entry_dict.items():
+            # make subdir of igv_output_dir
+            igv_output_subdir_path = os.path.join(igv_output_dir, sample_name)
+            utils.mkdirp(igv_output_subdir_path)
+            # make batchfile path
+            batchfile_list.append(self.writeIgvBatchfile(igv_output_subdir_path, batch_file_dict, kn99_marker_dict))
 
-        for bam_file in bam_list:
-            bam_simple_name = utils.pathBaseName(bam_file)
-            for gene in bed_entry_dict:
-                bed_file_path = os.path.join(bed_file_dir_path, bam_simple_name + '_%s.bed' % gene)
-                with open(bed_file_path, 'w') as bed_file:
-                    bed_file.write(bed_entry_dict[gene] + '%s' % bam_simple_name)
-                with open(igv_lookup_file_path, 'a') as igv_lookup_file:
-                    new_lookup_line = '%s\t%s\t%s\n' % (bam_file, bed_file_path, igv_genome)
-                    igv_lookup_file.write(new_lookup_line)
+        with open(batchscript_lookup_full_path, "w") as batchscript_lookup_file:
+            batchscript_lookup_file.write("\n".join(batchfile_list))
+            batchscript_lookup_file.write("\n")
 
-        return igv_lookup_file_path
+        return batchscript_lookup_full_path
 
-    def createIgvBatchscript(self, lookup_file_path, output_dir):
+    def writeIgvBatchfile(self, output_dir, batch_file_dict, marker_dict = None):
         """
+            write a batch file -- see templates/igv_batchfile_example.txt
+            :params output_dir: directory in which to write the file
+            :params batch_file_dict" {"perturbed_genotype": [genotype1, genotype2,...], "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": [bed_line_info_genotype1, bed_line_info_genotype2,...]}
+            :params marker_dict: default is None. For KN99, eg, pass {NAT: [bed_line_list], G418: [bed_line_list]} (See createIgvBedLine())
+            :returns: path to the file this function writes
+        """
+        perturbed_filename = ''
+        batchscript_cmd_list = ["new", "snapshotDirectory", "load", "goto", "sort", "collapse", "snapshot"]
 
+        # this will be the first line of the batchscript
+        batchfile_text = ["snapshotDirectory %s\n\n" %output_dir]
+
+        # note -- the value associated with "perturbed_genotype" needs to be passed as a list, even if only one item
+        #TODO: ERROR CHECK THAT THERE IS A BED LINE FOR EACH GENOTYPE
+        # create perturbed sample batchscript paragraph -- this will have two alignment files loaded. The top is the perturbed
+        for genotype in batch_file_dict["perturbed_genotype"]:
+            if genotype is not None:
+                # get index to extract the correct bed_file_list (this is in the event of multiple genotypes)
+                genotype_index = batch_file_dict["perturbed_genotype"].index(genotype)
+                bed_line = batch_file_dict["perturbed_bed_list"][genotype_index]
+                # note: same format as input to IGV viewer: chromosome:start-stop
+                perturbed_locus_bed_line = bed_line[0] + ":" +str(bed_line[1])+"-"+str(bed_line[2])
+                batchfile_text.extend(["new\n",
+                                       "genome %s\n"%batch_file_dict["igv_genome"],
+                                       "maxPanelHeight 10000",
+                                       "load %s\n"%batch_file_dict["perturbed_bam"],
+                                       "load %s\n" % batch_file_dict["wt_bam"],
+                                       "goto %s\n"%perturbed_locus_bed_line,
+                                       "sort position\n",
+                                       "collapse\n",
+                                       "snapshot %s\n\n" %(genotype+".png")
+                                       ])
+
+        # write marker paragraphs for the batch scripts. note: unlike the perturbed sample, only the perturbed alignment file is used
+        if marker_dict:
+            for marker, marker_bed_line in marker_dict.items():
+                marker = re.sub("^CNAG_", "", marker) # TODO: this is purpose built for KN99 right now -- figure out how to generalize
+                marker_index = marker_bed_line.index(marker)
+                # note: same format as input to IGV viewer: chromosome:start-stop
+                marker_bed_line = marker_bed_line[0] + ":" +str(marker_bed_line[1])+"-"+str(marker_bed_line[2])
+                batchfile_text.extend(["new\n",
+                                       "genome %s\n"%batch_file_dict["igv_genome"],
+                                       "load %s\n"%batch_file_dict["perturbed_bam"],
+                                       "goto %s\n"%marker_bed_line,
+                                       "sort position\n",
+                                       "collapse\n",
+                                       "snapshot %s\n\n" %(marker+".png")
+                                       ])
+        # write out
+        # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
+        try:
+            # try to drop any None from list
+            sample_genotype = batch_file_dict["perturbed_genotype"].remove(None)
+        except ValueError:
+            pass
+        else:
+            sample_genotype = batch_file_dict["perturbed_genotype"]
+        # create filename for batch script
+        igv_batchfilename = os.path.join(output_dir, "".join(sample_genotype)+".txt")
+        print("...writing batchfile to %s" %igv_batchfilename)
+        with open(igv_batchfilename, "w") as batchfile:
+            batchfile.write("".join(batchfile_text))
+
+        return igv_batchfilename
+
+    def createIgvBedLine(self, genotype_list, annotation_file, gene_offset):
+        """
+            TODO: this does just create a bed line in the form of a list -- generalize and put into Utils
+                  Rather than making both genotypes, make one genotype at a time. Arguments to "make bed line"
+                  should be "locus, annotation_file, gene_offset". To create the output that this currently creates,
+                  one would submit it for each gentoype
+            The name of this is a remnant of the old pipeline usage of an external repo for the IGV snapshot automation.
+            This function returns a list in the following format:
+               [chromosome_identifier, start_coord_with_offest, stop_coord_with_offset] eg: [chr1, 1, 1000]
+            To turn this into an actual bed line, simply join with tabs, eg "\t".join(bed_line)
+
+            :params genotype_list: genotype list, [genotype1, genotype2]. if single ko, [genotype1, None]
+            :returns: a list of lists in the format specified above. If single KO, [line1, None]
+        """
+        bed_line_list=[]
+        for gene in genotype_list:
+            if gene is not None and gene != "CNAG_00000":
+                # get first column corresponding to given gene, take uniq value as chromosome
+                extract_chr_cmd = 'grep %s %s | cut -f1 | uniq' % (gene, annotation_file)
+                chromosome_identifier = subprocess.getoutput(extract_chr_cmd)
+
+                # get the list of all start coordinates associated with a feature, sort, and take smallest
+                extract_start_coord_cmd = 'grep %s %s | cut -f4 | sort -n | head -1' % (gene, annotation_file)
+                start_coord = int(subprocess.getoutput(extract_start_coord_cmd))
+                start_coord_with_offset = start_coord - gene_offset  # add offset to widen window on igv_viewer
+                if start_coord_with_offset < 1:
+                    start_coord_with_offset = 1
+                # sort stop coordinates of all features of given gene, take largest
+                extract_stop_coord_cmd = 'grep %s %s | cut -f5 | sort -n | tail -1' % (gene, annotation_file)
+                stop_coord = int(subprocess.getoutput(extract_stop_coord_cmd))
+                stop_coord_with_offset = stop_coord + gene_offset  # add offset to widen window on igv_viewer
+
+                # enter {gene: bed_line} to dict -- not the final \t allows to add the bam_file_simplename later
+                bed_line = [chromosome_identifier, start_coord_with_offset, stop_coord_with_offset]
+                bed_line_list.append(bed_line)
+
+        return bed_line_list
+
+    def createAndSubmitIgvSbatchScript(self, lookup_file_path, output_dir, igv_mem="10000", igv_path="/opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar"): #TODO: USE THE IGV IN THE LAB /OPT /opt/apps/labs/mblab/software/IGV_Linux_2.8.13/lib/igv.jar # working igv: /opt/apps/igv/2.4.7/igv.jar
+        """
+            create sbatch script -- there is an of batchscripts in templates (though there may not be one of this exactly if i forget to put it there. feel free to write an issues report)
+            :params lookup_file_path: a list of batchscript files
+            :params output_dir: the directory into which the individual batchscripts will write (what actually matters is what is in the batchscript. this only checks to make sure it exists)
+            :params igv_mem: the amount of memory to give the igv program
+            :params igv_path: path to the igv.jar
+            :creates: a sbatch file for this particular list of batchfiles
+            :submits: to the scheduler on the htcf cluster
         """
         # error check input
         if not os.path.isfile(lookup_file_path):
@@ -614,11 +735,12 @@ class QualityAssessmentObject(OrganismData):
               '#SBATCH %s\n' \
               '#SBATCH -o %s/igv_snapshot_%s_%s.out\n' \
               '#SBATCH -J igv_snapshot\n\n' \
-              'ml rnaseq_pipeline java\n\n' \
-              'read bam_file bed_file igv_genome < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
-              'make_IGV_snapshots.py ${bam_file} -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r ${bed_file} -g ${igv_genome} -fig_format png -o %s\n' \
-              % (sbatch_array_line, self.sbatch_log, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path,
-                 output_dir)
+              'module purge\n' \
+              'module load miniconda\n' \
+              'source activate igv_env\n\n'\
+              'read igv_batchfile < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
+              'xvfb-run --auto-servernum --server-num=1 java -Xmx%sm -jar %s -b ${igv_batchfile}\n'\
+              % (sbatch_array_line, self.sbatch_log, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path, igv_mem, igv_path)
 
         # write to file
         # check that a job_scripts directory for igv for today has been created, make one if no
@@ -632,7 +754,7 @@ class QualityAssessmentObject(OrganismData):
 
         # error check igv_job_script_path
         if not os.path.isfile(igv_job_script_path):
-            self.loger.critical('Failed to write job %s to file %s' % (job, igv_job_script_path))
+            self.logger.critical('Failed to write job %s to file %s' % (job, igv_job_script_path))
             raise FileNotFoundError('IgvJobScriptNotSuccessfullyWritten')
         else:
             print('Submitting igv batchscript %s' % igv_job_script_path)

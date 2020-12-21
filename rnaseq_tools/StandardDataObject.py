@@ -29,7 +29,6 @@ class StandardData:
         # list of StandardData object expected attributes. This is the file structure necessary for the rnaseq pipeline
         self._attributes = ['lts_rnaseq_data', 'pipeline_version', 'mblab_scratch', 'scratch_database_files',
                             'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
-                            'mblab_shared', 'lts_sequence', 'lts_align_expr', 'scratch_sequence',
                             'user_rnaseq_pipeline_directory', 'genome_files', 'reports', 'align_count_results',
                             'sbatch_log', 'log_dir', 'log_file', 'job_scripts', 'rnaseq_tmp', 'config_file']
 
@@ -237,10 +236,12 @@ class StandardData:
             print('cannot set logger without specifying log_file_path in StandardDataObject/child and self.standardDirectoryStructure()')
             exit(1)
 
-    @staticmethod
-    def returnRunNumber(run_number):
+    def extractRunNumber(self, run_number):
         """
             input run number. if it is in the _run_numbers_with_leading_zero dict, then return a string with the leading
             zero
         """
-        raise NotImplementedError
+        try:
+            return self._run_numbers_with_zeros[int(run_number)] # how to handle casting better?
+        except KeyError:
+            return run_number
