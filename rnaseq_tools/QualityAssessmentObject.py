@@ -628,6 +628,7 @@ class QualityAssessmentObject(OrganismData):
                 perturbed_locus_bed_line = bed_line[0] + ":" +str(bed_line[1])+"-"+str(bed_line[2])
                 batchfile_text.extend(["new\n",
                                        "genome %s\n"%batch_file_dict["igv_genome"],
+                                       "maxPanelHeight 10000",
                                        "load %s\n"%batch_file_dict["perturbed_bam"],
                                        "load %s\n" % batch_file_dict["wt_bam"],
                                        "goto %s\n"%perturbed_locus_bed_line,
@@ -652,6 +653,7 @@ class QualityAssessmentObject(OrganismData):
                                        "snapshot %s\n\n" %(marker+".png")
                                        ])
         # write out
+        # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
         try:
             # try to drop any None from list
             sample_genotype = batch_file_dict["perturbed_genotype"].remove(None)
