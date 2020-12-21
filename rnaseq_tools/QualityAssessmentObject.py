@@ -604,6 +604,7 @@ class QualityAssessmentObject(OrganismData):
 
     def writeIgvBatchfile(self, output_dir, batch_file_dict, marker_dict = None):
         """
+            yet another site to see for port commands for igv: https://software.broadinstitute.org/software/igv/PortCommands
             write a batch file -- see templates/igv_batchfile_example.txt
             :params output_dir: directory in which to write the file
             :params batch_file_dict" {"perturbed_genotype": [genotype1, genotype2,...], "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": [bed_line_info_genotype1, bed_line_info_genotype2,...]}
@@ -632,6 +633,7 @@ class QualityAssessmentObject(OrganismData):
                                        "snapshotDirectory %s\n" % output_dir,
                                        "genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
+                                       "preference SAM.COLOR_BY READ_STRAND\n",
                                        "load %s\n"%batch_file_dict["perturbed_bam"],
                                        #"load %s\n" % batch_file_dict["wt_bam"],
                                        "goto %s\n"%perturbed_locus_bed_line,
@@ -657,6 +659,7 @@ class QualityAssessmentObject(OrganismData):
                                        "snapshotDirectory %s\n" % output_dir,
                                        #"genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
+                                       "preference SAM.COLOR_BY READ_STRAND\n",
                                        "load %s\n" % batch_file_dict["wt_bam"],
                                        "goto %s\n"%perturbed_locus_bed_line,
                                        "sort position\n",
@@ -740,7 +743,7 @@ class QualityAssessmentObject(OrganismData):
         # write sbatch job. see https://htcfdocs.readthedocs.io/en/latest/runningjobs/
         line_count_cmd = 'cat %s | wc -l' % lookup_file_path
         line_count = int(subprocess.getoutput(line_count_cmd))
-        sbatch_array_line = "--array=1-{}%{}".format(line_count, min(line_count, 20))
+        sbatch_array_line = "--array=1-{}%{}".format(line_count, min(line_count, 1))#this has to be 1 at a time since the WT may be the same for multiple samples
         job = '#!/bin/bash\n\n' \
               '#SBATCH -N 1\n' \
               '#SBATCH --mem=20G\n' \
