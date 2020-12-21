@@ -594,7 +594,7 @@ class QualityAssessmentObject(OrganismData):
             igv_output_subdir_path = os.path.join(igv_output_dir, sample_name)
             utils.mkdirp(igv_output_subdir_path)
             # make batchfile path
-            batchfile_list.extend(self.writeIgvBatchfile(igv_output_subdir_path, batch_file_dict, kn99_marker_dict))
+            batchfile_list.extend(self.writeIgvBatchfile(igv_output_subdir_path, batch_file_dict, marker_dict=kn99_marker_dict))
 
         with open(batchscript_lookup_full_path, "w") as batchscript_lookup_file:
             batchscript_lookup_file.write("\n".join(batchfile_list))
@@ -602,14 +602,14 @@ class QualityAssessmentObject(OrganismData):
 
         return batchscript_lookup_full_path
 
-    def writeIgvBatchfile(self, output_dir, batch_file_dict, wt_image=True, marker_dict = None):
+    def writeIgvBatchfile(self, output_dir, batch_file_dict, control_image=True, marker_dict = None):
         """
             yet another site to see for port commands for igv: https://software.broadinstitute.org/software/igv/PortCommands
             write a batch file -- see templates/igv_batchfile_example.txt
             :params output_dir: directory in which to write the file
             :params batch_file_dict: {"perturbed_genotype": [genotype1, genotype2,...], "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": [bed_line_info_genotype1, bed_line_info_genotype2,...]}
                                     note: wt only required if wt_image = True, which is True by default
-            :params wt_image: True by default. adds a wt batchscript to take an image of the wildtype at same locus as perturbed
+            :params control_image: True by default. adds a control_image batchscript to take an image of the control at same locus as perturbed
             :params marker_dict: default is None. For KN99, eg, pass {NAT: [bed_line_list], G418: [bed_line_list]} (See createIgvBedLine())
             :returns: path to the file this function writes
         """
@@ -655,19 +655,19 @@ class QualityAssessmentObject(OrganismData):
                                                "snapshot %s\n" % (marker + ".png")
                                                ])
                 batchfile_text_dict["perturbed"].extend(["exit\n\n"])
-
-                batchfile_text_dict["control"].extend(["new\n",
-                                       "snapshotDirectory %s\n" % output_dir,
-                                       #"genome %s\n"%batch_file_dict["igv_genome"],
-                                       "maxPanelHeight 500\n",
-                                       "preference SAM.COLOR_BY READ_STRAND\n",
-                                       "load %s\n" % batch_file_dict["wt_bam"],
-                                       "goto %s\n"%perturbed_locus_bed_line,
-                                       "sort position\n",
-                                       "collapse\n",
-                                       "snapshot %s\n" %("wt.png") # TODO: RENAME WITH CONDITIONS OF WT
-                                       ])
-                batchfile_text_dict["control"].extend(["exit\n\n"])
+                if control_image:
+                    batchfile_text_dict["control"].extend(["new\n",
+                                           "snapshotDirectory %s\n" % output_dir,
+                                           #"genome %s\n"%batch_file_dict["igv_genome"],
+                                           "maxPanelHeight 500\n",
+                                           "preference SAM.COLOR_BY READ_STRAND\n",
+                                           "load %s\n" % batch_file_dict["wt_bam"],
+                                           "goto %s\n"%perturbed_locus_bed_line,
+                                           "sort position\n",
+                                           "collapse\n",
+                                           "snapshot %s\n" %("control.png") # TODO: RENAME WITH CONDITIONS OF WT
+                                           ])
+                    batchfile_text_dict["control"].extend(["exit\n\n"])
         # write out
         # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
         try:
@@ -679,11 +679,11 @@ class QualityAssessmentObject(OrganismData):
             sample_genotype = batch_file_dict["perturbed_genotype"]
         # create list to store list of filenames to batchfiles
         igv_batchfilename_list = []
-        for key, batchfile_text in batch_file_dict.items():
+        for key, batchfile_text in batchfile_text_dict.items(): #poorly named -- batchfile_text_dict too close to batch_file_dict
             # as long as there is something to write
             if len(batchfile_text) > 0:
                 # create a filename
-                igv_batchfilename = os.path.join(output_dir, "".join(sample_genotype)+key+".txt")
+                igv_batchfilename = os.path.join(output_dir, "".join(sample_genotype)+'_'+key+".txt")
                 # append the filename
                 igv_batchfilename_list.append(igv_batchfilename)
                 print("...writing batchfile to %s" %igv_batchfilename)
@@ -780,7 +780,7 @@ class QualityAssessmentObject(OrganismData):
         else:
             print('Submitting igv batchscript %s' % igv_job_script_path)
             batchscript_submit_cmd = 'sbatch %s' % igv_job_script_path
-            #utils.executeSubProcess(batchscript_submit_cmd)
+            utils.executeSubProcess(batchscript_submit_cmd)
 
     def qortsPlots(self):
         """
