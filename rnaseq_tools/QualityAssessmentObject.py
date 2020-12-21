@@ -637,6 +637,20 @@ class QualityAssessmentObject(OrganismData):
                                        "collapse\n",
                                        "snapshot %s\n\n" %(genotype+".png") # TODO: ADD CONDITIONS OF SAMPLE
                                        ])
+                # write marker paragraphs for the batch scripts. note: unlike the perturbed sample, only the perturbed alignment file is used
+                if marker_dict:
+                    for marker, marker_bed_line in marker_dict.items():
+                        marker = re.sub("^CNAG_", "",
+                                        marker)  # TODO: this is purpose built for KN99 right now -- figure out how to generalize
+                    marker_index = marker_bed_line.index(marker)
+                    # note: same format as input to IGV viewer: chromosome:start-stop
+                    marker_bed_line = marker_bed_line[0] + ":" + str(marker_bed_line[1]) + "-" + str(marker_bed_line[2])
+                    batchfile_text.extend(["goto %s\n" % marker_bed_line,
+                                           "sort position\n",
+                                           "collapse\n",
+                                           "snapshot %s\n\n" % (marker + ".png")
+                                           ])
+
                 batchfile_text.extend(["new\n",
                                        "genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
@@ -645,23 +659,6 @@ class QualityAssessmentObject(OrganismData):
                                        "sort position\n",
                                        "collapse\n",
                                        "snapshot %s\n\n" %("wt.png") # TODO: RENAME WITH CONDITIONS OF WT
-                                       ])
-
-        # write marker paragraphs for the batch scripts. note: unlike the perturbed sample, only the perturbed alignment file is used
-        if marker_dict:
-            for marker, marker_bed_line in marker_dict.items():
-                marker = re.sub("^CNAG_", "", marker) # TODO: this is purpose built for KN99 right now -- figure out how to generalize
-                marker_index = marker_bed_line.index(marker)
-                # note: same format as input to IGV viewer: chromosome:start-stop
-                marker_bed_line = marker_bed_line[0] + ":" +str(marker_bed_line[1])+"-"+str(marker_bed_line[2])
-                batchfile_text.extend(["new\n",
-                                       "genome %s\n"%batch_file_dict["igv_genome"],
-                                       "maxPanelHeight 500\n"
-                                       "load %s\n"%batch_file_dict["perturbed_bam"],
-                                       "goto %s\n"%marker_bed_line,
-                                       "sort position\n",
-                                       "collapse\n",
-                                       "snapshot %s\n\n" %(marker+".png")
                                        ])
         # write out
         # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
