@@ -614,8 +614,9 @@ class QualityAssessmentObject(OrganismData):
         batchscript_cmd_list = ["new", "snapshotDirectory", "load", "goto", "sort", "collapse", "snapshot"]
 
         # this will be the first line of the batchscript
-        batchfile_text = ["snapshotDirectory %s\n" %output_dir,
-                          "setSleepInterval 1000\n\n"]
+        # batchfile_text = ["snapshotDirectory %s\n" %output_dir,
+        #                   "setSleepInterval 1000\n\n"]
+        batchfile_text = []
 
         # note -- the value associated with "perturbed_genotype" needs to be passed as a list, even if only one item
         #TODO: ERROR CHECK THAT THERE IS A BED LINE FOR EACH GENOTYPE
@@ -628,6 +629,7 @@ class QualityAssessmentObject(OrganismData):
                 # note: same format as input to IGV viewer: chromosome:start-stop
                 perturbed_locus_bed_line = bed_line[0] + ":" +str(bed_line[1])+"-"+str(bed_line[2])
                 batchfile_text.extend(["new\n",
+                                       "snapshotDirectory %s\n" % output_dir,
                                        "genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
                                        "load %s\n"%batch_file_dict["perturbed_bam"],
@@ -652,6 +654,7 @@ class QualityAssessmentObject(OrganismData):
                 batchfile_text.extend(["exit\n\n"])
 
                 batchfile_text.extend(["new\n",
+                                       "snapshotDirectory %s\n" % output_dir,
                                        "genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
                                        "load %s\n" % batch_file_dict["wt_bam"],
