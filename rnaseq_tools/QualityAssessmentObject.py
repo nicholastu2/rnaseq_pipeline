@@ -665,7 +665,7 @@ class QualityAssessmentObject(OrganismData):
                                                            "goto %s\n"%perturbed_locus_bed_line,
                                                            "sort position\n",
                                                            "collapse\n",
-                                                           "snapshot %s\n" %("control.png") # TODO: RENAME WITH CONDITIONS OF WT
+                                                           "snapshot %s\n" %("%s_control.png"%genotype) # TODO: RENAME WITH CONDITIONS OF WT
                                                            ])
                     batchfile_text_dict["control"].extend(["exit\n\n"])
         # write out
