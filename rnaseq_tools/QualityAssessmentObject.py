@@ -594,7 +594,7 @@ class QualityAssessmentObject(OrganismData):
             igv_output_subdir_path = os.path.join(igv_output_dir, sample_name)
             utils.mkdirp(igv_output_subdir_path)
             # make batchfile path
-            batchfile_list.append(self.writeIgvBatchfile(igv_output_subdir_path, batch_file_dict, kn99_marker_dict))
+            batchfile_list.extend(self.writeIgvBatchfile(igv_output_subdir_path, batch_file_dict, kn99_marker_dict))
 
         with open(batchscript_lookup_full_path, "w") as batchscript_lookup_file:
             batchscript_lookup_file.write("\n".join(batchfile_list))
@@ -602,12 +602,14 @@ class QualityAssessmentObject(OrganismData):
 
         return batchscript_lookup_full_path
 
-    def writeIgvBatchfile(self, output_dir, batch_file_dict, marker_dict = None):
+    def writeIgvBatchfile(self, output_dir, batch_file_dict, wt_image=True, marker_dict = None):
         """
             yet another site to see for port commands for igv: https://software.broadinstitute.org/software/igv/PortCommands
             write a batch file -- see templates/igv_batchfile_example.txt
             :params output_dir: directory in which to write the file
-            :params batch_file_dict" {"perturbed_genotype": [genotype1, genotype2,...], "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": [bed_line_info_genotype1, bed_line_info_genotype2,...]}
+            :params batch_file_dict: {"perturbed_genotype": [genotype1, genotype2,...], "igv_genome": igv_genome, "perturbed_bam": bam_file_path, "wt_bam": wt_reference_bam_path, "perturbed_bed_list": [bed_line_info_genotype1, bed_line_info_genotype2,...]}
+                                    note: wt only required if wt_image = True, which is True by default
+            :params wt_image: True by default. adds a wt batchscript to take an image of the wildtype at same locus as perturbed
             :params marker_dict: default is None. For KN99, eg, pass {NAT: [bed_line_list], G418: [bed_line_list]} (See createIgvBedLine())
             :returns: path to the file this function writes
         """
@@ -617,7 +619,7 @@ class QualityAssessmentObject(OrganismData):
         # this will be the first line of the batchscript
         # batchfile_text = ["snapshotDirectory %s\n" %output_dir,
         #                   "setSleepInterval 1000\n\n"]
-        batchfile_text = []
+        batchfile_text_dict = {"perturbed":[], "control":[]} # may want to refractor this at some point to "control"
 
         # note -- the value associated with "perturbed_genotype" needs to be passed as a list, even if only one item
         #TODO: ERROR CHECK THAT THERE IS A BED LINE FOR EACH GENOTYPE
@@ -629,18 +631,17 @@ class QualityAssessmentObject(OrganismData):
                 bed_line = batch_file_dict["perturbed_bed_list"][genotype_index]
                 # note: same format as input to IGV viewer: chromosome:start-stop
                 perturbed_locus_bed_line = bed_line[0] + ":" +str(bed_line[1])+"-"+str(bed_line[2])
-                batchfile_text.extend(["new\n",
-                                       "snapshotDirectory %s\n" % output_dir,
-                                       "genome %s\n"%batch_file_dict["igv_genome"],
-                                       "maxPanelHeight 500\n",
-                                       "preference SAM.COLOR_BY TAG:XF\n",
-                                       "load %s\n"%batch_file_dict["perturbed_bam"],
-                                       #"load %s\n" % batch_file_dict["wt_bam"],
-                                       "goto %s\n"%perturbed_locus_bed_line,
-                                       "sort position\n",
-                                       "collapse\n",
-                                       "snapshot %s\n" %(genotype+".png") # TODO: ADD CONDITIONS OF SAMPLE
-                                       ])
+                batchfile_text_dict["perturbed"].extend(["new\n",
+                                                         "snapshotDirectory %s\n" % output_dir,
+                                                         "genome %s\n"%batch_file_dict["igv_genome"],
+                                                         "maxPanelHeight 500\n",
+                                                         "preference SAM.COLOR_BY TAG:XF\n",
+                                                         "load %s\n"%batch_file_dict["perturbed_bam"],
+                                                         "goto %s\n"%perturbed_locus_bed_line,
+                                                         "sort position\n",
+                                                         "collapse\n",
+                                                         "snapshot %s\n" %(genotype+".png") # TODO: ADD CONDITIONS OF SAMPLE
+                                                         ])
                 # write marker paragraphs for the batch scripts. note: unlike the perturbed sample, only the perturbed alignment file is used
                 if marker_dict:
                     for marker, marker_bed_line in marker_dict.items():
@@ -648,14 +649,14 @@ class QualityAssessmentObject(OrganismData):
                                         marker)  # TODO: this is purpose built for KN99 right now -- figure out how to generalize
                         # note: same format as input to IGV viewer: chromosome:start-stop
                         marker_bed_line = marker_bed_line[0] + ":" + str(marker_bed_line[1]) + "-" + str(marker_bed_line[2])
-                        batchfile_text.extend(["goto %s\n" % marker_bed_line,
+                        batchfile_text_dict["perturbed"].extend(["goto %s\n" % marker_bed_line,
                                                "sort position\n",
                                                "collapse\n",
                                                "snapshot %s\n" % (marker + ".png")
                                                ])
-                #batchfile_text.extend(["exit\n\n"])
+                batchfile_text_dict["perturbed"].extend(["exit\n\n"])
 
-                batchfile_text.extend(["new\n",
+                batchfile_text_dict["control"].extend(["new\n",
                                        "snapshotDirectory %s\n" % output_dir,
                                        #"genome %s\n"%batch_file_dict["igv_genome"],
                                        "maxPanelHeight 500\n",
@@ -666,7 +667,7 @@ class QualityAssessmentObject(OrganismData):
                                        "collapse\n",
                                        "snapshot %s\n" %("wt.png") # TODO: RENAME WITH CONDITIONS OF WT
                                        ])
-                batchfile_text.extend(["exit\n\n"])
+                batchfile_text_dict["control"].extend(["exit\n\n"])
         # write out
         # TODO: WRITE ANOTHER BATCHFILE TO THE DIRECTORY THAT OMITS THE SNAPSHOT STUFF SO THAT A USER CAN LOAD THE LOCUS DIRECTLY ON THEIR LOCAL WITH THAT NEW BATCHSCRIPT
         try:
@@ -676,13 +677,20 @@ class QualityAssessmentObject(OrganismData):
             pass
         else:
             sample_genotype = batch_file_dict["perturbed_genotype"]
-        # create filename for batch script
-        igv_batchfilename = os.path.join(output_dir, "".join(sample_genotype)+".txt")
-        print("...writing batchfile to %s" %igv_batchfilename)
-        with open(igv_batchfilename, "w") as batchfile:
-            batchfile.write("".join(batchfile_text))
+        # create list to store list of filenames to batchfiles
+        igv_batchfilename_list = []
+        for key, batchfile_text in batch_file_dict.items():
+            # as long as there is something to write
+            if len(batchfile_text) > 0:
+                # create a filename
+                igv_batchfilename = os.path.join(output_dir, "".join(sample_genotype)+key+".txt")
+                # append the filename
+                igv_batchfilename_list.append(igv_batchfilename)
+                print("...writing batchfile to %s" %igv_batchfilename)
+                with open(igv_batchfilename, "w") as batchfile:
+                    batchfile.write("".join(batchfile_text))
 
-        return igv_batchfilename
+        return igv_batchfilename_list
 
     def createIgvBedLine(self, genotype_list, annotation_file, gene_offset):
         """
@@ -772,7 +780,7 @@ class QualityAssessmentObject(OrganismData):
         else:
             print('Submitting igv batchscript %s' % igv_job_script_path)
             batchscript_submit_cmd = 'sbatch %s' % igv_job_script_path
-            utils.executeSubProcess(batchscript_submit_cmd)
+            #utils.executeSubProcess(batchscript_submit_cmd)
 
     def qortsPlots(self):
         """
