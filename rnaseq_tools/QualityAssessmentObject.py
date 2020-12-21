@@ -651,7 +651,7 @@ class QualityAssessmentObject(OrganismData):
                                                "collapse\n",
                                                "snapshot %s\n" % (marker + ".png")
                                                ])
-                batchfile_text.extend(["exit\n\n"])
+                #batchfile_text.extend(["exit\n\n"])
 
                 batchfile_text.extend(["new\n",
                                        "snapshotDirectory %s\n" % output_dir,
