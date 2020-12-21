@@ -733,7 +733,9 @@ class QualityAssessmentObject(OrganismData):
               '#SBATCH %s\n' \
               '#SBATCH -o %s/igv_snapshot_%s_%s.out\n' \
               '#SBATCH -J igv_snapshot\n\n' \
-              'module load jdk\n\n' \
+              'module purge\n' \
+              'module load miniconda\n' \
+              'source activate igv_env\n\n'\
               'read igv_batchfile < <(sed -n ${SLURM_ARRAY_TASK_ID}p %s )\n\n' \
               'xvfb-run --auto-servernum --server-num=1 java -Xmx%sm -jar %s -b ${igv_batchfile}\n'\
               % (sbatch_array_line, self.sbatch_log, self.year_month_day, utils.hourMinuteSecond(), lookup_file_path, igv_mem, igv_path)
