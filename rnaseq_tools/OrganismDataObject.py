@@ -120,7 +120,7 @@ class OrganismData(StandardData):
         for index, row in wt_by_condition.iterrows():
             for i in range(len(sample_condition_columns)):
                 if list(row[sample_condition_columns[i:]].values) == this_sample_conditions[i:]:
-                    wt_options_dict[i] = [row['wt_reference_bam_path'], this_sample_conditions[i:]] # TODO: figure out where to put the wt_reference and how to include the $USER in the path. currently set to profile chasem
+                    qualit # TODO: figure out where to put the wt_reference and how to include the $USER in the path. currently set to profile chasem
                     # stop looking for samples if a perfect match to the full sample conditions is found
                     if wt_options_dict[0] is not None:
                         break

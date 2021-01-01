@@ -551,6 +551,7 @@ class QualityAssessmentObject(OrganismData):
                     fastq_simple_name = utils.pathBaseName(row["fastqFileName"])
                     alignment_run_directory_path = os.path.join(self.align_count_results, "run_%s_samples/align"%run_num)
                     try:
+                        print("...looking for wildtype reference for %s" %fastq_simple_name)
                         wt_reference_list = self.getWildtypeReference(row)
                         wt_reference_bam_path = wt_reference_list[0] # item 1 is a list of the conditions -- use this to provide information in the subdir?
                     except FileNotFoundError:

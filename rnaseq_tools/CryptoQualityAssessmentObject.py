@@ -31,8 +31,8 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
                              'MULTI_MAP_PERCENT', 'PROTEIN_CODING_TOTAL', 'PROTEIN_CODING_TOTAL_PERCENT',
                              'PROTEIN_CODING_COUNTED',
                              'PROTEIN_CODING_COUNTED_PERCENT', 'AMBIGUOUS_FEATURE_PERCENT', 'NO_FEATURE_PERCENT',
-                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE1_COVERAGE',
-                             'GENOTYPE2_COVERAGE', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'NAT_LOG2CPM', 'G418_COVERAGE',
+                             'INTERGENIC_COVERAGE', 'NOT_ALIGNED_TOTAL_PERCENT', 'GENOTYPE1_COVERAGE', 'GENOTYPE1_LOG2CPM',
+                             'GENOTYPE2_COVERAGE', 'GENOTYPE2_LOG2CPM', 'OVEREXPRESSION_FOW', 'NAT_COVERAGE', 'NAT_LOG2CPM', 'G418_COVERAGE',
                              'G418_LOG2CPM', 'NO_MAP_PERCENT', 'HOMOPOLY_FILTER_PERCENT', 'READ_LENGTH_FILTER_PERCENT',
                              'TOO_LOW_AQUAL_PERCENT', 'rRNA_PERCENT', 'nctrRNA_PERCENT']
 
@@ -241,6 +241,11 @@ class CryptoQualityAssessmentObject(QualityAssessmentObject):
 
             library_metadata_dict['NAT_LOG2CPM'] = self.extractLog2cpm('CNAG_NAT', sample_name, log2cpm_path)
             library_metadata_dict['G418_LOG2CPM'] = self.extractLog2cpm('CNAG_G418', sample_name, log2cpm_path)
+            print("...extracting genotype log2cpm -- TESTING TESTING TESTING")
+            if genotype[0] != 'CNAG_00000':
+                library_metadata_dict['GENOTYPE1_LOG2CPM'] = self.extractLog2cpm(genotype[0].replace("CNAG", "CKF44"), sample_name, log2cpm_path)
+            if genotype[1] is not None:
+                library_metadata_dict['GENOTYPE2_LOG2CPM'] = self.extractLog2cpm(genotype[1].replace("CNAG", "CKF44"), sample_name, log2cpm_path)
             if perturbation[0] == "over":
                 sample_medium = self.extractInfoFromQuerySheet(sample_name, 'treatment')
                 sample_temperature = self.extractInfoFromQuerySheet(sample_name, 'temperature')

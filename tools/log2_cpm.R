@@ -12,6 +12,8 @@ suppressMessages(library(optparse))
 suppressMessages(library(edgeR))
 suppressMessages(library(tidyverse))
 
+
+# TODO: ERROR WHEN THERE IS ONLY ONE SMAPLE IN RAW COUNTS. COLUMN NAMES NOT WRITTEN IN THIS CASE
 main = function(args){
 
   # parse cmd line arguments
