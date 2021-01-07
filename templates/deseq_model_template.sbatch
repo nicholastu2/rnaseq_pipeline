@@ -1,16 +1,15 @@
 #!/bin/bash
 
+#SBATCH --array=1-56%30
 #SBATCH --mem-per-cpu=10G
 #SBATCH --cpus-per-task=20
-#SBATCH -J libraryprotocol_librarydate_genotype_model
-#SBATCH -o /scratch/mblab/chasem/rnaseq_pipeline/sbatch_log/libraryprotocol_librarydate_genotype_model_with_results.out
+#SBATCH -J deseq
+#SBATCH -o /scratch/mblab/chasem/rnaseq_pipeline/sbatch_log/deseq.out
 
 ml rnaseq_pipeline
 
-raw_counts=/scratch/mblab/chasem/misc_scripts/deseq_model/data/exon_filtered_counts_20200812.csv
-metadata=/scratch/mblab/chasem/misc_scripts/deseq_model/data/filtered_metadata_20200812.csv
+read dds < <(sed -n ${SLURM_ARRAY_TASK_ID}p /scratch/mblab/chasem/rnaseq_pipeline/job_scripts/dds_lookup.txt )
 
-output_dir=/scratch/mblab/chasem/misc_scripts/deseq_model/results
+output_dir=/scratch/mblab/chasem/rnaseq_pipeline/experiments/ninety_min_induct
 
-
-/scratch/mblab/chasem/misc_scripts/deseq_model/deseq_model.R -r ${raw_counts} -m ${metadata} -d ~LIBRARYPROTOCOL+LIBRARYDATE+GENOTYPE -g -o ${output_dir} -n libraryprotocol_librarydate_genotype_model_with_results
+deseq_model.R -d ${dds} -o ${output_dir} -n full_model
