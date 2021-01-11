@@ -20,7 +20,7 @@ main = function(parsed_cmd_line_args){
   # it next estimates the dispersion, fits the GLMs and calculates the statistics (wald, default)
   deseq_model = DESeq(dds, parallel=TRUE)
   # save the output of DESeq() as an R object
-  deseq_model_path = paste(output_path, 'deseq_model.rds', sep='/')
+  deseq_model_path = paste(output_dir, paste0(output_name,'.rds'), sep='/')
   saveRDS(deseq_model, deseq_model_path)
     
 } # end main()
