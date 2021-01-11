@@ -13,12 +13,16 @@ main = function(parsed_cmd_line_args){
   output_dir = parsed_cmd_line_args$output_directory
   output_name = parsed_cmd_line_args$name
   
+  # read in deseq data set as an r object
   dds = readRDS(dds_path)
   
+  # run deseq -- this will skip estimating size factors if already provided.
+  # it next estimates the dispersion, fits the GLMs and calculates the statistics (wald, default)
   deseq_model = DESeq(dds, parallel=TRUE)
+  # save the output of DESeq() as an R object
   deseq_model_path = paste(output_path, 'deseq_model.rds', sep='/')
   saveRDS(deseq_model, deseq_model_path)
-  
+    
 } # end main()
 
 parseArguments <- function() {

@@ -1,6 +1,5 @@
 {
- "runNumber": [3993, 4011, 4040, 4058, 4588, 4178], 
- "harvestDate": ["09.10.19", "09.13.19", "09.17.19", "09.19.19", "08.21.20"], 
- "experimentDesign": ["24hourinduction", "Timecourse"], 
- "treatment": ["DMEM.37C.CO2"]
+ "runNumber": [3993, 4011, 4040, 4058, 4588, 4178],
+ "harvestDate": ["09.10.19", "09.13.19", "09.17.19", "09.19.19", "08.21.20"],
+ "experimentDesign": ["24hourinduction", "Timecourse"]
 }
